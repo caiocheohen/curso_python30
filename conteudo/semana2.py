@@ -9,194 +9,403 @@ DIAS.append(Dia(
     numero=9,
     titulo="Dicionários e conjuntos",
     nivel="Iniciante",
-    duracao="90 min",
+    duracao="100 min",
     objetivos=[
-        "Criar, acessar e percorrer dicionários com segurança, sem KeyError inesperado",
-        "Usar get, setdefault, update, pop e o desempacotamento com **",
-        "Aplicar conjuntos para deduplicação e para as quatro operações matemáticas de conjunto",
-        "Escolher a estrutura de dados certa (lista, tupla, dict ou set) para cada problema",
-        "Reconhecer por que Counter e defaultdict resolvem padrões que você reescreveria toda hora",
+        "Entender quando usar dicionário em vez de lista e o que os diferencia",
+        "Criar, acessar, modificar e percorrer dicionários com segurança",
+        "Usar get(), setdefault(), update() e pop() corretamente",
+        "Aplicar o padrão de contador e agrupador com dicionários",
+        "Usar conjuntos para eliminar duplicatas e realizar operações matemáticas de conjunto",
+        "Escolher a estrutura de dados certa para cada situação: lista, tupla, dict ou set",
     ],
     teoria="""
-1. Dicionário: mapeamento chave -> valor
---------------------------------------------
-Um dicionário é a estrutura que você usa quando precisa buscar um valor por
-um IDENTIFICADOR, em vez de por posição — o oposto de uma lista, que é
-organizada por índice numérico:
+Você já conhece listas (acesso por posição numérica) e tuplas (registros
+imutáveis). Hoje vamos conhecer duas estruturas novas que resolvem
+problemas completamente diferentes: dicionários e conjuntos.
 
-    aluno = {"nome": "Ana", "nota": 9.5, "aprovado": True}
-    aluno["nome"]          -> 'Ana'
-    aluno["curso"]         -> KeyError: 'curso'
-    aluno.get("curso")     -> None            (não levanta erro; devolve None por padrão)
-    aluno.get("curso", "-") -> '-'            (você escolhe o valor padrão)
+---------------------------------------------------------------------------
+1. Por que dicionário? O problema que ele resolve
+---------------------------------------------------------------------------
+Imagine que você tem uma lista de alunos e quer buscar a nota de "Carlos".
+Com uma lista, você precisaria percorrer elemento por elemento até achar.
+Com um dicionário, você acessa diretamente pelo nome:
 
-A diferença entre `aluno["curso"]` e `aluno.get("curso")` é uma decisão de
-design que você toma toda vez: use colchetes quando a ausência da chave é um
-BUG (você quer que o programa pare e avise); use `.get()` quando a ausência
-é uma situação normal e esperada, que seu código já sabe tratar.
+    # Com lista: lento e trabalhoso
+    alunos = [("Ana", 9.5), ("Bruno", 7.0), ("Carlos", 8.2)]
+    for nome, nota in alunos:
+        if nome == "Carlos":
+            print(nota)
 
-Chaves precisam ser HASHÁVEIS — na prática, isso significa imutáveis: `str`,
-`int`, `float`, `bool` e `tuple` servem; `list`, `dict` e `set` não servem,
-porque são mutáveis e não têm um hash estável ao longo do tempo (voltamos a
-esse conceito no Dia 18, com `__hash__`). Desde o Python 3.7, a ordem de
-inserção das chaves é preservada e faz parte da especificação da linguagem
-— antes disso, a ordem era um detalhe de implementação não garantido.
+    # Com dicionário: direto e rápido
+    notas = {"Ana": 9.5, "Bruno": 7.0, "Carlos": 8.2}
+    print(notas["Carlos"])    # 8.2  — acesso instantâneo
 
-2. Modificando um dicionário
----------------------------------
-    aluno["nota"] = 10                 # cria a chave se não existir, ou atualiza se existir
-    aluno.update({"nota": 8, "cpf": 1})  # atualiza várias chaves de uma vez
-    aluno.pop("cpf")                   # remove a chave e DEVOLVE o valor removido
-    aluno.pop("nada", None)            # sem KeyError: devolve None se a chave não existir
-    del aluno["nota"]                  # remove sem devolver nada (KeyError se não existir)
-    aluno.setdefault("faltas", 0)      # só cria a chave "faltas" se ela ainda não existir
+Um dicionário é um mapeamento de CHAVE para VALOR. Em vez de buscar
+por posição (índice), você busca por um IDENTIFICADOR que você escolhe.
 
-`setdefault` é sutil na primeira leitura: ele devolve o valor da chave se ela
-já existe, ou cria a chave com o valor informado E devolve esse valor — numa
-única chamada. Isso o torna a base do "padrão de agrupamento" que vemos na
-seção 4.
+Pense como um dicionário de verdade: você não percorre da página 1 até
+achar a palavra — você vai direto à letra e encontra a definição.
 
-3. Percorrendo um dicionário
----------------------------------
-    for chave in aluno: ...              # itera as CHAVES (comportamento padrão)
-    for chave, valor in aluno.items(): ...   # itera pares (chave, valor)
-    for valor in aluno.values(): ...         # itera só os valores
-    "nome" in aluno                          # testa se a CHAVE existe — O(1), muito rápido
+---------------------------------------------------------------------------
+2. Criando e acessando dicionários
+---------------------------------------------------------------------------
+Criando um dicionário:
 
-Um erro comum de quem vem de outras linguagens é escrever
-`for item in aluno:` esperando os VALORES — em Python, iterar um dicionário
-diretamente sempre percorre as chaves. Se você quer os dois, `.items()` é
-explícito e evita essa confusão.
+    # Forma literal (mais comum)
+    pessoa = {
+        "nome": "Ana",
+        "idade": 30,
+        "cidade": "Recife",
+    }
 
-4. O padrão contador (e por que Counter existe)
------------------------------------------------------
-Um dos usos mais comuns de dicionário é contar ocorrências:
+    # Dicionário vazio
+    vazio = {}
 
+    # Com dict() e pares chave=valor
+    config = dict(tema="escuro", fonte=14, largura=1920)
+
+Acessando valores:
+
+    pessoa["nome"]      # "Ana"   — acesso direto pela chave
+    pessoa["cpf"]       # KeyError: 'cpf' — chave não existe!
+
+O problema de acessar uma chave que não existe:
+
+    # ERRADO: levanta KeyError se a chave não existir
+    valor = dicionario["chave_que_pode_nao_existir"]
+
+    # CORRETO: get() devolve None se a chave não existir
+    valor = dicionario.get("chave_que_pode_nao_existir")
+
+    # MELHOR: get() com valor padrão explícito
+    valor = dicionario.get("chave_que_pode_nao_existir", 0)
+
+Quando usar [] vs get():
+    [] — quando a ausência da chave seria um BUG (você quer que o
+         programa pare e informe o erro)
+    get() — quando a ausência é uma situação normal e esperada
+
+---------------------------------------------------------------------------
+3. Modificando dicionários
+---------------------------------------------------------------------------
+
+    Operação                          O que faz
+    -----------------------------     ----------------------------------------
+    d["chave"] = valor                cria ou atualiza a chave
+    d.update({"a": 1, "b": 2})        atualiza múltiplas chaves de uma vez
+    d.update(outro_dict)              mescla outro_dict em d
+    d.pop("chave")                    remove e DEVOLVE o valor
+    d.pop("chave", padrao)            remove, ou devolve padrao se não existir
+    del d["chave"]                    remove sem devolver (KeyError se não existir)
+    d.setdefault("chave", valor)      cria a chave SOMENTE se ela não existir
+    d.clear()                         remove todos os pares
+
+Exemplos práticos:
+
+    config = {"tema": "claro", "fonte": 12}
+
+    config["lingua"] = "pt-BR"         # adiciona nova chave
+    config["fonte"] = 14               # atualiza valor existente
+    config.update({"tema": "escuro", "zoom": 1.5})  # atualiza vários
+
+    removido = config.pop("zoom")      # removido = 1.5
+    print(removido)                    # 1.5
+
+    # setdefault: cria APENAS se não existir
+    config.setdefault("salvar_auto", True)   # cria com True
+    config.setdefault("tema", "rosa")        # NÃO altera: já existe
+
+MESCLANDO DICIONÁRIOS (Python 3.9+):
+
+    a = {"x": 1, "y": 2}
+    b = {"y": 20, "z": 3}
+
+    c = a | b           # novo dicionário: {"x": 1, "y": 20, "z": 3}
+    a |= b              # atualiza a no lugar
+
+    # Em versões anteriores:
+    c = {**a, **b}      # desempacotamento: mesma lógica
+
+Em caso de chave repetida, o valor do dicionário mais à DIREITA prevalece.
+
+---------------------------------------------------------------------------
+4. Percorrendo dicionários
+---------------------------------------------------------------------------
+Existem três formas de percorrer um dicionário, cada uma servindo a um
+propósito diferente:
+
+    pessoa = {"nome": "Ana", "idade": 30, "cidade": "Recife"}
+
+    # 1. Percorre as CHAVES (padrão quando você itera direto)
+    for chave in pessoa:
+        print(chave)        # nome  idade  cidade
+
+    # 2. Percorre os PARES chave-valor (mais comum)
+    for chave, valor in pessoa.items():
+        print(chave, "->", valor)
+
+    # 3. Percorre apenas os VALORES
+    for valor in pessoa.values():
+        print(valor)        # Ana  30  Recife
+
+    # Verificando se uma chave existe
+    "nome" in pessoa        # True   — O(1), muito rápido
+    "cpf" in pessoa         # False
+
+    # Verificando se um valor existe (mais lento)
+    "Ana" in pessoa.values()  # True   — O(n), percorre todos
+
+IMPORTANTE: desde o Python 3.7, dicionários PRESERVAM a ordem de
+inserção. Se você inseriu "nome" antes de "idade", eles aparecem nessa
+ordem ao percorrer. Isso era um detalhe de implementação antes — hoje
+é garantia da linguagem.
+
+---------------------------------------------------------------------------
+5. O padrão contador: contando ocorrências
+---------------------------------------------------------------------------
+Um dos usos mais comuns de dicionário é contar quantas vezes algo aparece:
+
+    # Jeito manual com get()
+    texto = "banana"
     contagem = {}
-    for palavra in texto.split():
-        contagem[palavra] = contagem.get(palavra, 0) + 1
+    for letra in texto:
+        contagem[letra] = contagem.get(letra, 0) + 1
+    print(contagem)    # {'b': 1, 'a': 3, 'n': 2}
 
-Esse padrão aparece com tanta frequência que a biblioteca padrão já o
-resolve pronto:
+    # Como funciona o get com padrão:
+    # Primeira vez que "b" aparece: contagem.get("b", 0) = 0, então guarda 1
+    # Segunda vez que "a" aparece: contagem.get("a", 0) = 1, então guarda 2
+
+Esse padrão é tão comum que a biblioteca padrão tem uma versão pronta:
 
     from collections import Counter
-    Counter(texto.split()).most_common(3)     # as 3 palavras mais frequentes
+    contagem = Counter("banana")
+    print(contagem)                    # Counter({'a': 3, 'n': 2, 'b': 1})
+    print(contagem.most_common(2))    # [('a', 3), ('n', 2)]
 
-E para AGRUPAR itens por uma característica (em vez de só contar):
+---------------------------------------------------------------------------
+6. O padrão agrupador: agrupando por categoria
+---------------------------------------------------------------------------
+Outro padrão muito comum: agrupar itens por uma característica:
 
+    # Com setdefault
+    palavras = ["ana", "bia", "ary", "bob", "caio"]
+    grupos = {}
+    for p in palavras:
+        grupos.setdefault(p[0], []).append(p)
+    print(grupos)
+    # {'a': ['ana', 'ary'], 'b': ['bia', 'bob'], 'c': ['caio']}
+
+    # Como funciona:
+    # setdefault("a", []) cria grupos["a"] = [] na primeira vez que "a" aparece
+    # Nas vezes seguintes, só devolve a lista já existente para o append
+
+    # Com defaultdict (mais limpo)
     from collections import defaultdict
-    grupos = defaultdict(list)                 # toda chave nova já começa como []
-    for palavra in palavras:
-        grupos[palavra[0]].append(palavra)
+    grupos = defaultdict(list)          # toda chave nova começa como []
+    for p in palavras:
+        grupos[p[0]].append(p)          # não precisa de setdefault
 
-`defaultdict(list)` elimina a necessidade de `.setdefault()` ou de checar
-"a chave já existe?" manualmente: qualquer chave nunca vista antes já vem
-com uma lista vazia pronta para usar. A regra prática é: se você está prestes
-a escrever um `if chave not in dicionario:`, provavelmente existe uma
-ferramenta de `collections` que já resolve isso de forma mais direta.
+---------------------------------------------------------------------------
+7. Conjuntos (set): quando a ordem não importa e duplicatas não existem
+---------------------------------------------------------------------------
+Um conjunto é uma coleção DESORDENADA de elementos ÚNICOS. Cada elemento
+aparece no máximo uma vez, e não há garantia de ordem.
 
-5. Mesclando dois dicionários
-----------------------------------
-    a = {"x": 1}; b = {"y": 2}
-    juntos = {**a, **b}        # funciona desde Python 3.5
-    juntos = a | b             # operador de união, Python 3.9+
-    a |= b                     # mescla b DENTRO de a, no lugar
+    # Criando conjuntos
+    frutas = {"maçã", "banana", "uva"}
+    numeros = {1, 2, 3, 2, 1}        # duplicatas são ignoradas automaticamente
+    print(numeros)                    # {1, 2, 3}
 
-Em caso de chave repetida entre `a` e `b`, o valor de `b` (o operando da
-direita) sempre prevalece — pense nisso como "b sobrescreve a".
+    # ATENÇÃO: {} cria um dicionário VAZIO, não um conjunto!
+    vazio_dict = {}           # dicionário
+    vazio_set = set()         # conjunto vazio — use set(), não {}
 
-6. Conjunto (set): coleção sem ordem e sem repetição
----------------------------------------------------------
+    # Convertendo lista para set elimina duplicatas
+    lista = [1, 2, 3, 2, 1, 4]
+    unicos = set(lista)       # {1, 2, 3, 4}
+    sem_dup = list(set(lista)) # de volta para lista, sem duplicatas
+
+OPERAÇÕES MATEMÁTICAS DE CONJUNTO:
+
+    a = {1, 2, 3, 4}
+    b = {3, 4, 5, 6}
+
+    Operacao         Simbolo    Resultado         O que significa
+    ----------------  -------   ----------------  ----------------------
+    a | b            uniao      {1,2,3,4,5,6}     tudo que esta em a OU b
+    a & b            intersecao {3, 4}             tudo que esta em a E b
+    a - b            diferenca  {1, 2}             esta em a mas NAO em b
+    b - a            diferenca  {5, 6}             esta em b mas NAO em a
+    a ^ b            sim. dif.  {1,2,5,6}          esta em um mas nao em ambos
+
+Métodos de conjunto:
+
     s = {1, 2, 3}
-    vazio = set()              # {} sozinho cria um DICIONÁRIO vazio, não um set!
-    set([1, 1, 2])             -> {1, 2}     (duplicatas somem automaticamente)
+    s.add(4)              # {1, 2, 3, 4}
+    s.discard(2)          # {1, 3, 4} — sem erro se não existir
+    s.remove(3)           # {1, 4}    — KeyError se não existir
+    s.update([5, 6])      # {1, 4, 5, 6}
+    3 in s                # False — O(1), muito mais rápido que em lista!
 
-A pegadinha de `{}` ser dicionário (não conjunto) é histórica: quando os
-conjuntos foram adicionados à linguagem, a sintaxe `{}` já pertencia aos
-dicionários havia anos, então não havia como reaproveitá-la sem quebrar
-código existente.
+O SUPERPODER DO SET: verificação de pertencimento em O(1):
 
-As quatro operações matemáticas de conjunto, direto na sintaxe:
+    lista_grande = list(range(1_000_000))
+    set_grande = set(lista_grande)
 
-    a | b   união                (elementos que estão em a OU em b)
-    a & b   interseção           (elementos que estão em a E em b)
-    a - b   diferença            (elementos que estão em a, mas NÃO em b)
-    a ^ b   diferença simétrica  (elementos que estão em só um dos dois, não nos dois)
-    a <= b  subconjunto           (todo elemento de a também está em b?)
+    999_999 in lista_grande  # lento: percorre até 1 milhão de elementos
+    999_999 in set_grande    # instantâneo: cálculo de hash direto
 
-Métodos úteis: `.add(x)` adiciona um elemento; `.discard(x)` remove sem
-erro se não existir; `.remove(x)` remove mas levanta `KeyError` se não
-existir; `.update(outro_iteravel)` adiciona vários de uma vez.
+Quando usar set em vez de lista:
+    - Você só precisa saber SE algo existe (não onde)
+    - Você quer eliminar duplicatas
+    - Você vai fazer operações de conjunto (união, interseção...)
 
-O detalhe de desempenho mais importante do dia: `x in conjunto` custa tempo
-CONSTANTE (O(1)), enquanto `x in lista` custa tempo PROPORCIONAL ao tamanho
-da lista (O(n)), porque precisa checar item por item. Trocar uma lista por
-um conjunto quando você só precisa checar pertencimento repetidamente é uma
-das otimizações mais simples e mais impactantes que existem — sem mudar
-nada na lógica do programa, só na estrutura de dados escolhida.
+---------------------------------------------------------------------------
+8. Qual estrutura usar? Guia de decisão
+---------------------------------------------------------------------------
 
-`frozenset` é a versão IMUTÁVEL de um conjunto — por ser imutável, ela pode,
-diferente do `set` comum, ser usada como chave de dicionário ou elemento de
-outro conjunto.
+    Estrutura    Quando usar
+    ----------   -----------------------------------------------------------
+    lista        ordem importa, duplicatas permitidas, acesso por posição
+    tupla        registro fixo e imutável, chave de dicionário
+    dicionário   busca por identificador (nome, CPF, código), mapeamento
+    conjunto     pertencimento rápido, sem duplicatas, operações de conjunto
 
-7. Qual estrutura usar? Um guia de decisão rápido
---------------------------------------------------------
-    lista (list)   a ordem importa, permite elementos repetidos, acesso por posição numérica
-    tupla (tuple)   registro de tamanho fixo, imutável, pode virar chave de dicionário
-    dicionário (dict)   busca por um identificador (chave), cada chave associada a um dado
-    conjunto (set)  interessa só "pertence ou não", sem duplicatas, com operações de conjunto
-
-Uma pergunta prática para decidir: "eu vou buscar isso pelo conteúdo (então
-quero set/dict, que são rápidos) ou pela posição em que foi inserido (então
-quero list/tuple)?"
+Pergunta chave: "Vou buscar por posição ou por conteúdo?"
+    Por posição (índice numérico) → lista ou tupla
+    Por conteúdo (chave) → dicionário ou conjunto
 """,
     exemplos=[
         Exemplo(
-            titulo="Agrupando com setdefault",
-            codigo='''palavras = ["ana", "bia", "ary", "bob", "caio"]
-grupos = {}
-for p in palavras:
-    grupos.setdefault(p[0], []).append(p)
-print(grupos)   # {'a': ['ana', 'ary'], 'b': ['bia', 'bob'], 'c': ['caio']}
-''',
-            explicacao="setdefault cria a lista vazia na primeira vez que "
-                       "aquela letra aparece, e nas vezes seguintes apenas "
-                       "devolve a lista já existente para o append.",
-        ),
-        Exemplo(
-            titulo="Conjuntos para comparar dois cadastros",
-            codigo='''antigos = {"ana", "bia", "caio"}
-novos = {"bia", "caio", "davi"}
-print("sairam:", antigos - novos)      # {'ana'}
-print("entraram:", novos - antigos)    # {'davi'}
-print("ficaram:", antigos & novos)     # {'bia', 'caio'}
-''',
-            explicacao="Três linhas resolvem o que exigiria dois laços "
-                       "aninhados e listas auxiliares se feito com listas.",
-        ),
-        Exemplo(
-            titulo="Counter e defaultdict na prática",
+            titulo="Padrões contador e agrupador",
             codigo='''from collections import Counter, defaultdict
 
-texto = "o rato roeu a roupa do rei de roma"
-mais_comuns = Counter(texto.split()).most_common(2)
-print(mais_comuns)          # [('o', 1), ('rato', 1)] (empate, ordem de insercao)
+# PADRAO CONTADOR: manual
+texto = "mississippi"
+contagem = {}
+for letra in texto:
+    contagem[letra] = contagem.get(letra, 0) + 1
+print("Manual:", contagem)
 
-por_tamanho = defaultdict(list)
-for palavra in texto.split():
-    por_tamanho[len(palavra)].append(palavra)
-print(dict(por_tamanho))
+# PADRAO CONTADOR: com Counter
+c = Counter(texto)
+print("Counter:", dict(c))
+print("Mais comuns:", c.most_common(3))
+
+# PADRAO AGRUPADOR: agrupando palavras por inicial
+palavras = ["abacate", "banana", "amora", "blueberry", "caju", "acai"]
+
+# Com setdefault
+grupos1 = {}
+for p in palavras:
+    grupos1.setdefault(p[0], []).append(p)
+
+# Com defaultdict
+grupos2 = defaultdict(list)
+for p in palavras:
+    grupos2[p[0]].append(p)
+
+print("\nGrupos:", dict(grupos1))
 ''',
-            explicacao="Counter conta automaticamente; defaultdict elimina "
-                       "a necessidade de checar 'a chave já existe?'.",
+            explicacao="Counter e defaultdict resolvem os dois padrões mais "
+                       "comuns de dicionário sem precisar verificar se a "
+                       "chave existe a cada passo. "
+                       "Counter conta automaticamente; defaultdict cria a "
+                       "lista vazia automaticamente na primeira vez "
+                       "que uma nova chave é acessada.",
+        ),
+        Exemplo(
+            titulo="Operações de conjunto na prática",
+            codigo='''# Comparando dois cadastros de usuarios
+sistema_a = {"ana", "bruno", "carla", "diego"}
+sistema_b = {"bruno", "carla", "elena", "fabio"}
+
+# Quem esta nos dois sistemas?
+em_ambos = sistema_a & sistema_b
+print("Em ambos:", em_ambos)        # {'bruno', 'carla'}
+
+# Quem esta so no sistema A?
+so_em_a = sistema_a - sistema_b
+print("So em A:", so_em_a)          # {'ana', 'diego'}
+
+# Quem esta em qualquer um?
+em_algum = sistema_a | sistema_b
+print("Em algum:", em_algum)        # todos os 6
+
+# Quem esta em exatamente um (nao nos dois)?
+exclusivos = sistema_a ^ sistema_b
+print("Exclusivos:", exclusivos)    # {'ana', 'diego', 'elena', 'fabio'}
+
+# Eliminando duplicatas de uma lista
+notas = [9, 7, 9, 8, 7, 10, 8]
+print("\nNotas unicas:", sorted(set(notas)))    # [7, 8, 9, 10]
+''',
+            explicacao="Operações de conjunto resolvem em uma linha o que "
+                       "com listas exigiria dois for aninhados. "
+                       "O resultado de operações entre sets não tem ordem "
+                       "garantida — use sorted() se precisar de ordem. "
+                       "set() para eliminar duplicatas e depois sorted() "
+                       "para ordenar é um padrão muito comum.",
+        ),
+        Exemplo(
+            titulo="Dicionário como estrutura de dados rica",
+            codigo='''# Simulando um pequeno banco de dados de produtos
+catalogo = {}
+
+def adicionar_produto(codigo, nome, preco, estoque):
+    catalogo[codigo] = {
+        "nome": nome,
+        "preco": preco,
+        "estoque": estoque,
+    }
+
+adicionar_produto("A001", "Caneta Azul", 2.50, 100)
+adicionar_produto("A002", "Caderno", 15.90, 30)
+adicionar_produto("A003", "Borracha", 1.20, 200)
+
+# Consultando
+print(catalogo.get("A001"))   # o produto inteiro
+print(catalogo.get("A999"))   # None — nao existe
+
+# Relatorio de estoque baixo
+print("\nEstoque baixo (< 50):")
+for codigo, produto in catalogo.items():
+    if produto["estoque"] < 50:
+        print(f"  {codigo}: {produto['nome']} ({produto['estoque']} unidades)")
+
+# Total de produtos em estoque
+total = sum(p["estoque"] for p in catalogo.values())
+print(f"\nTotal de itens em estoque: {total}")
+''',
+            explicacao="Dicionários aninhados (dicionário de dicionários) "
+                       "são a forma mais natural de representar registros "
+                       "estruturados em Python, antes de usar classes. "
+                       "catalogo.items() percorre pares (codigo, produto), "
+                       "onde produto é outro dicionário.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d09e1",
             enunciado=(
-                "Escreva contar_letras(texto): devolve um dicionário com a frequência de\n"
-                "cada letra, ignorando espaços e diferenças de maiúsculas."
+                "Escreva a funcao contar_letras(texto) que conta quantas\n"
+                "vezes cada letra aparece no texto, ignorando espacos e\n"
+                "sem distinguir maiusculas de minusculas.\n\n"
+                "Exemplos:\n"
+                "   contar_letras('aba')  -> {'a': 2, 'b': 1}\n"
+                "   contar_letras('A a')  -> {'a': 2}  (espaco ignorado)\n"
+                "   contar_letras('')     -> {}\n\n"
+                "Estrategia:\n"
+                "   1. Crie um dicionario vazio: contagem = {}\n"
+                "   2. Para cada letra no texto:\n"
+                "      a. Converta para minuscula: letra = letra.lower()\n"
+                "      b. Se for espaco, pule com continue\n"
+                "      c. contagem[letra] = contagem.get(letra, 0) + 1\n"
+                "   3. Devolva contagem\n\n"
+                "Como get(letra, 0) funciona:\n"
+                "   Se 'a' nao estiver no dict: get devolve 0, entao guardamos 1\n"
+                "   Se 'a' ja estiver: get devolve o valor atual, somamos 1"
             ),
             funcao="contar_letras",
             assinatura="def contar_letras(texto):",
@@ -205,24 +414,52 @@ print(dict(por_tamanho))
                 ("contar_letras('A a')", "{'a': 2}"),
                 ("contar_letras('')", "{}"),
             ],
-            dica="Converta para minúsculas, pule espaços e use .get(letra, 0) + 1.",
+            dica="for letra in texto: letra = letra.lower(); if letra == ' ': continue; contagem[letra] = contagem.get(letra, 0) + 1",
         ),
         Exercicio(
             id="d09e2",
-            enunciado="Escreva inverter_dicionario(d) trocando chaves por valores.",
+            enunciado=(
+                "Escreva a funcao inverter_dicionario(d) que troca chaves\n"
+                "por valores e valores por chaves.\n\n"
+                "Exemplos:\n"
+                "   inverter_dicionario({'a': 1, 'b': 2}) -> {1: 'a', 2: 'b'}\n"
+                "   inverter_dicionario({})               -> {}\n\n"
+                "Estrategia:\n"
+                "   1. Crie um dicionario vazio: invertido = {}\n"
+                "   2. Percorra os pares com d.items():\n"
+                "      for chave, valor in d.items():\n"
+                "          invertido[valor] = chave\n"
+                "   3. Devolva invertido\n\n"
+                "Nota: isso assume que todos os valores do dicionario\n"
+                "original sao unicos e hashaveis (podem ser chaves).\n"
+                "Se houver valores repetidos, o ultimo prevalece."
+            ),
             funcao="inverter_dicionario",
             assinatura="def inverter_dicionario(d):",
             testes=[
                 ("inverter_dicionario({'a': 1, 'b': 2})", "{1: 'a', 2: 'b'}"),
                 ("inverter_dicionario({})", "{}"),
             ],
-            dica="Percorra .items() e monte um novo dicionário.",
+            dica="invertido = {}; for chave, valor in d.items(): invertido[valor] = chave; return invertido",
         ),
         Exercicio(
             id="d09e3",
             enunciado=(
-                "Escreva comuns(a, b) devolvendo a lista ORDENADA dos elementos que\n"
-                "aparecem nas duas listas, sem repetição."
+                "Escreva a funcao comuns(a, b) que devolve uma lista\n"
+                "ORDENADA com os elementos que aparecem em AMBAS as listas,\n"
+                "sem repeticoes.\n\n"
+                "Exemplos:\n"
+                "   comuns([1, 2, 3, 3], [3, 2, 9]) -> [2, 3]\n"
+                "   comuns([], [1])                  -> []\n"
+                "   comuns(['b', 'a'], ['a', 'b'])   -> ['a', 'b']\n\n"
+                "Estrategia com conjuntos:\n"
+                "   1. Converta a para set: set_a = set(a)\n"
+                "      Isso elimina duplicatas E permite operacao de intersecao\n"
+                "   2. Converta b para set: set_b = set(b)\n"
+                "   3. Calcule a intersecao: set_a & set_b\n"
+                "      Intersecao = elementos que estao nos DOIS conjuntos\n"
+                "   4. Converta para lista ordenada: sorted(...)\n\n"
+                "Em uma linha: return sorted(set(a) & set(b))"
             ),
             funcao="comuns",
             assinatura="def comuns(a, b):",
@@ -232,195 +469,466 @@ print(dict(por_tamanho))
                 ("comuns(['b', 'a'], ['a', 'b'])", "['a', 'b']"),
             ],
             nivel="medio",
-            dica="sorted(set(a) & set(b))",
+            dica="return sorted(set(a) & set(b))",
         ),
     ],
     quiz=[
-        Quiz("Qual destes NÃO pode ser chave de dicionário?",
-             ["'texto'", "(1, 2)", "[1, 2]", "3.14"], 2,
-             "Listas são mutáveis, logo não hasháveis — não podem virar chave."),
-        Quiz("O que cria um conjunto vazio?",
-             ["{}", "set()", "[]", "()"], 1,
-             "{} sozinho cria um dicionário vazio, por razões históricas da linguagem."),
-        Quiz("Por que trocar uma lista por um set melhora a performance de 'x in colecao'?",
-             ["Não melhora nada", "set usa hashing e faz a checagem em tempo constante O(1), lista percorre item a item O(n)",
-              "set ordena os elementos automaticamente", "Listas não suportam o operador in"], 1,
-             "A busca por pertencimento em um set é, na prática, independente do tamanho da coleção."),
-        Quiz("O que defaultdict(list) resolve que um dict comum não resolve sozinho?",
-             ["Ordena as chaves automaticamente", "Evita checar manualmente se a chave já existe antes do primeiro append",
-              "Impede chaves duplicadas", "Torna o dicionário imutável"], 1,
-             "Toda chave nova já nasce com uma lista vazia, dispensando o setdefault ou o if de checagem."),
+        Quiz(
+            "Qual a diferenca entre dict['chave'] e dict.get('chave')?",
+            ["Nao ha diferenca — os dois fazem a mesma coisa",
+             "dict['chave'] levanta KeyError se a chave nao existir; get() devolve None (ou um padrao)",
+             "get() e mais lento que o acesso por colchetes",
+             "dict['chave'] so funciona com chaves numericas"],
+            1,
+            "Use [] quando a ausencia da chave seria um bug — voce quer "
+            "o erro para descobrir o problema. "
+            "Use get() quando a ausencia e esperada e voce quer um valor padrao. "
+            "get('chave', 0) e muito util para o padrao contador.",
+        ),
+        Quiz(
+            "Por que {} nao cria um conjunto vazio em Python?",
+            ["E um bug que nunca foi corrigido",
+             "Porque {} ja pertencia aos dicionarios quando conjuntos foram adicionados — use set()",
+             "Porque conjuntos nao podem ser vazios",
+             "{} cria um conjunto sim — isso e incorreto"],
+            1,
+            "Quando conjuntos foram adicionados ao Python, {} ja era a sintaxe "
+            "de dicionarios. Para nao quebrar codigo existente, definiram "
+            "{1, 2, 3} para conjuntos com elementos e set() para conjunto vazio. "
+            "Nunca use {} sozinho esperando um conjunto.",
+        ),
+        Quiz(
+            "Por que 'x in conjunto' e muito mais rapido que 'x in lista'?",
+            ["Conjuntos sao sempre menores que listas",
+             "Conjuntos usam hashing para localizar o elemento diretamente em O(1); listas percorrem elemento a elemento em O(n)",
+             "O Python otimiza automaticamente a busca em listas quando sao grandes",
+             "Nao ha diferenca de velocidade entre os dois"],
+            1,
+            "set usa uma tabela hash: calcula hash(x) para saber exatamente "
+            "onde procurar, sem precisar verificar outros elementos. "
+            "Com 1 milhao de elementos, set e instantaneo; "
+            "lista pode verificar 1 milhao antes de concluir que nao existe.",
+        ),
+        Quiz(
+            "O que setdefault('chave', valor_padrao) faz?",
+            ["Sempre sobrescreve o valor da chave com valor_padrao",
+             "Cria a chave com valor_padrao APENAS se ela nao existir ainda; se existir, nao altera nada",
+             "Devolve valor_padrao sem modificar o dicionario",
+             "Remove a chave se ela existir"],
+            1,
+            "setdefault e como 'crie se nao existir'. "
+            "Se 'chave' ja tem um valor, setdefault o preserva e devolve ele. "
+            "Se 'chave' nao existe, cria com valor_padrao e devolve valor_padrao. "
+            "Muito util no padrao agrupador: setdefault(key, []).append(item)",
+        ),
     ],
     projeto=(
-        "Faça agenda.py: dicionário nome -> telefone, com menu para adicionar, buscar, "
-        "remover e listar em ordem alfabética, salvando tudo em memória. Use Counter para "
-        "mostrar quantos contatos existem por DDD."
+        "Crie analisador_texto.py que receba um texto longo (pode ser\n"
+        "hardcoded, como uma frase famosa ou paragrafo de livro) e exiba:\n\n"
+        "   1. Frequencia de cada letra (ignorando espacos e pontuacao)\n"
+        "   2. As 5 letras mais comuns (Counter.most_common)\n"
+        "   3. Frequencia de cada palavra (case-insensitive)\n"
+        "   4. As 5 palavras mais comuns\n"
+        "   5. Quantas palavras UNICAS existem (use set)\n"
+        "   6. Palavras que aparecem apenas uma vez\n\n"
+        "Exiba os resultados como um relatorio formatado com f-strings.\n\n"
+        "BONUS: compare dois textos diferentes e mostre:\n"
+        "   - Palavras que aparecem em AMBOS os textos\n"
+        "   - Palavras exclusivas de cada texto\n"
+        "   usando operacoes de conjunto sobre os vocabularios."
     ),
-    leitura=["docs.python.org/pt-br/3/library/collections.html", "docs.python.org/pt-br/3/tutorial/datastructures.html#sets"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/datastructures.html#dictionaries",
+        "docs.python.org/pt-br/3/library/collections.html — Counter e defaultdict",
+        "docs.python.org/pt-br/3/tutorial/datastructures.html#sets",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 10
 DIAS.append(Dia(
     numero=10,
     titulo="Compreensões de lista, dicionário e conjunto",
     nivel="Iniciante",
-    duracao="80 min",
+    duracao="90 min",
     objetivos=[
-        "Traduzir um laço for explícito para uma compreensão, e vice-versa",
+        "Traduzir um laço for explícito para uma compreensão de lista, e vice-versa",
         "Filtrar e transformar dados em uma única expressão legível",
-        "Usar compreensões aninhadas com consciência de quando param de ser legíveis",
-        "Diferenciar compreensão (ávida) de expressão geradora (preguiçosa) e saber quando usar cada uma",
-        "Reconhecer quando um laço for tradicional é a escolha melhor, não a compreensão",
+        "Entender a diferença entre o if de filtro e o if/else ternário dentro de compreensões",
+        "Escrever compreensões de dicionário e de conjunto",
+        "Usar compreensões aninhadas com consciência do momento em que deixam de ser legíveis",
+        "Diferenciar compreensão de lista (ávida) de expressão geradora (preguiçosa)",
+        "Reconhecer quando um for tradicional é mais claro do que uma compreensão",
     ],
     teoria="""
-1. A forma geral, e por que ela existe
-------------------------------------------
-    [ EXPRESSÃO for ITEM in ITERÁVEL if CONDIÇÃO ]
+Nos Dias 7, 8 e 9 você escreveu muitos laços com o mesmo padrão:
+criar uma lista vazia, percorrer algo com for e ir adicionando elementos
+com append. Esse padrão é tão comum que Python tem uma sintaxe especial
+para ele, mais compacta e expressiva: as compreensões.
 
-Uma compreensão de lista não é um recurso "extra" — ela é literalmente a
-tradução direta do padrão mais comum de laço em Python: criar uma lista
-vazia, percorrer algo, e ir acrescentando itens.
+---------------------------------------------------------------------------
+1. O problema que as compreensões resolvem
+---------------------------------------------------------------------------
+Compare os dois códigos abaixo — eles fazem exatamente a mesma coisa:
 
+    # Forma tradicional com for (4 linhas)
+    quadrados = []
+    for x in range(10):
+        quadrados.append(x ** 2)
+
+    # Forma com compreensão de lista (1 linha)
+    quadrados = [x ** 2 for x in range(10)]
+
+A compreensão não é apenas mais curta. Ela é mais clara porque lê quase
+como inglês: "a lista dos x ao quadrado, para cada x em range(10)".
+O padrão de 4 linhas tem "ruído" — a criação da lista vazia e o append
+existem por obrigação da sintaxe, não por lógica do problema.
+
+---------------------------------------------------------------------------
+2. A estrutura completa de uma compreensão de lista
+---------------------------------------------------------------------------
+A forma geral é:
+
+    [EXPRESSÃO for ITEM in ITERÁVEL if CONDIÇÃO]
+
+Onde:
+    EXPRESSÃO  — o que colocar na lista para cada item (pode usar o item)
+    for ITEM in ITERÁVEL — percorre cada elemento do iterável
+    if CONDIÇÃO — (opcional) filtra: só inclui se a condição for True
+
+Exemplos progressivos:
+
+    # Só a expressão e o for (sem filtro)
+    [x for x in range(5)]          # [0, 1, 2, 3, 4]
+    [x * 2 for x in range(5)]      # [0, 2, 4, 6, 8]
+    [x ** 2 for x in range(5)]     # [0, 1, 4, 9, 16]
+
+    # Com filtro (if no final)
+    [x for x in range(10) if x % 2 == 0]     # [0, 2, 4, 6, 8]
+    [x ** 2 for x in range(10) if x % 2 == 0] # [0, 4, 16, 36, 64]
+
+    # Com strings
+    frutas = ["maçã", "banana", "kiwi", "uva"]
+    [f.upper() for f in frutas]                # ['MAÇÃ', 'BANANA', 'KIWI', 'UVA']
+    [f for f in frutas if len(f) > 4]          # ['maçã', 'banana']
+
+---------------------------------------------------------------------------
+3. if de filtro versus if/else ternário: posições diferentes, papéis diferentes
+---------------------------------------------------------------------------
+Esta é a parte que mais confunde quem está aprendendo compreensões.
+Existem dois usos diferentes do if, e cada um fica em um lugar diferente:
+
+USO 1 — Filtro (if no FINAL): REMOVE elementos que não satisfazem a condição
+
+    [x for x in range(10) if x % 2 == 0]
+    # Resultado: [0, 2, 4, 6, 8]
+    # Elementos ímpares foram REMOVIDOS da lista
+
+    Posição: DEPOIS do for
+    Efeito: a lista resultante tem MENOS elementos que o iterável original
+    O if não tem else aqui — ou inclui ou descarta
+
+USO 2 — Ternário (if/else no INÍCIO): TRANSFORMA cada elemento
+
+    ["par" if x % 2 == 0 else "impar" for x in range(5)]
+    # Resultado: ['par', 'impar', 'par', 'impar', 'par']
+    # TODOS os elementos estão presentes, mas transformados
+
+    Posição: ANTES do for, entre a expressão e o for
+    Efeito: a lista resultante tem o MESMO número de elementos
+    O if SEMPRE tem else aqui — todo elemento gera um valor
+
+Comparação lado a lado:
+
+    lista = [1, 2, 3, 4, 5, 6]
+
+    # Filtro: só os pares (lista menor)
+    [x for x in lista if x % 2 == 0]
+    # [2, 4, 6]
+
+    # Ternário: rotula cada um (lista igual)
+    [x if x % 2 == 0 else -x for x in lista]
+    # [x negativo para ímpares: -1, 2, -3, 4, -5, 6]
+
+Regra para não confundir:
+    if no FINAL  →  filtra (elimina elementos)
+    if no INÍCIO →  ternário (transforma todos)
+
+---------------------------------------------------------------------------
+4. Compreensão de dicionário
+---------------------------------------------------------------------------
+A mesma ideia, mas com chave: valor em vez de só valor, e chaves {} em
+vez de colchetes []:
+
+    {CHAVE: VALOR for ITEM in ITERÁVEL if CONDIÇÃO}
+
+Exemplos:
+
+    # Palavra -> comprimento
+    palavras = ["maçã", "banana", "kiwi"]
+    {p: len(p) for p in palavras}
+    # {'maçã': 4, 'banana': 6, 'kiwi': 4}
+
+    # Número -> quadrado (só pares)
+    {x: x**2 for x in range(10) if x % 2 == 0}
+    # {0: 0, 2: 4, 4: 16, 6: 36, 8: 64}
+
+    # Invertendo um dicionário (chaves viram valores e vice-versa)
+    original = {"a": 1, "b": 2, "c": 3}
+    {v: k for k, v in original.items()}
+    # {1: 'a', 2: 'b', 3: 'c'}
+
+    # Filtrando itens do estoque com valor acima de 10
+    estoque = {"caneta": 2.50, "caderno": 15.90, "régua": 8.75}
+    {item: preco for item, preco in estoque.items() if preco > 10}
+    # {'caderno': 15.90}
+
+---------------------------------------------------------------------------
+5. Compreensão de conjunto
+---------------------------------------------------------------------------
+Igual à de lista, mas com {} e sem duplicatas:
+
+    {EXPRESSÃO for ITEM in ITERÁVEL if CONDIÇÃO}
+
+    # Letras únicas de uma palavra (sem repetição, sem ordem garantida)
+    {"banana"}                    # não é compreensão, é um conjunto literal
+    {letra for letra in "banana"} # {'b', 'a', 'n'} — cada letra uma vez
+
+    # Comprimentos únicos das palavras
+    palavras = ["maçã", "kiwi", "banana", "uva", "pera"]
+    {len(p) for p in palavras}
+    # {3, 4, 6} — sem duplicatas, sem ordem garantida
+
+    # Iniciais únicas
+    nomes = ["Ana", "Bruno", "Alice", "Carlos", "Bia"]
+    {nome[0] for nome in nomes}
+    # {'A', 'B', 'C'}
+
+---------------------------------------------------------------------------
+6. Compreensões aninhadas: for dentro de for
+---------------------------------------------------------------------------
+Você pode ter mais de um for em uma compreensão. A ordem é a mesma
+que você escreveria com laços aninhados tradicionais:
+
+    # For aninhado tradicional
+    pares = []
+    for i in range(3):
+        for j in range(3):
+            pares.append((i, j))
+
+    # Equivalente com compreensão
+    pares = [(i, j) for i in range(3) for j in range(3)]
+    # [(0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2)]
+
+ACHATANDO UMA MATRIZ (lista de listas em lista simples):
+
+    matriz = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+    # Forma tradicional
+    plana = []
+    for linha in matriz:
+        for elemento in linha:
+            plana.append(elemento)
+
+    # Com compreensão
+    plana = [elemento for linha in matriz for elemento in linha]
+    # [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+TRANSPONDO UMA MATRIZ (linhas viram colunas):
+
+    # [[1,2,3],     ->    [[1,4],
+    #  [4,5,6]]            [2,5],
+    #                      [3,6]]
+
+    transposta = [[linha[c] for linha in matriz] for c in range(len(matriz[0]))]
+
+    Leitura da compreensão externa para a interna:
+    "Para cada coluna c em range(número de colunas):
+        cria uma lista com o elemento da coluna c de cada linha"
+
+LIMITES DE LEGIBILIDADE:
+Compreensões aninhadas ficam difíceis de ler rapidamente. Uma boa
+heurística: se você precisar reler mais de uma vez para entender, use
+o for tradicional.
+
+    # Legível: achatar
+    [x for linha in matriz for x in linha]
+
+    # No limite: transpor (ainda ok com comentário)
+    [[linha[c] for linha in m] for c in range(len(m[0]))]
+
+    # Não use: três níveis de aninhamento
+    [x for a in b for c in a for x in c]  # difícil de ler
+
+---------------------------------------------------------------------------
+7. Expressão geradora: a compreensão preguiçosa
+---------------------------------------------------------------------------
+Trocando os colchetes por parênteses, você cria uma EXPRESSÃO GERADORA
+em vez de uma lista. A diferença fundamental: a lista calcula e guarda
+TODOS os valores imediatamente; o gerador calcula um por vez, sob demanda.
+
+    # Lista: calcula tudo agora, guarda na memória
+    lista = [x ** 2 for x in range(1_000_000)]    # 8 MB na memória
+
+    # Gerador: calcula sob demanda, ocupa quase nada
+    gerador = (x ** 2 for x in range(1_000_000))  # ~100 bytes
+
+    # Ambos produzem o mesmo resultado quando consumidos
+    sum(lista)      # funciona
+    sum(gerador)    # funciona, e usa bem menos memória
+
+Quando usar gerador em vez de lista:
+    - Você só vai percorrer uma vez
+    - Está passando direto para uma função como sum(), any(), all()
+    - O iterável é muito grande e não quer guardar tudo na memória
+
+    # Forma compacta ao passar para funções (parênteses fundidos)
+    sum(x ** 2 for x in range(10))    # não precisa de colchetes extras
+
+LIMITAÇÃO: geradores se esgotam. Depois de percorrido uma vez, não
+produzem mais nada. Se precisar percorrer mais de uma vez, use lista.
+
+    g = (x for x in range(3))
+    list(g)    # [0, 1, 2]
+    list(g)    # []  — já foi consumido!
+
+---------------------------------------------------------------------------
+8. Quando NÃO usar compreensão
+---------------------------------------------------------------------------
+Compreensões são ótimas para CONSTRUIR coleções. Evite usá-las para:
+
+EFEITOS COLATERAIS (imprimir, gravar, enviar):
+
+    # ERRADO: compreensão só para efeito colateral
+    [print(x) for x in lista]   # funciona, mas é má prática
+
+    # CORRETO: use for quando o objetivo é o efeito, não a lista
+    for x in lista:
+        print(x)
+
+LÓGICA COMPLEXA (mais de 2-3 condições):
+
+    # Quando a compreensão fica difícil de ler, use for
+    # [x for x in dados if condicao1 and condicao2 and condicao3]
     resultado = []
-    for ITEM in ITERÁVEL:
-        if CONDIÇÃO:
-            resultado.append(EXPRESSÃO)
+    for x in dados:
+        if condicao1 and condicao2 and condicao3:
+            resultado.append(x)
 
-Sempre que você perceber que está escrevendo esse padrão de 4 linhas, é
-provável que uma compreensão de 1 linha expresse a mesma ideia com menos
-ruído visual — não por concisão em si, mas porque a estrutura de 4 linhas
-tem partes fixas (criar a lista, o for, o append) que só existem por causa
-da sintaxe, não por causa da lógica do problema.
-
-    [x * x for x in range(6)]                 -> [0, 1, 4, 9, 16, 25]
-    [x for x in range(20) if x % 3 == 0]      -> [0, 3, 6, 9, 12, 15, 18]
-    [p.upper() for p in palavras if len(p) > 3]
-
-2. if/else DENTRO da expressão: uma sintaxe diferente do filtro
---------------------------------------------------------------------
-Um erro comum de iniciante é confundir "filtrar" com "escolher um valor
-alternativo". São coisas diferentes, e cada uma tem sua posição própria na
-compreensão:
-
-    ["par" if x % 2 == 0 else "impar" for x in range(4)]
-
-Aqui não estamos removendo elementos — TODOS os números de `range(4)`
-aparecem no resultado, só que transformados em uma das duas strings. Esse é
-o ternário (Dia 5), que sempre vem ANTES do `for` quando usado dentro de uma
-compreensão. Já o `if` de filtro (que remove elementos, sem alternativa)
-sempre vem DEPOIS do `for`, no final da expressão. A regra prática: filtrar
-elimina; ternário escolhe um valor para cada elemento, sem eliminar nenhum.
-
-3. Compreensão de dicionário e de conjunto
-------------------------------------------------
-A mesma sintaxe geral se aplica trocando os colchetes por chaves, com uma
-distinção adicional para dicionário (precisa de `chave: valor`):
-
-    {p: len(p) for p in palavras}                   # dicionário: palavra -> tamanho
-    {p.lower() for p in palavras}                    # conjunto: sem repetição, sem ordem
-    {v: k for k, v in dicionario.items()}           # inverte um dicionário existente
-
-4. Aninhamento: leia na mesma ordem em que escreveria os laços
----------------------------------------------------------------------
-Uma compreensão pode ter mais de um `for`, e a leitura deve seguir a mesma
-ordem que você usaria escrevendo os laços aninhados manualmente, da
-esquerda para a direita:
-
-    [ (i, j) for i in range(3) for j in range(2) ]
-    # equivale a: for i in range(3): for j in range(2): resultado.append((i, j))
-
-Duas aplicações muito comuns desse padrão:
-
-    achatar = [x for linha in matriz for x in linha]                # achatar uma matriz em uma lista única
-    matriz_nova = [[0] * 3 for _ in range(3)]                        # construir matriz (repare: colchetes internos!)
-    transposta = [[linha[c] for linha in m] for c in range(len(m[0]))]  # transpor linhas e colunas
-
-Note que `[[0] * 3 for _ in range(3)]` NÃO sofre da armadilha de
-`[[0] * 3] * 3` que vimos no Dia 8: aqui, a compreensão executa `[0] * 3`
-uma vez PARA CADA iteração de `_`, criando três listas de fato
-independentes — é exatamente por isso que compreensões são a forma correta
-de construir matrizes, não a multiplicação de lista.
-
-5. Expressão geradora: trocando [] por ()
-------------------------------------------------
-Ao trocar os colchetes por parênteses, você não cria mais uma lista — cria
-uma expressão geradora, que produz os valores SOB DEMANDA (preguiçosamente),
-sem nunca materializar a coleção inteira na memória de uma vez:
-
-    sum(x * x for x in range(1_000_000))    # nunca cria a lista de 1 milhão de itens na memória
-    any(p.startswith("a") for p in palavras)
-    max((len(p) for p in palavras), default=0)
-
-Essa diferença de memória é o motivo pelo qual, ao passar uma expressão
-geradora como ÚNICO argumento de uma função, os parênteses de fora da
-função e os da expressão podem ser fundidos: `sum(x*x for x in range(10))`
-funciona sem parênteses duplicados.
-
-Regra prática para escolher: se você só vai CONSUMIR o resultado uma única
-vez (somar, checar existência, percorrer uma vez), use o gerador — ele
-economiza memória e costuma ser mais rápido para começar a produzir
-resultados. Se você precisa acessar por índice, percorrer mais de uma vez,
-ou saber o tamanho com `len()`, materialize uma lista de verdade.
-
-6. Quando NÃO usar compreensão
-------------------------------------
-- quando o corpo precisa de um EFEITO COLATERAL, como `print` ou gravar em
-  arquivo — compreensões existem para CONSTRUIR uma coleção, não para
-  executar ações; usar uma compreensão só para disparar efeitos é
-  considerado um mau uso da ferramenta;
-- quando o resultado passa de ~2 linhas de leitura ou tem 3 ou mais níveis
-  de aninhamento — nesse ponto, a economia de digitação já não compensa a
-  perda de clareza;
-- quando a condição `if` cresce com múltiplas cláusulas longas, dificultando
-  saber, de relance, o que está sendo filtrado.
-
-A régua final é sempre: legibilidade vence concisão. Uma compreensão que
-exige ser lida duas ou três vezes para ser entendida é pior, na prática, do
-que um laço `for` explícito de quatro linhas que qualquer pessoa lê uma vez
-e entende.
+A regra final é sempre legibilidade: uma compreensão que você precisa
+reler várias vezes para entender é pior do que um for de 4 linhas claro.
 """,
     exemplos=[
         Exemplo(
-            titulo="Limpeza de dados em uma linha",
-            codigo='''bruto = [" ana ", "", "  BIA", "carla ", "   "]
-nomes = [n.strip().title() for n in bruto if n.strip()]
-print(nomes)     # ['Ana', 'Bia', 'Carla']
+            titulo="Limpando dados reais com compreensão",
+            codigo='''# Simulando dados bagunçados vindos de um formulario
+entradas = ["  Ana ", "", "BRUNO", "  ", "carla", None, "DIEGO  "]
+
+# Forma tradicional (6 linhas)
+nomes_trad = []
+for e in entradas:
+    if e and e.strip():
+        nomes_trad.append(e.strip().title())
+
+# Com compreensao (1 linha)
+nomes = [e.strip().title() for e in entradas if e and e.strip()]
+
+print(nomes)   # ['Ana', 'Bruno', 'Carla', 'Diego']
+
+# Filtrando e transformando numeros
+valores = [1, -3, 5, -2, 0, 8, -1, 4]
+
+positivos = [v for v in valores if v > 0]      # [1, 5, 8, 4]
+absolutos = [abs(v) for v in valores]           # [1, 3, 5, 2, 0, 8, 1, 4]
+rotulados = ["pos" if v > 0 else "neg" if v < 0 else "zero"
+             for v in valores]
+print(rotulados)   # ['pos', 'neg', 'pos', 'neg', 'zero', 'pos', 'neg', 'pos']
 ''',
-            explicacao="Filtra strings vazias (após strip) e normaliza a "
-                       "capitalização ao mesmo tempo, em uma única passada.",
+            explicacao="O filtro 'if e and e.strip()' verifica duas coisas: "
+                       "e not None/vazio (primeiro 'e') E a string "
+                       "não é só espaços (segundo 'e.strip()'). "
+                       "O ternário encadeado 'pos/neg/zero' funciona mas "
+                       "está no limite da legibilidade — para mais condições "
+                       "use if/elif tradicional.",
         ),
         Exemplo(
-            titulo="Compreensão de dicionário com filtro",
-            codigo='''estoque = {"caneta": 0, "papel": 12, "cola": 3}
-disponiveis = {p: q for p, q in estoque.items() if q > 0}
-print(disponiveis)      # {'papel': 12, 'cola': 3}
+            titulo="Compreensões de dicionário e conjunto",
+            codigo='''# Compreensao de dicionario: inventario de letras
+palavra = "abracadabra"
+freq = {letra: palavra.count(letra) for letra in set(palavra)}
+print(freq)    # {'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}
+
+# Filtrando dicionario: so quem passou
+notas = {"Ana": 9.5, "Bruno": 4.5, "Carla": 7.0, "Diego": 5.9}
+aprovados = {nome: nota for nome, nota in notas.items() if nota >= 6.0}
+print(aprovados)   # {'Ana': 9.5, 'Carla': 7.0}
+
+# Normalizando chaves de um dicionario
+dados_brutos = {"Nome": "Ana", "IDADE": 30, "Cidade": "Recife"}
+normalizado = {k.lower(): v for k, v in dados_brutos.items()}
+print(normalizado)  # {'nome': 'Ana', 'idade': 30, 'cidade': 'Recife'}
+
+# Compreensao de conjunto: iniciais unicas
+nomes = ["Ana", "Bruno", "Alice", "Carlos", "Beatriz", "Andre"]
+iniciais = {nome[0] for nome in nomes}
+print(sorted(iniciais))    # ['A', 'B', 'C']
 ''',
-            explicacao="Mesma sintaxe da compreensão de lista, só trocando "
-                       "colchetes por chaves e usando par chave: valor.",
+            explicacao="A compreensão de frequência usa set(palavra) para "
+                       "percorrer cada letra única uma vez — mais eficiente "
+                       "do que usar Counter, e mostra como compreensão e "
+                       "conjunto se complementam. "
+                       "Normalizar chaves de dicionário é um caso de uso "
+                       "muito comum ao receber dados de APIs externas.",
         ),
         Exemplo(
-            titulo="Lista versus gerador: quando a diferença de memória importa",
+            titulo="Gerador versus lista: quando a memória importa",
             codigo='''import sys
 
-lista = [x for x in range(100_000)]
-gerador = (x for x in range(100_000))
+# Compreensao de lista: tudo na memoria de uma vez
+lista = [x ** 2 for x in range(100_000)]
+print(f"Lista:   {sys.getsizeof(lista):>10,} bytes")
 
-print(sys.getsizeof(lista))     # milhares de bytes: todos os valores existem na memoria
-print(sys.getsizeof(gerador))   # pouco mais de cem bytes: nada foi calculado ainda
+# Expressao geradora: quase nada na memoria
+gerador = (x ** 2 for x in range(100_000))
+print(f"Gerador: {sys.getsizeof(gerador):>10,} bytes")
 
-print(sum(gerador))              # so agora os valores sao produzidos, um a um, e somados
+# Ambos produzem o mesmo resultado
+soma_lista = sum(lista)
+soma_gerador = sum(x ** 2 for x in range(100_000))
+print(f"Resultados iguais: {soma_lista == soma_gerador}")
+
+# Gerador se esgota!
+g = (x for x in range(3))
+print(list(g))    # [0, 1, 2]
+print(list(g))    # []  — ja foi consumido
+
+# Quando usar cada um:
+# Lista   -> precisa usar mais de uma vez, acessar por indice, saber o len
+# Gerador -> so percorre uma vez, passa direto para sum/any/all/max
 ''',
-            explicacao="O gerador não guarda os 100 mil números — ele guarda "
-                       "apenas 'como calcular o próximo', o que economiza "
-                       "memória enquanto o resultado for consumido uma vez só.",
+            explicacao="A diferença de memória é dramática: a lista com "
+                       "100 mil elementos ocupa centenas de KB; o gerador "
+                       "ocupa menos de 200 bytes independente do tamanho. "
+                       "O truque 'sum(x**2 for x in range(n))' usa o "
+                       "gerador diretamente sem criar lista intermediária.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d10e1",
             enunciado=(
-                "Escreva quadrados_pares(n) devolvendo, com compreensão, a lista dos\n"
-                "quadrados dos números pares de 0 até n-1."
+                "Escreva a funcao quadrados_pares(n) que devolve, usando\n"
+                "compreensao de lista, os quadrados dos numeros PARES\n"
+                "de 0 ate n-1.\n\n"
+                "Exemplos:\n"
+                "   quadrados_pares(7) -> [0, 4, 16, 36]\n"
+                "      (pares de 0 a 6: 0,2,4,6 -> quadrados: 0,4,16,36)\n"
+                "   quadrados_pares(1) -> [0]\n"
+                "      (so o 0 cabe em range(1), e 0 e par)\n"
+                "   quadrados_pares(0) -> []\n"
+                "      (range(0) e vazio, nenhum elemento)\n\n"
+                "Estrutura da compreensao:\n"
+                "   [x*x for x in range(n) if x % 2 == 0]\n\n"
+                "Leitura: 'a lista de x ao quadrado, para cada x em\n"
+                "range(n), somente se x for par (resto da divisao por 2 = 0)'"
             ),
             funcao="quadrados_pares",
             assinatura="def quadrados_pares(n):",
@@ -429,13 +937,27 @@ print(sum(gerador))              # so agora os valores sao produzidos, um a um, 
                 ("quadrados_pares(1)", "[0]"),
                 ("quadrados_pares(0)", "[]"),
             ],
-            dica="[x*x for x in range(n) if x % 2 == 0]",
+            dica="return [x*x for x in range(n) if x % 2 == 0]",
         ),
         Exercicio(
             id="d10e2",
             enunciado=(
-                "Escreva agrupar_por_tamanho(palavras) devolvendo um dicionário\n"
-                "tamanho -> lista de palavras daquele tamanho (na ordem de entrada)."
+                "Escreva agrupar_por_tamanho(palavras) que devolve um\n"
+                "dicionario onde cada chave e um tamanho (int) e o valor\n"
+                "e a lista de palavras daquele tamanho, na ordem de entrada.\n\n"
+                "Exemplos:\n"
+                "   agrupar_por_tamanho(['oi', 'ana', 'ai'])\n"
+                "   -> {2: ['oi', 'ai'], 3: ['ana']}\n\n"
+                "   agrupar_por_tamanho([]) -> {}\n\n"
+                "Estrategia com for e setdefault (mais legivel aqui):\n"
+                "   grupos = {}\n"
+                "   for p in palavras:\n"
+                "       grupos.setdefault(len(p), []).append(p)\n"
+                "   return grupos\n\n"
+                "Por que setdefault(len(p), [])?\n"
+                "   - Na primeira palavra de 2 letras: cria grupos[2] = []\n"
+                "   - Nas seguintes: apenas devolve a lista ja existente\n"
+                "   - .append(p) adiciona a palavra a essa lista"
             ),
             funcao="agrupar_por_tamanho",
             assinatura="def agrupar_por_tamanho(palavras):",
@@ -445,13 +967,29 @@ print(sum(gerador))              # so agora os valores sao produzidos, um a um, 
                 ("agrupar_por_tamanho([])", "{}"),
             ],
             nivel="medio",
-            dica="Pode usar setdefault num for comum, ou compreensão de dicionário com set de tamanhos.",
+            dica="grupos = {}; for p in palavras: grupos.setdefault(len(p), []).append(p); return grupos",
         ),
         Exercicio(
             id="d10e3",
             enunciado=(
-                "Escreva transposta(matriz) que devolve a matriz transposta\n"
-                "(linhas viram colunas). Matriz vazia devolve []."
+                "Escreva transposta(matriz) que devolve a transposta\n"
+                "de uma matriz (listas de listas): linhas viram colunas.\n\n"
+                "Exemplos:\n"
+                "   transposta([[1,2,3],[4,5,6]])\n"
+                "   -> [[1,4],[2,5],[3,6]]\n\n"
+                "   Visualizando:\n"
+                "   [[1, 2, 3],       [[1, 4],\n"
+                "    [4, 5, 6]]  ->    [2, 5],\n"
+                "                      [3, 6]]\n\n"
+                "   transposta([[1]])  -> [[1]]\n"
+                "   transposta([])     -> []\n\n"
+                "Estrategia:\n"
+                "   1. Trate o caso vazio: if not matriz: return []\n"
+                "   2. Use compreensao aninhada:\n"
+                "      [[linha[c] for linha in matriz]\n"
+                "       for c in range(len(matriz[0]))]\n\n"
+                "   Leitura: 'para cada coluna c, cria uma lista com\n"
+                "   o elemento da coluna c de cada linha'"
             ),
             funcao="transposta",
             assinatura="def transposta(matriz):",
@@ -461,292 +999,533 @@ print(sum(gerador))              # so agora os valores sao produzidos, um a um, 
                 ("transposta([])", "[]"),
             ],
             nivel="dificil",
-            dica="[[l[c] for l in matriz] for c in range(len(matriz[0]))] — trate o caso vazio antes.",
+            dica="if not matriz: return []. Depois: [[linha[c] for linha in matriz] for c in range(len(matriz[0]))]",
         ),
     ],
     quiz=[
-        Quiz("Qual a diferença entre [x for x in y] e (x for x in y)?",
-             ["Nenhuma", "A segunda é um gerador preguiçoso", "A segunda é uma tupla",
-              "A segunda é mais lenta"], 1,
-             "Parênteses criam expressão geradora, avaliada sob demanda e sem materializar tudo na memória."),
-        Quiz("Onde vai o if quando você quer FILTRAR elementos (eliminá-los)?",
-             ["Antes do for", "Depois do for", "Dentro da expressão", "Não é possível"], 1,
-             "Filtro vai no final; o ternário if/else (que escolhe um valor, sem eliminar) vai no começo."),
-        Quiz("Por que [[0]*3 for _ in range(3)] é seguro, ao contrário de [[0]*3]*3?",
-             ["Não há diferença real entre os dois", "A compreensão executa [0]*3 uma vez por iteração, criando listas independentes",
-              "A compreensão usa menos memória sempre", "range(3) impede repetição de valores"], 1,
-             "Na compreensão, cada volta do for cria uma lista nova; na multiplicação externa, as três 'linhas' são o mesmo objeto."),
-        Quiz("Quando um laço for tradicional é preferível a uma compreensão?",
-             ["Nunca, compreensão é sempre melhor", "Quando o corpo precisa de efeito colateral (print, gravar arquivo) ou tem lógica complexa",
-              "Apenas quando os dados são números", "Quando o iterável tem menos de 10 elementos"], 1,
-             "Compreensões existem para construir coleções; efeitos colaterais e lógica complexa pedem um for explícito."),
+        Quiz(
+            "Qual a diferenca entre [x for x in lista if x > 0] e [x if x > 0 else 0 for x in lista]?",
+            ["Nao ha diferenca — os dois produzem o mesmo resultado",
+             "O primeiro FILTRA (lista menor, so positivos); o segundo TRANSFORMA (lista igual, negativos viram 0)",
+             "O primeiro e mais rapido que o segundo",
+             "O segundo e invalido — if/else nao funciona dentro de compreensao"],
+            1,
+            "if no FINAL filtra: elementos que nao satisfazem sao REMOVIDOS da lista. "
+            "if/else no INICIO e ternario: TODOS os elementos ficam, "
+            "mas podem ser transformados. "
+            "Resultado: filtro gera lista menor; ternario mantem o mesmo tamanho.",
+        ),
+        Quiz(
+            "Quando uma expressao geradora (x for x in y) e preferivel a uma compreensao [x for x in y]?",
+            ["Nunca — a lista e sempre mais util",
+             "Quando os valores serao percorridos apenas uma vez e a lista seria muito grande para guardar na memoria",
+             "Quando voce precisa acessar elementos por indice",
+             "Quando o iteravel tem menos de 100 elementos"],
+            1,
+            "Gerador e preguicoso: calcula um item por vez, ocupa poucos bytes. "
+            "Lista e avida: calcula e guarda tudo imediatamente. "
+            "Use gerador quando passa direto para sum(), any(), all(), max() "
+            "e nao precisa percorrer mais de uma vez.",
+        ),
+        Quiz(
+            "O que {x for x in [1, 2, 2, 3, 1]} produz?",
+            ["{1, 2, 2, 3, 1} — preserva duplicatas",
+             "[1, 2, 3] — lista sem duplicatas",
+             "{1, 2, 3} — conjunto sem duplicatas e sem ordem garantida",
+             "Um erro — compreensao de conjunto nao existe"],
+            2,
+            "Compreensao com {} cria um SET, que nao admite duplicatas. "
+            "Os valores 2 e 1 duplicados sao automaticamente descartados. "
+            "A ordem nao e garantida em conjuntos, mas o conteudo sera {1, 2, 3}.",
+        ),
+        Quiz(
+            "Por que usar [print(x) for x in lista] e considerado ma pratica?",
+            ["print() nao funciona dentro de compreensoes",
+             "Compreensoes existem para CONSTRUIR colecoes; usa-las so para efeitos colaterais cria uma lista de None desnecessaria",
+             "E mais lento que um for tradicional",
+             "Compreensoes nao aceitam funcoes como expressao"],
+            1,
+            "print() devolve None. A compreensao cria [None, None, None...] "
+            "sem nenhuma utilidade, gastando memoria a toa. "
+            "Para efeitos colaterais (imprimir, gravar, enviar), use for. "
+            "Para construir colecoes, use compreensao.",
+        ),
     ],
     projeto=(
-        "Refaça o analisador de texto do Dia 4 usando apenas compreensões: "
-        "palavras únicas, frequência, palavras com mais de 5 letras e tamanho médio. "
-        "Compare o resultado de usar uma lista versus um gerador para calcular a soma dos tamanhos."
+        "Crie pipeline_dados.py que processe uma lista de registros de vendas:\n\n"
+        "   vendas = [\n"
+        "       {'produto': 'Caneta', 'valor': 2.50, 'qtd': 10, 'regiao': 'Norte'},\n"
+        "       {'produto': 'Caderno', 'valor': 15.90, 'qtd': 3, 'regiao': 'Sul'},\n"
+        "       {'produto': 'Borracha', 'valor': 1.20, 'qtd': 25, 'regiao': 'Norte'},\n"
+        "       {'produto': 'Caneta', 'valor': 2.50, 'qtd': 5, 'regiao': 'Sul'},\n"
+        "       {'produto': 'Regua', 'valor': 3.75, 'qtd': 8, 'regiao': 'Norte'},\n"
+        "   ]\n\n"
+        "Usando apenas compreensoes (sem for tradicional onde possivel):\n\n"
+        "   1. Lista de totais por venda (valor * qtd)\n"
+        "   2. Dicionario produto -> total faturado\n"
+        "   3. Vendas da regiao Norte com total > 20\n"
+        "   4. Conjunto de regioes distintas\n"
+        "   5. Conjunto de produtos distintos\n"
+        "   6. Total geral usando expressao geradora com sum()\n\n"
+        "BONUS: use compreensao aninhada para criar uma tabela de\n"
+        "produto x regiao com o total faturado em cada combinacao."
     ),
-    leitura=["docs.python.org/pt-br/3/tutorial/datastructures.html#list-comprehensions", "PEP 289 - Generator Expressions"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/datastructures.html#list-comprehensions",
+        "PEP 289 — Generator Expressions",
+        "PEP 274 — Dict Comprehensions",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 11
 DIAS.append(Dia(
     numero=11,
     titulo="Funções: parâmetros, escopo e boas práticas",
     nivel="Intermediário",
-    duracao="100 min",
+    duracao="110 min",
     objetivos=[
-        "Dominar parâmetros posicionais, nomeados e com valor padrão, na ordem certa",
-        "Usar *args e **kwargs para assinaturas flexíveis, e desempacotar na chamada",
-        "Entender a regra de escopo LEGB e quando global/nonlocal são realmente necessários",
-        "Explicar por que argumentos padrão mutáveis são uma armadilha e como evitá-la",
-        "Diferenciar reatribuir de mutar um argumento, e prever o efeito em quem chamou a função",
-        "Escrever docstrings úteis seguindo uma convenção reconhecível",
+        "Entender o que é uma função e por que ela é a unidade fundamental de organização do código",
+        "Dominar os quatro tipos de parâmetro: posicional, com padrão, *args e **kwargs",
+        "Entender a regra LEGB de escopo e prever onde Python vai procurar cada nome",
+        "Reconhecer e evitar a armadilha do argumento padrão mutável",
+        "Diferenciar reatribuir um parâmetro de mutar o objeto que ele aponta",
+        "Escrever docstrings úteis e funções com responsabilidade única",
     ],
     teoria="""
-1. Definição e retorno
----------------------------
-    def area_retangulo(base, altura):
-        \"\"\"Devolve a área de um retângulo.\"\"\"
-        return base * altura
+Desde o Dia 4 você já usa a sintaxe básica de funções para os exercícios.
+Hoje vamos entender funções a fundo: como os parâmetros realmente funcionam,
+onde o Python procura cada variável, e como escrever funções que sejam
+fáceis de usar, testar e manter.
 
-Alguns fatos sobre `return` que costumam surpreender:
+---------------------------------------------------------------------------
+1. Por que funções existem?
+---------------------------------------------------------------------------
+Funções resolvem três problemas fundamentais em programação:
 
-- `return` encerra a execução da função IMEDIATAMENTE, não importa quantas
-  linhas ainda existam depois dele no corpo da função;
-- uma função sem `return` explícito (ou com um `return` sozinho, sem valor)
-  devolve `None` — é o comportamento padrão, não um erro;
-- é possível devolver vários valores separados por vírgula — o que Python
-  faz por baixo dos panos é empacotar tudo em uma TUPLA, e o desempacotamento
-  na hora de receber o resultado é o que dá a ilusão de "múltiplos retornos":
+PROBLEMA 1 — REPETIÇÃO: sem funções, você copia e cola o mesmo código
+várias vezes. Quando precisar corrigir um bug ou mudar o comportamento,
+precisa encontrar e alterar todas as cópias.
 
-      def divmod2(a, b):
-          return a // b, a % b       # na verdade devolve a tupla (a // b, a % b)
-      q, r = divmod2(7, 2)           # desempacotamento na atribuição
+PROBLEMA 2 — COMPLEXIDADE: um programa de 500 linhas em sequência é
+impossível de entender. Funções permitem dar NOMES a pedaços de lógica,
+tornando o código legível como uma lista de instruções em português.
 
-2. Argumentos: posicionais, nomeados e com valor padrão
---------------------------------------------------------------
-    def cadastrar(nome, idade=18, ativo=True): ...
+PROBLEMA 3 — TESTABILIDADE: é muito mais fácil testar uma função isolada
+do que testar um programa inteiro de uma vez.
 
-    cadastrar("Ana")                       # posicional: nome="Ana", o resto usa o padrão
-    cadastrar("Ana", 30)                   # posicional: nome="Ana", idade=30
-    cadastrar(idade=30, nome="Ana")        # nomeado: a ORDEM deixa de importar
+A regra mais importante sobre funções:
+UMA FUNÇÃO DEVE FAZER UMA COISA SÓ.
 
-Uma regra rígida da linguagem: parâmetros com valor padrão sempre vêm
-DEPOIS dos parâmetros obrigatórios na definição da função — o interpretador
-recusa (`SyntaxError`) uma assinatura como `def f(a=1, b):`, porque seria
-ambíguo saber onde termina o "padrão" e começa o "obrigatório" na chamada.
+Se você precisar usar "e" para descrever o que uma função faz, ela
+provavelmente está fazendo coisas demais:
 
-3. A armadilha do argumento padrão mutável
-------------------------------------------------
-Esta é, sem exagero, uma das pegadinhas mais citadas de toda a linguagem
-Python, e vale entender a fundo por que ela acontece:
-
-    def add(item, lista=[]):      # ERRADO — parece inofensivo, mas não é
-        lista.append(item)
-        return lista
-
-    add(1)      # [1]
-    add(2)      # [1, 2]  <- devia ser [2], mas a lista "vazia" é sempre A MESMA!
-
-O motivo: o valor padrão `[]` é criado UMA ÚNICA VEZ, no momento em que a
-função é DEFINIDA (quando o `def` é executado), não a cada vez que ela é
-CHAMADA. Como listas são mutáveis, todas as chamadas que não passam um
-valor explícito para `lista` compartilham exatamente o mesmo objeto lista,
-que vai acumulando itens de chamada em chamada — um efeito colateral
-completamente inesperado para quem não conhece essa regra.
-
-A correção padrão é usar `None` como "sentinela" (um valor que sinaliza
-"nada foi passado") e criar o objeto mutável de verdade DENTRO do corpo da
-função, a cada chamada:
-
-    def add(item, lista=None):
-        if lista is None:
-            lista = []          # uma lista NOVA a cada chamada sem argumento
-        lista.append(item)
-        return lista
-
-Essa regra vale para qualquer valor padrão mutável — listas, dicionários,
-conjuntos, ou instâncias de classes próprias (Dia 16) que você mesmo
-escreveu.
-
-4. *args e **kwargs: assinaturas flexíveis
--------------------------------------------------
-    def somar(*numeros):              # numeros vira uma TUPLA com os posicionais extras
-        return sum(numeros)
-
-    def config(**opcoes):             # opcoes vira um DICIONÁRIO com os nomeados extras
-        return opcoes
-
-    somar(1, 2, 3)                    # 6           -- numeros = (1, 2, 3)
-    config(cor="azul", tamanho=10)    # {'cor': 'azul', 'tamanho': 10}
-
-`*args` e `**kwargs` são só os NOMES convencionais — o que importa é o `*`
-e o `**` antes do nome do parâmetro; você poderia chamá-los de qualquer
-coisa, mas seguir a convenção ajuda quem lê seu código a reconhecer o
-padrão de longe.
-
-Na CHAMADA de uma função (não na definição), `*` e `**` fazem o oposto:
-DESEMPACOTAM uma coleção existente em argumentos separados:
-
-    valores = [1, 2, 3]; somar(*valores)              # equivale a somar(1, 2, 3)
-    dados = {"nome": "Ana"}; cadastrar(**dados)       # equivale a cadastrar(nome="Ana")
-
-Python também permite restringir explicitamente a forma como os argumentos
-podem ser passados, usando marcadores especiais na assinatura:
-
-    def f(a, b, /, c, *, d):
+    def calcular_e_imprimir(nota):  # faz duas coisas
         ...
 
-Aqui, `a` e `b` só podem ser passados POSICIONALMENTE (o `/` marca o fim
-dos parâmetros só-posicionais); `d` só pode ser passado por NOME (o `*`
-sozinho marca o início dos parâmetros só-nomeados); `c` aceita as duas
-formas. Isso aparece bastante em bibliotecas profissionais para deixar a
-assinatura de uma função mais clara e evitar que quem a chama dependa de
-detalhes de implementação (como o nome exato de um parâmetro interno).
+    def calcular_media(notas):      # faz uma coisa
+        ...
+    def formatar_relatorio(media):  # faz uma coisa
+        ...
 
-5. Escopo LEGB: onde Python procura um nome
---------------------------------------------------
-Quando o interpretador encontra um nome de variável, ele procura nesta
-ordem exata, parando na primeira ocorrência: Local -> Enclosing (função que
-envolve, se houver) -> Global (módulo) -> Builtins (embutidos da
-linguagem, como `len` ou `print`).
-
-    x = "global"
-    def externa():
-        x = "enclosing"
-        def interna():
-            print(x)      # Python procura: local de interna? não tem x.
-                           # enclosing (externa)? tem! usa "enclosing".
-        interna()
-
-Um ponto que confunde muita gente: ATRIBUIR um valor a um nome DENTRO de
-uma função cria automaticamente uma variável LOCAL para essa função — mesmo
-que exista uma variável de mesmo nome em um escopo mais externo. Se você
-realmente quer alterar a variável do escopo de fora (não criar uma local
-nova), precisa declarar isso explicitamente:
-
-    global x       # dentro de uma função: refere-se à variável do MÓDULO
-    nonlocal x     # dentro de uma função aninhada: refere-se à da função EXTERNA (closures)
-
-A prática recomendada é usar `global` o mínimo possível: funções que
-dependem de estado externo mutável são mais difíceis de testar isoladamente
-e de raciocinar sobre, porque seu comportamento passa a depender de "o que
-mais já rodou antes", não só dos argumentos recebidos.
-
-6. Como Python realmente passa argumentos
-------------------------------------------------
-Python passa REFERÊNCIAS aos objetos — não é nem "por valor" (uma cópia
-completa, como em C) nem exatamente "por referência" (no sentido de
-apontador que outras linguagens usam), mas algo entre os dois, às vezes
-chamado de "passagem por atribuição de objeto". A regra prática que resolve
-99% das dúvidas: REATRIBUIR um parâmetro dentro da função não afeta quem
-chamou; MUTAR o objeto (alterar seu conteúdo no lugar) afeta, sim, porque
-o objeto é compartilhado:
-
-    def f(lista, numero):
-        lista.append(1)   # MUTA o objeto: visível fora da função, no chamador
-        numero += 1        # REATRIBUI numero para um int NOVO: invisível fora,
-                            # porque int é imutável e numero passou a apontar
-                            # para um objeto diferente, só dentro da função
-
-7. Docstring: documentação que vive junto com o código
---------------------------------------------------------------
-    def calcular_juros(principal, taxa, meses):
-        \"\"\"Calcula juros compostos.
+---------------------------------------------------------------------------
+2. Anatomia completa de uma função
+---------------------------------------------------------------------------
+    def calcular_desconto(preco, percentual=10, minimo=0.0):
+        \"\"\"Calcula o preco com desconto aplicado.
 
         Args:
-            principal: valor inicial em reais.
-            taxa: taxa mensal em decimal (0.01 = 1%).
-            meses: número de períodos.
+            preco: valor original em reais (deve ser positivo)
+            percentual: percentual de desconto (0 a 100), padrao 10
+            minimo: preco minimo apos desconto, padrao 0.0
 
         Returns:
-            O montante final arredondado em 2 casas.
+            O preco final com desconto, nunca abaixo do minimo.
         \"\"\"
+        if preco < 0:
+            raise ValueError("preco nao pode ser negativo")
+        desconto = preco * percentual / 100
+        return max(preco - desconto, minimo)
 
-Esse formato (Args / Returns) é uma convenção popular (inspirada no estilo
-do Google), não uma exigência da linguagem — o importante é escolher UM
-padrão e usá-lo consistentemente, porque ferramentas de documentação e o
-próprio `help()` sabem exibi-lo de forma legível.
+Partes importantes:
 
-Uma função bem escrita, segundo o consenso da comunidade, tem estas
-características: faz UMA coisa (se o nome da função precisa de "e" para
-descrevê-la, como `validar_e_salvar`, é sinal de que ela faz duas coisas);
-tem um nome verbal, que descreve a ação; tem poucos parâmetros (a partir de
-uns 4-5, considere agrupá-los em um objeto ou dicionário); e, sempre que
-possível, NÃO imprime nada diretamente — quem decide COMO exibir um
-resultado deve ser quem CHAMA a função, não a função em si. Isso mantém a
-função reutilizável tanto num script de terminal quanto numa interface
-gráfica (como a que este próprio curso usa).
+    def        palavra-chave que define a função
+    nome       verbo que descreve o que a função faz
+    parâmetros dados que a função precisa para trabalhar
+    docstring  documentação acessível via help()
+    corpo      a lógica da função (indentado 4 espaços)
+    return     o valor que a função entrega para quem a chamou
+
+SOBRE O RETURN:
+    - return encerra a função IMEDIATAMENTE
+    - uma função sem return (ou com return sozinho) devolve None
+    - você pode ter vários returns em caminhos diferentes
+    - devolver múltiplos valores cria uma TUPLA automaticamente:
+
+    def dividir(a, b):
+        return a // b, a % b    # na verdade devolve a tupla (quociente, resto)
+
+    q, r = dividir(10, 3)       # desempacotamento: q=3, r=1
+
+---------------------------------------------------------------------------
+3. Os quatro tipos de parâmetro
+---------------------------------------------------------------------------
+
+TIPO 1 — POSICIONAL: obrigatório, passado na ordem
+    def somar(a, b):
+        return a + b
+
+    somar(3, 4)      # a=3, b=4
+    somar(4, 3)      # a=4, b=3  (ordem importa!)
+
+TIPO 2 — COM VALOR PADRÃO: opcional, usa o padrão se não for passado
+
+    def saudar(nome, saudacao="Olá"):
+        return f"{saudacao}, {nome}!"
+
+    saudar("Ana")             # "Olá, Ana!"
+    saudar("Ana", "Oi")       # "Oi, Ana!"
+    saudar(nome="Ana")        # argumento nomeado — ordem não importa
+    saudar(saudacao="Ei", nome="Bruno")  # nomeados podem vir em qualquer ordem
+
+    REGRA DE SINTAXE: parâmetros com padrão devem vir DEPOIS
+    dos obrigatórios:
+
+    def f(a, b=1):    # correto
+    def f(a=1, b):    # SyntaxError!
+
+TIPO 3 — *args: captura argumentos posicionais extras como tupla
+
+    def somar_tudo(*numeros):
+        return sum(numeros)    # numeros é uma TUPLA
+
+    somar_tudo(1, 2, 3)      # numeros = (1, 2, 3)
+    somar_tudo(5)            # numeros = (5,)
+    somar_tudo()             # numeros = ()
+
+TIPO 4 — **kwargs: captura argumentos nomeados extras como dicionário
+
+    def mostrar_info(**dados):
+        for chave, valor in dados.items():
+            print(f"{chave}: {valor}")
+
+    mostrar_info(nome="Ana", idade=30, cidade="Recife")
+    # dados = {'nome': 'Ana', 'idade': 30, 'cidade': 'Recife'}
+
+COMBINANDO OS QUATRO (ordem obrigatória):
+
+    def funcao(pos1, pos2, padrao=1, *args, **kwargs):
+        pass
+
+    Ordem: posicionais -> com padrão -> *args -> **kwargs
+
+DESEMPACOTANDO NA CHAMADA (o inverso de *args/**kwargs):
+
+    numeros = [1, 2, 3]
+    somar_tudo(*numeros)     # equivale a somar_tudo(1, 2, 3)
+
+    dados = {"nome": "Ana", "idade": 30}
+    mostrar_info(**dados)    # equivale a mostrar_info(nome="Ana", idade=30)
+
+---------------------------------------------------------------------------
+4. A armadilha do argumento padrão mutável
+---------------------------------------------------------------------------
+Este é um dos bugs mais famosos do Python. Entender por que ele acontece
+é fundamental para nunca cometê-lo:
+
+    # ERRADO — parece inocente, mas é uma armadilha!
+    def adicionar(item, lista=[]):
+        lista.append(item)
+        return lista
+
+    print(adicionar("a"))    # ['a']
+    print(adicionar("b"))    # ['a', 'b']  <- SURPRESA! devia ser ['b']
+    print(adicionar("c"))    # ['a', 'b', 'c']  <- acumula entre chamadas!
+
+POR QUÊ ACONTECE?
+O valor padrão `[]` é criado UMA ÚNICA VEZ, quando a linha `def` é
+executada (quando o arquivo é carregado), não a cada vez que a função
+é chamada. Como listas são mutáveis, todas as chamadas sem argumento
+compartilham a mesma lista, que vai acumulando.
+
+Você pode verificar isso:
+
+    print(adicionar.__defaults__)  # (['a', 'b', 'c'],) — a lista "padrão" acumulada
+
+A SOLUÇÃO: use None como sentinela e crie o objeto mutável dentro da
+função, a cada chamada:
+
+    # CORRETO
+    def adicionar(item, lista=None):
+        if lista is None:
+            lista = []       # nova lista a cada chamada sem argumento
+        lista.append(item)
+        return lista
+
+    print(adicionar("a"))    # ['a']
+    print(adicionar("b"))    # ['b']   <- correto!
+
+REGRA: nunca use lista, dicionário ou conjunto como valor padrão.
+Use None e crie o objeto dentro da função.
+
+---------------------------------------------------------------------------
+5. Como Python passa argumentos: reatribuir vs mutar
+---------------------------------------------------------------------------
+Python passa REFERÊNCIAS a objetos — nem cópia nem ponteiro no sentido
+de C. Entender isso explica comportamentos que parecem inconsistentes:
+
+    def tentar_mudar(numero, lista):
+        numero = 999         # REATRIBUI: cria variável local, original intacto
+        lista.append(999)    # MUTA o objeto: visível fora da função!
+
+    n = 10
+    l = [1, 2, 3]
+    tentar_mudar(n, l)
+    print(n)    # 10    — não mudou
+    print(l)    # [1, 2, 3, 999]  — mudou!
+
+Por quê?
+
+    REATRIBUIR (numero = 999):
+    Dentro da função, numero passa a apontar para 999.
+    A variável n lá fora ainda aponta para 10. São coisas separadas.
+
+    MUTAR (lista.append(999)):
+    lista e l apontam para o MESMO objeto na memória.
+    .append() modifica o objeto no lugar — quem quer que aponte para ele
+    vê a mudança, incluindo o código que chamou a função.
+
+RESUMO PRÁTICO:
+
+    Tipos imutáveis (int, float, str, tuple):
+    → A função nunca pode afetar o original.
+    → Reatribuir dentro da função não tem efeito fora.
+
+    Tipos mutáveis (list, dict, set, objetos):
+    → A função PODE afetar o original se usar métodos de mutação.
+    → Se você não quer afetar o original, passe uma cópia: lista[:]
+
+---------------------------------------------------------------------------
+6. Escopo LEGB: onde Python procura cada nome
+---------------------------------------------------------------------------
+Quando o Python encontra um nome (variável, função, classe) no código,
+ele busca em quatro lugares em ordem, parando no primeiro onde encontrar:
+
+    L — Local:     dentro da função atual
+    E — Enclosing: funções que envolvem esta (funções aninhadas)
+    G — Global:    no nível do módulo (o arquivo .py)
+    B — Builtin:   funções embutidas (print, len, range...)
+
+    x = "global"            # escopo G
+
+    def externa():
+        x = "enclosing"     # escopo E para a função interna
+
+        def interna():
+            # Python procura x em L (não tem), depois E: encontra "enclosing"
+            print(x)        # "enclosing"
+
+        interna()
+
+    externa()
+    print(x)    # "global" — a função não alterou o x externo
+
+MODIFICANDO O ESCOPO EXTERNO:
+Por padrão, atribuir a uma variável dentro de uma função cria uma
+variável LOCAL, mesmo que exista uma de mesmo nome fora:
+
+    contador = 0
+
+    def incrementar():
+        contador = 1      # cria variável LOCAL chamada contador
+    # não altera o contador global!
+
+    incrementar()
+    print(contador)    # 0 — não mudou!
+
+Para modificar a variável do escopo externo, use global ou nonlocal:
+
+    contador = 0
+
+    def incrementar():
+        global contador    # agora se refere ao contador do módulo
+        contador += 1
+
+    incrementar()
+    print(contador)    # 1 — agora mudou
+
+    # nonlocal: para funções aninhadas, modifica o escopo da função externa
+
+CUIDADO COM global: funções que dependem de estado global são difíceis
+de testar e entender. Prefira receber e retornar valores em vez de
+modificar variáveis globais.
+
+---------------------------------------------------------------------------
+7. Docstrings: documentação que fica junto com o código
+---------------------------------------------------------------------------
+Docstring é a string logo após o def. Ela fica disponível via help()
+e ferramentas de documentação:
+
+    def calcular_imc(peso, altura):
+        \"\"\"Calcula o Indice de Massa Corporal.
+
+        Args:
+            peso: peso em quilogramas (deve ser positivo)
+            altura: altura em metros (deve ser positivo)
+
+        Returns:
+            O IMC como float, arredondado em 2 casas decimais.
+
+        Raises:
+            ValueError: se peso ou altura forem menores ou iguais a zero.
+        \"\"\"
+        if peso <= 0 or altura <= 0:
+            raise ValueError("peso e altura devem ser positivos")
+        return round(peso / altura ** 2, 2)
+
+Não existe um formato obrigatório, mas os mais usados são Google Style
+(Args/Returns/Raises como acima) e NumPy Style (seções com ---).
+O importante é escolher um e ser consistente.
+
+---------------------------------------------------------------------------
+8. Boas práticas resumidas
+---------------------------------------------------------------------------
+    Uma função, uma responsabilidade
+    Nome verbal que descreve a ação: calcular_media(), nao media_calculo()
+    Parametros com nomes descritivos: nao f(x, y, z)
+    Docstring sempre que a funcao for usada em mais de um lugar
+    Nunca use lista/dict como valor padrao — use None
+    Prefira retornar valores a imprimir dentro da funcao
+    Maximo de 3-4 parametros; se precisar de mais, agrupe em dict ou objeto
+    Evite efeitos colaterais surpreendentes (mutar argumentos sem avisar)
 """,
     exemplos=[
         Exemplo(
-            titulo="Assinatura flexível com *args e **kwargs",
-            codigo='''def relatorio(titulo, *linhas, largura=40, alinhar="<"):
+            titulo="Os quatro tipos de parâmetro em ação",
+            codigo='''def relatorio(titulo, *linhas, separador="-", largura=40):
+    """Gera um relatorio formatado.
+
+    titulo e posicional obrigatorio.
+    *linhas captura qualquer numero de linhas de conteudo.
+    separador e largura sao keyword-only (vem apos *linhas).
+    """
     print(titulo.center(largura, "="))
-    for l in linhas:
-        print(f"{l:{alinhar}{largura}}")
+    print(separador * largura)
+    for linha in linhas:
+        print(linha)
+    print(separador * largura)
     return len(linhas)
 
-relatorio("VENDAS", "Ana: 120", "Bruno: 90", largura=24)
+# Chamadas possiveis:
+relatorio("Vendas")
+relatorio("Vendas", "Ana: R$120", "Bruno: R$90")
+relatorio("Vendas", "Ana: R$120", separador="*", largura=30)
+
+# Desempacotando na chamada:
+itens = ["Item A", "Item B", "Item C"]
+relatorio("Estoque", *itens)    # equivale a relatorio("Estoque", "Item A", "Item B", "Item C")
 ''',
-            explicacao="largura e alinhar são keyword-only por virem depois "
-                       "de *linhas na assinatura — não podem ser passados "
-                       "posicionalmente, só por nome.",
+            explicacao="separador e largura são keyword-only: como vêm depois "
+                       "de *linhas na assinatura, só podem ser passados por nome, "
+                       "nunca por posição. Isso evita ambiguidade: se fossem "
+                       "posicionais, como distinguir uma linha de conteúdo de um "
+                       "separador? O * em *itens na chamada desempacota a lista.",
         ),
         Exemplo(
-            titulo="Escopo em ação: global e nonlocal",
-            codigo='''contador = 0
+            titulo="A armadilha do padrão mutável, ao vivo",
+            codigo='''# VERSAO COM BUG: lista padrao acumula entre chamadas
+def adicionar_bug(item, lista=[]):
+    lista.append(item)
+    return lista
+
+print(adicionar_bug("a"))    # ['a']
+print(adicionar_bug("b"))    # ['a', 'b']  — bug!
+print(adicionar_bug("c"))    # ['a', 'b', 'c']  — acumulou tudo!
+print(adicionar_bug.__defaults__)  # veja a lista "padrao" acumulada
+
+print()
+
+# VERSAO CORRETA: None como sentinela
+def adicionar_certo(item, lista=None):
+    if lista is None:
+        lista = []    # nova lista a cada chamada
+    lista.append(item)
+    return lista
+
+print(adicionar_certo("a"))    # ['a']
+print(adicionar_certo("b"))    # ['b']  — correto!
+
+# Passando uma lista existente ainda funciona:
+minha_lista = [10, 20]
+adicionar_certo(30, minha_lista)
+print(minha_lista)    # [10, 20, 30]
+''',
+            explicacao="__defaults__ guarda os valores padrão atuais — "
+                       "você pode ver a lista acumulando entre chamadas. "
+                       "Na versão correta, cada chamada sem argumento cria "
+                       "uma lista nova independente. "
+                       "Mas passar uma lista existente continua funcionando "
+                       "— a função ainda a modifica no lugar (o que pode ser "
+                       "o comportamento desejado).",
+        ),
+        Exemplo(
+            titulo="Escopo LEGB: rastreando onde cada nome é encontrado",
+            codigo='''x = "global"
+
+def externa():
+    x = "enclosing"
+
+    def interna():
+        # L: nao tem x local
+        # E: encontra "enclosing" aqui
+        print("interna ve:", x)
+
+    interna()
+    print("externa ve:", x)
+
+externa()
+print("modulo ve:", x)
+
+# global e nonlocal em acao
+contador = 0
 
 def incrementar():
     global contador
     contador += 1
 
-def acumulador():
-    total = 0
-    def somar(x):
-        nonlocal total
-        total += x
-        return total
-    return somar
+incrementar()
+incrementar()
+print("contador:", contador)    # 2
 
-incrementar(); incrementar()
-soma = acumulador()
-print(contador, soma(5), soma(3))     # 2 5 8
+# Funcao que nao precisa de global (forma preferida)
+def incrementar_limpo(c):
+    return c + 1    # recebe e retorna, sem tocar no global
+
+n = 0
+n = incrementar_limpo(n)
+n = incrementar_limpo(n)
+print("n:", n)    # 2  — mesmo resultado, sem efeito colateral
 ''',
-            explicacao="global altera a variável do módulo; nonlocal altera "
-                       "a variável da função que engloba (o 'total' de "
-                       "acumulador), permitindo que somar acumule estado.",
-        ),
-        Exemplo(
-            titulo="A armadilha do argumento padrão mutável, ao vivo",
-            codigo='''def errado(item, historico=[]):
-    historico.append(item)
-    return historico
-
-def certo(item, historico=None):
-    if historico is None:
-        historico = []
-    historico.append(item)
-    return historico
-
-print(errado(1))   # [1]
-print(errado(2))   # [1, 2]  -- a MESMA lista de antes, acumulando!
-
-print(certo(1))     # [1]
-print(certo(2))     # [2]     -- lista nova a cada chamada, como esperado
-''',
-            explicacao="errado() reaproveita a mesma lista criada uma única "
-                       "vez na definição; certo() cria uma lista nova a cada "
-                       "chamada em que o argumento não é passado.",
+            explicacao="A versão com global funciona, mas a versão 'limpa' "
+                       "é muito preferida: receber o valor como parâmetro "
+                       "e retornar o novo valor torna a função testável "
+                       "isoladamente — você pode chamar incrementar_limpo(5) "
+                       "e prever o resultado sem saber nada do estado global.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d11e1",
             enunciado=(
-                "Escreva saudacao(nome, saudacao='Ola') devolvendo 'Ola, Ana!'\n"
-                "no formato: <saudacao>, <nome>!"
+                "Escreva a funcao saudacao(nome, saudacao='Ola') que devolve\n"
+                "uma saudacao no formato: '<saudacao>, <nome>!'\n\n"
+                "Exemplos:\n"
+                "   saudacao('Ana')              -> 'Ola, Ana!'\n"
+                "   saudacao('Bruno', 'Bom dia') -> 'Bom dia, Bruno!'\n"
+                "   saudacao(saudacao='Oi', nome='Cris') -> 'Oi, Cris!'\n\n"
+                "Observe o terceiro exemplo: como saudacao tem um valor\n"
+                "padrao, pode ser passado POR NOME em qualquer posicao.\n"
+                "Argumentos nomeados ignoram a ordem da definicao.\n\n"
+                "Use uma f-string para montar o resultado:\n"
+                "   f'{saudacao}, {nome}!'"
             ),
             funcao="saudacao",
             assinatura="def saudacao(nome, saudacao='Ola'):",
@@ -755,13 +1534,26 @@ print(certo(2))     # [2]     -- lista nova a cada chamada, como esperado
                 ("saudacao('Bruno', 'Bom dia')", "'Bom dia, Bruno!'"),
                 ("saudacao(saudacao='Oi', nome='Cris')", "'Oi, Cris!'"),
             ],
-            dica="Use f-string com os dois parâmetros.",
+            dica="return f'{saudacao}, {nome}!'",
         ),
         Exercicio(
             id="d11e2",
             enunciado=(
-                "Escreva estatisticas(*numeros) devolvendo a tupla (menor, maior, media).\n"
-                "Sem argumentos, devolva (None, None, None)."
+                "Escreva a funcao estatisticas(*numeros) que recebe qualquer\n"
+                "quantidade de numeros e devolve a tupla (minimo, maximo, media).\n"
+                "Se nao receber nenhum numero, devolve (None, None, None).\n\n"
+                "Exemplos:\n"
+                "   estatisticas(3, 1, 5)  -> (1, 5, 3.0)\n"
+                "   estatisticas()         -> (None, None, None)\n"
+                "   estatisticas(4)        -> (4, 4, 4.0)\n\n"
+                "*numeros captura todos os argumentos posicionais como TUPLA.\n"
+                "Uma tupla vazia () e falsy em Python, entao:\n"
+                "   if not numeros:   <- isso verifica se a tupla esta vazia\n\n"
+                "Estrategia:\n"
+                "   1. if not numeros: return (None, None, None)\n"
+                "   2. return min(numeros), max(numeros), sum(numeros)/len(numeros)\n\n"
+                "Lembre: devolver multiplos valores separados por virgula\n"
+                "automaticamente cria uma tupla."
             ),
             funcao="estatisticas",
             assinatura="def estatisticas(*numeros):",
@@ -771,14 +1563,30 @@ print(certo(2))     # [2]     -- lista nova a cada chamada, como esperado
                 ("estatisticas(4)", "(4, 4, 4.0)"),
             ],
             nivel="medio",
-            dica="min(), max() e sum()/len() — mas trate a tupla vazia primeiro.",
+            dica="if not numeros: return (None, None, None). Depois: return min(numeros), max(numeros), sum(numeros)/len(numeros)",
         ),
         Exercicio(
             id="d11e3",
             enunciado=(
-                "Escreva montar_url(base, **params) que devolve base + '?' + pares\n"
-                "chave=valor separados por & e ORDENADOS por chave.\n"
-                "Sem parâmetros, devolve apenas a base."
+                "Escreva a funcao montar_url(base, **params) que monta uma\n"
+                "URL com parametros de query string.\n\n"
+                "Exemplos:\n"
+                "   montar_url('/api', b=2, a=1)  -> '/api?a=1&b=2'\n"
+                "   montar_url('/api')             -> '/api'\n"
+                "   montar_url('/x', z='oi')       -> '/x?z=oi'\n\n"
+                "Regras:\n"
+                "   - Se nao houver params: devolva apenas a base\n"
+                "   - Os parametros devem aparecer em ordem ALFABETICA\n"
+                "     (por isso '/api?a=1&b=2' e nao '/api?b=2&a=1')\n"
+                "   - Formato: base + '?' + 'chave=valor' separados por '&'\n\n"
+                "**params captura os argumentos nomeados como DICIONARIO.\n\n"
+                "Estrategia:\n"
+                "   1. if not params: return base\n"
+                "   2. Ordene os parametros: sorted(params.items())\n"
+                "      sorted sobre items() ordena por chave alfabeticamente\n"
+                "   3. Monte cada par: f'{k}={v}'\n"
+                "   4. Una com '&': '&'.join(...)\n"
+                "   5. Retorne base + '?' + resultado"
             ),
             funcao="montar_url",
             assinatura="def montar_url(base, **params):",
@@ -788,251 +1596,540 @@ print(certo(2))     # [2]     -- lista nova a cada chamada, como esperado
                 ("montar_url('/x', z='oi')", "'/x?z=oi'"),
             ],
             nivel="dificil",
-            dica="sorted(params.items()) e '&'.join(f'{k}={v}' ...).",
+            dica="if not params: return base. Depois: '&'.join(f'{k}={v}' for k, v in sorted(params.items()))",
         ),
     ],
     quiz=[
-        Quiz("Por que `def f(x, lista=[])` é perigoso?",
-             ["É mais lento", "O padrão é criado uma única vez (na definição) e persiste entre chamadas",
-              "Não é permitido", "Só funciona com números"], 1,
-             "Use None como sentinela e crie a lista de verdade dentro do corpo da função."),
-        Quiz("O que **kwargs recebe dentro de uma função?",
-             ["Uma lista", "Uma tupla dos extras posicionais",
-              "Um dicionário dos argumentos nomeados extras", "Uma string"], 2,
-             "* junta os posicionais extras em tupla; ** junta os nomeados extras em dicionário."),
-        Quiz("O que acontece se você fizer 'numero += 1' dentro de uma função, sem declarar global?",
-             ["Altera o valor no chamador também", "Cria uma variável local nova; o valor externo não muda",
-              "Levanta um erro imediatamente", "Depende do tipo do número"], 1,
-             "Atribuir a um nome dentro de uma função cria uma variável local, a menos que global/nonlocal seja declarado."),
-        Quiz("O que o marcador / na assinatura def f(a, b, /, c) indica?",
-             ["Que a e b são opcionais", "Que a e b só podem ser passados por posição, nunca por nome",
-              "Que a função aceita divisão", "Que c é obrigatório e os outros não"], 1,
-             "O / marca o fim dos parâmetros exclusivamente posicionais."),
+        Quiz(
+            "Por que usar lista como valor padrao em uma funcao e perigoso?",
+            ["Listas nao podem ser valores padrao em Python",
+             "O valor padrao e criado uma unica vez quando a funcao e definida, entao todas as chamadas sem argumento compartilham a mesma lista",
+             "A lista padrao e copiada a cada chamada, causando lentidao",
+             "Funciona normalmente — nao ha problema algum"],
+            1,
+            "def f(lista=[]): a lista [] e criada QUANDO o def e executado, "
+            "nao a cada chamada. Todas as chamadas sem argumento pegam "
+            "a MESMA lista, que vai acumulando. Solucao: def f(lista=None) "
+            "e criar a lista dentro da funcao.",
+        ),
+        Quiz(
+            "Dentro de uma funcao, o que acontece ao atribuir a uma variavel de mesmo nome que uma global?",
+            ["A variavel global e modificada automaticamente",
+             "Causa um SyntaxError",
+             "Cria uma variavel LOCAL nova — a global nao e afetada, a menos que voce declare 'global nome'",
+             "A variavel local e ignorada e a global e usada"],
+            2,
+            "Python cria uma variavel LOCAL sempre que voce atribui a um nome "
+            "dentro de uma funcao. A variavel global com mesmo nome fica intacta. "
+            "Para modificar a global, declare 'global nome' antes de usar.",
+        ),
+        Quiz(
+            "O que *args faz na definicao de uma funcao?",
+            ["Torna todos os parametros opcionais",
+             "Captura argumentos posicionais extras em uma TUPLA",
+             "Captura argumentos nomeados extras em um dicionario",
+             "Desempacota uma lista na chamada da funcao"],
+            1,
+            "*args captura zero ou mais argumentos posicionais extras como uma TUPLA. "
+            "**kwargs captura argumentos nomeados como DICIONARIO. "
+            "Na CHAMADA, *lista desempacota a lista em argumentos separados — "
+            "operacao inversa.",
+        ),
+        Quiz(
+            "Qual a diferenca entre reatribuir um parametro e mutar o objeto que ele aponta?",
+            ["Nao ha diferenca — ambos afetam o chamador",
+             "Nenhum dos dois afeta o chamador",
+             "Reatribuir nao afeta o chamador; mutar (ex: .append) afeta, pois o objeto e compartilhado",
+             "Depende do tipo do parametro: int sempre afeta, str nunca afeta"],
+            2,
+            "Python passa referencias. Reatribuir (param = novo_valor) faz o parametro "
+            "local apontar para outra coisa — o chamador nao ve. "
+            "Mutar (lista.append(x)) modifica o objeto em si, que chamador e funcao "
+            "compartilham — o chamador ve a mudanca.",
+        ),
     ],
     projeto=(
-        "Crie calculadora.py com funções puras (somar, subtrair, multiplicar, dividir "
-        "com tratamento de zero, potencia) e um menu que as chama por um dicionário de despacho "
-        "(nome da operação -> função), evitando um bloco if/elif gigante."
+        "Crie calculadora_financeira.py com as seguintes funcoes:\n\n"
+        "   1. juros_simples(principal, taxa, tempo)\n"
+        "      -> montante = principal * (1 + taxa * tempo)\n\n"
+        "   2. juros_compostos(principal, taxa, tempo)\n"
+        "      -> montante = principal * (1 + taxa) ** tempo\n\n"
+        "   3. parcelamento(valor, parcelas, taxa_mensal=0.0)\n"
+        "      -> (valor_parcela, total, juros_pagos)\n\n"
+        "   4. relatorio(*investimentos, taxa=0.05, anos=10)\n"
+        "      Recebe varios valores de investimento e exibe uma tabela\n"
+        "      comparando juros simples vs compostos para cada um\n\n"
+        "Requisitos:\n"
+        "   - Docstring em todas as funcoes (Args e Returns)\n"
+        "   - Clausulas de guarda para valores invalidos (negativo, zero)\n"
+        "   - Nenhuma funcao usa print() — apenas retornam valores\n"
+        "   - Uma funcao principal() que chama todas e exibe os resultados\n\n"
+        "BONUS: adicione um parametro *args para aceitar multiplas taxas\n"
+        "e comparar o rendimento do mesmo principal com taxas diferentes."
     ),
-    leitura=["PEP 257 - Docstring Conventions", "PEP 570 - Positional-Only Parameters"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/controlflow.html#defining-functions",
+        "PEP 257 — Docstring Conventions",
+        "docs.python.org/pt-br/3/faq/programming.html — armadilha do argumento mutavel",
+    ],
 ))
 # ---------------------------------------------------------------- DIA 12
 DIAS.append(Dia(
     numero=12,
     titulo="Funções de alta ordem, lambda e recursão",
     nivel="Intermediário",
-    duracao="100 min",
+    duracao="110 min",
     objetivos=[
-        "Explicar o que significa 'função é objeto de primeira classe' e por que isso importa",
-        "Usar lambda com sorted, map e filter, sabendo quando NÃO usar lambda",
-        "Escrever closures e entender por que elas 'lembram' o ambiente onde nasceram",
-        "Escrever funções recursivas com caso base correto e evitar RecursionError",
-        "Comparar recursão com iteração e saber quando cada uma é a ferramenta certa",
+        "Entender o que significa 'função é um objeto de primeira classe' em Python",
+        "Passar funções como argumentos e devolvê-las como resultado",
+        "Usar lambda para criar funções anônimas curtas onde elas fazem sentido",
+        "Reconhecer quando lambda prejudica a legibilidade e usar def no lugar",
+        "Entender closures e como uma função pode 'lembrar' o ambiente onde nasceu",
+        "Escrever funções recursivas com caso base e passo recursivo corretos",
+        "Diagnosticar RecursionError e saber quando recursão vira iteração",
     ],
     teoria="""
+No Dia 11 você dominou os parâmetros e o escopo de funções. Hoje vamos
+explorar um nível acima: funções que recebem outras funções, funções
+que geram outras funções, e funções que chamam a si mesmas.
+
+Esses conceitos parecem abstratos no começo, mas você já usou dois deles
+sem perceber: sorted(lista, key=len) passa a função len como argumento,
+e map(str, numeros) passa str como argumento.
+
+---------------------------------------------------------------------------
 1. Funções são objetos de primeira classe
-------------------------------------------------
-Em Python, uma função não é um conceito especial e separado dos outros
-valores da linguagem — ela é um OBJETO como qualquer outro, que pode ser
-atribuído a uma variável, guardado em uma lista, passado como argumento e
-devolvido por outra função:
+---------------------------------------------------------------------------
+Em Python, funções são objetos como qualquer outro: podem ser atribuídas
+a variáveis, guardadas em listas, passadas como argumentos e devolvidas
+como resultado de outras funções.
 
-    def dobrar(x): return x * 2
-    f = dobrar          # SEM parênteses: isto copia a REFERÊNCIA à função, não a executa
-    f(5)                # 10 — agora f e dobrar apontam para o mesmo objeto função
-    print(dobrar.__name__, dobrar.__doc__)   # funções também têm atributos, como qualquer objeto
+"Primeira classe" significa que funções têm os mesmos direitos que
+inteiros, strings e listas — elas não são cidadãs de segunda categoria.
 
-Uma FUNÇÃO DE ALTA ORDEM é qualquer função que recebe outra função como
-argumento e/ou devolve uma função como resultado. `sorted(lista, key=...)`,
-`map()` e `filter()` são exemplos de alta ordem já embutidos na linguagem;
-os decoradores do Dia 21 são o exemplo mais elaborado desse conceito.
+    def dobrar(x):
+        return x * 2
 
-2. lambda: função anônima de uma única expressão
---------------------------------------------------------
-    quadrado = lambda x: x ** 2          # evite atribuir lambda a um nome: prefira def
-    sorted(pessoas, key=lambda p: p["idade"])
+    # Atribuindo a uma variável (note: SEM parênteses — não estamos chamando)
+    operacao = dobrar
+    print(operacao(5))     # 10 — operacao e dobrar apontam para o mesmo objeto
 
-`lambda` cria uma função sem nome, limitada a UMA expressão (sem
-`if`/`for`/atribuições de várias linhas dentro dela). O uso idiomático é
-como argumento CURTO e DESCARTÁVEL de outra função — normalmente dentro de
-`sorted`, `map`, `filter` ou `key=`. Se a lógica precisa de um nome próprio
-(porque será reutilizada), de uma condicional mais elaborada, ou de mais de
-uma linha, a comunidade recomenda fortemente usar `def` em vez de lambda —
-inclusive o guia de estilo oficial (PEP 8) desaconselha atribuir um lambda a
-um nome, justamente porque `def` já faz isso melhor e com mensagens de erro
-mais claras em tracebacks.
+    # Guardando em uma lista
+    operacoes = [dobrar, abs, str]
+    for op in operacoes:
+        print(op(-3))      # -6   3   '-3'
 
-3. map, filter, sorted e reduce
-------------------------------------
-    list(map(str.upper, ["a", "b"]))            -> ['A', 'B']
-    list(filter(lambda x: x > 0, [-1, 2]))      -> [2]
-    sorted(dados, key=len, reverse=True)
-    from functools import reduce
-    reduce(lambda a, b: a * b, [1, 2, 3, 4])    -> 24    (multiplica tudo, acumulando)
+    # Passando como argumento
+    def aplicar(funcao, valor):
+        return funcao(valor)
 
-Em Python idiomático moderno, compreensões (Dia 10) costumam ser
-PREFERIDAS a `map`/`filter` quando a transformação é simples:
+    aplicar(dobrar, 10)    # 20
+    aplicar(abs, -7)       # 7
 
-    [x.upper() for x in nomes]      # geralmente preferido a map(str.upper, nomes)
-    [x for x in nums if x > 0]      # geralmente preferido a filter(lambda x: x > 0, nums)
+    # Verificando que é um objeto
+    print(type(dobrar))           # <class 'function'>
+    print(dobrar.__name__)        # 'dobrar'
+    print(dobrar.__doc__)         # a docstring da função
 
-Onde `map`/`filter` continuam brilhando é quando a função já EXISTE e tem
-nome (como `str.upper` no primeiro exemplo) — nesse caso, passar a função
-diretamente por nome é mais direto do que embrulhá-la numa compreensão.
+A distinção crucial entre dobrar (sem parênteses) e dobrar() (com
+parênteses):
 
-Dois auxiliares da biblioteca padrão que evitam escrever lambdas repetitivas
-para acessar campos:
+    dobrar     — a função em si, como objeto, sem executar nada
+    dobrar()   — chama a função e produz o resultado
 
-    from operator import itemgetter, attrgetter
-    sorted(registros, key=itemgetter("nota"))          # em vez de lambda r: r["nota"]
-    sorted(objetos, key=attrgetter("idade"))            # em vez de lambda o: o.idade
+Esquecer os parênteses quando você quer chamar (ou colocá-los quando
+não quer) é um erro muito comum no começo.
 
-4. Closure: uma função que carrega seu ambiente de origem
-------------------------------------------------------------------
-Uma closure é uma função interna que "lembra" as variáveis do escopo onde
-foi criada, mesmo depois que esse escopo já terminou de executar:
+---------------------------------------------------------------------------
+2. Funções de alta ordem: recebendo e devolvendo funções
+---------------------------------------------------------------------------
+Uma função de ALTA ORDEM é qualquer função que:
+    (a) recebe uma ou mais funções como argumento, OU
+    (b) devolve uma função como resultado
 
-    def multiplicador(fator):
-        def aplicar(x):
-            return x * fator     # fator vem do escopo de multiplicador, "capturado"
-        return aplicar
+Você já conhece vários exemplos da biblioteca padrão:
 
-    triplo = multiplicador(3)     # a função externa já terminou de rodar...
-    triplo(10)                     # ...mas aplicar ainda lembra que fator = 3.  Resultado: 30
+    sorted(lista, key=len)          # recebe a função len como argumento
+    map(str, [1, 2, 3])             # recebe str como argumento
+    filter(lambda x: x > 0, lista)  # recebe uma função como argumento
 
-O que torna isso possível é que Python mantém uma referência ao ambiente
-(chamado de "célula" internamente) enquanto alguma função ainda pode
-precisar dele — o coletor de lixo da linguagem não descarta esse ambiente
-enquanto `aplicar` (a closure) continuar existindo em algum lugar do
-programa. Closures são a base conceitual dos decoradores (Dia 21), que
-usam exatamente esse mecanismo para "envolver" outra função com
-comportamento extra.
+Escrevendo suas próprias:
 
-5. Recursão: uma função que chama a si mesma
-------------------------------------------------
-Toda função recursiva precisa de duas partes, sem exceção:
+    def aplicar_a_todos(funcao, lista):
+        """Aplica funcao a cada elemento e devolve nova lista."""
+        return [funcao(x) for x in lista]
 
-  (a) CASO BASE — a condição mais simples, que a função sabe resolver
-      diretamente, sem chamar a si mesma;
-  (b) PASSO RECURSIVO — a chamada da própria função com uma entrada MENOR
-      ou mais próxima do caso base, garantindo que a recursão eventualmente
-      termine.
+    aplicar_a_todos(abs, [-1, -2, 3])        # [1, 2, 3]
+    aplicar_a_todos(str.upper, ["a", "b"])   # ['A', 'B']
+
+    def criar_multiplicador(fator):
+        """Devolve uma funcao que multiplica por fator."""
+        def multiplicar(x):
+            return x * fator          # fator vem do escopo externo
+        return multiplicar             # devolve a função, SEM chamá-la
+
+    dobro = criar_multiplicador(2)
+    triplo = criar_multiplicador(3)
+
+    dobro(5)     # 10
+    triplo(5)    # 15
+
+---------------------------------------------------------------------------
+3. Closures: funções que lembram o ambiente onde nasceram
+---------------------------------------------------------------------------
+No exemplo acima, criar_multiplicador(2) cria e devolve a função
+multiplicar. Mas essa função usa a variável fator, que pertence ao
+escopo de criar_multiplicador — uma função que já terminou de executar.
+
+Como multiplicar ainda consegue acessar fator?
+
+    # Verificando o que a closure guarda
+    dobro = criar_multiplicador(2)
+    print(dobro.__closure__)          # (<cell at 0x...>,)
+    print(dobro.__closure__[0].cell_contents)  # 2
+
+Python mantém as variáveis do escopo externo vivas enquanto alguma
+função interna ainda puder precisar delas. Isso se chama CLOSURE —
+a função "fecha sobre" (closes over) as variáveis do ambiente onde foi
+criada.
+
+Closures são poderosas para criar funções especializadas sem repetição:
+
+    def criar_validador(minimo, maximo):
+        def validar(valor):
+            return minimo <= valor <= maximo
+        return validar
+
+    nota_valida = criar_validador(0, 10)
+    idade_valida = criar_validador(0, 120)
+    percentual_valido = criar_validador(0, 100)
+
+    nota_valida(8)         # True
+    nota_valida(15)        # False
+    idade_valida(25)       # True
+
+Cada chamada de criar_validador produz uma closure independente com
+seus próprios valores de minimo e maximo capturados.
+
+---------------------------------------------------------------------------
+4. lambda: funções anônimas de uma linha
+---------------------------------------------------------------------------
+lambda cria uma função sem nome, em uma única expressão:
+
+    lambda parametros: expressão
+
+Exemplos:
+
+    lambda x: x * 2           # equivale a def f(x): return x * 2
+    lambda x, y: x + y        # dois parâmetros
+    lambda: 42                 # sem parâmetros, sempre devolve 42
+
+lambda é útil como argumento de curta duração para funções de alta ordem:
+
+    nomes = ["ana", "carlos", "bia", "daniela"]
+
+    # Ordenar por comprimento
+    sorted(nomes, key=lambda n: len(n))    # ['ana', 'bia', 'carlos', 'daniela']
+
+    # Ordenar por última letra
+    sorted(nomes, key=lambda n: n[-1])     # ['daniela', 'bia', 'ana', 'carlos']
+
+    # Filtrar comprimentos pares
+    list(filter(lambda n: len(n) % 2 == 0, nomes))   # ['ana', 'carlos']
+
+LIMITAÇÕES DO LAMBDA:
+    - Apenas UMA expressão (não pode ter if/elif/else multilinha, for, etc.)
+    - Não pode ter statements (atribuições, return explícito, try/except)
+    - Não pode ter docstring
+
+QUANDO NÃO USAR LAMBDA:
+
+    # RUIM: lambda com nome (use def!)
+    dobrar = lambda x: x * 2   # PEP 8 desaconselha isso explicitamente
+
+    # BOM: def tem nome, docstring e mensagens de erro mais claras
+    def dobrar(x):
+        return x * 2
+
+    # RUIM: lambda complexo e difícil de ler
+    sorted(dados, key=lambda d: (d["idade"], -d["salario"], d["nome"].lower()))
+
+    # BOM: extraia em uma função com nome descritivo
+    def chave_ordenacao(d):
+        return (d["idade"], -d["salario"], d["nome"].lower())
+
+    sorted(dados, key=chave_ordenacao)
+
+A regra prática: lambda é para argumentos curtos e descartáveis, onde
+você não vai reutilizar a função e o nome não acrescentaria clareza.
+Para qualquer coisa mais complexa, def é mais claro.
+
+---------------------------------------------------------------------------
+5. map() e filter(): funções de alta ordem clássicas
+---------------------------------------------------------------------------
+
+    map(funcao, iteravel)
+    Aplica funcao a cada elemento e devolve um iterador (preguiçoso):
+
+    list(map(str, [1, 2, 3]))            # ['1', '2', '3']
+    list(map(abs, [-1, 2, -3]))          # [1, 2, 3]
+    list(map(str.upper, ["a", "b"]))     # ['A', 'B']
+
+    filter(funcao, iteravel)
+    Mantém apenas os elementos onde funcao(elemento) for verdadeiro:
+
+    list(filter(lambda x: x > 0, [-1, 2, -3, 4]))  # [2, 4]
+    list(filter(None, [0, 1, "", "ok", None]))       # [1, 'ok']  (remove falsy)
+
+Em Python moderno, compreensões de lista costumam ser preferidas por
+serem mais legíveis:
+
+    [str(x) for x in [1, 2, 3]]               # substitui map
+    [x for x in lista if x > 0]               # substitui filter
+
+Mas map() e filter() brilham quando a função já existe e tem nome:
+
+    list(map(str.upper, palavras))             # mais direto que compreensão
+    list(filter(str.isdigit, caracteres))      # mais expressivo
+
+---------------------------------------------------------------------------
+6. Recursão: uma função que chama a si mesma
+---------------------------------------------------------------------------
+Uma função RECURSIVA resolve um problema chamando a si mesma com uma
+entrada menor, até chegar a um caso simples que ela sabe resolver
+diretamente.
+
+Toda função recursiva precisa de:
+
+    CASO BASE: a condição mais simples, que a função resolve sem se chamar.
+               Sem isso, a recursão nunca termina.
+
+    PASSO RECURSIVO: a chamada da própria função com uma entrada MENOR,
+                     aproximando-se do caso base a cada chamada.
+
+Exemplo clássico: fatorial
 
     def fatorial(n):
-        if n <= 1:            # caso base
+        # Caso base: fatorial de 0 e 1 é 1 (sem chamar recursão)
+        if n <= 1:
             return 1
-        return n * fatorial(n - 1)      # passo recursivo: aproxima-se de n <= 1
+        # Passo recursivo: n! = n * (n-1)!
+        return n * fatorial(n - 1)
 
-    def soma_lista(lista):
-        if not lista:                    # caso base: lista vazia
-            return 0
-        return lista[0] + soma_lista(lista[1:])   # passo recursivo
+    fatorial(5)
+    = 5 * fatorial(4)
+    = 5 * 4 * fatorial(3)
+    = 5 * 4 * 3 * fatorial(2)
+    = 5 * 4 * 3 * 2 * fatorial(1)
+    = 5 * 4 * 3 * 2 * 1
+    = 120
 
-Se o caso base estiver ausente, ou se o passo recursivo nunca se aproximar
-dele (por exemplo, chamar `fatorial(n)` em vez de `fatorial(n - 1)` por
-engano), o resultado é uma cadeia infinita de chamadas que eventualmente
-levanta `RecursionError` — o Python tem um limite padrão de cerca de 1000
-chamadas empilhadas (`sys.setrecursionlimit()` pode aumentar esse número,
-mas raramente é a solução certa: geralmente é sinal de que a recursão
-deveria virar iteração).
+Visualizando como uma pilha de chamadas:
 
-Um detalhe técnico importante: diferente de linguagens como Scheme ou
-certas versões de JavaScript, Python NÃO faz otimização de chamada de
-cauda (tail-call optimization) — mesmo uma recursão "bem comportada", onde
-a chamada recursiva é a última coisa que a função faz, ainda consome uma
-posição na pilha de chamadas a cada nível. Por isso, para percorrer
-coleções grandes (milhares ou milhões de itens), a iteração (`for`, `while`)
-é geralmente a escolha mais segura e eficiente em Python.
+    fatorial(5)     <- chamada original, aguardando resultado de fatorial(4)
+      fatorial(4)   <- aguardando fatorial(3)
+        fatorial(3) <- aguardando fatorial(2)
+          fatorial(2) <- aguardando fatorial(1)
+            fatorial(1) <- caso base! devolve 1
+          fatorial(2) recebe 1, devolve 2
+        fatorial(3) recebe 2, devolve 6
+      fatorial(4) recebe 6, devolve 24
+    fatorial(5) recebe 24, devolve 120
 
-Onde a recursão realmente brilha é em estruturas que são NATURALMENTE
-recursivas: árvores genealógicas, JSON aninhado (objetos dentro de objetos,
-sem limite fixo de profundidade), sistemas de arquivos com subpastas, e
-algoritmos de backtracking (tentar, se não der certo, desfazer e tentar
-outro caminho) — problemas onde escrever a versão iterativa exigiria uma
-pilha manual explícita, tornando o código mais confuso, não mais simples.
+---------------------------------------------------------------------------
+7. RecursionError: o limite de Python
+---------------------------------------------------------------------------
+Python tem um limite de quantas chamadas recursivas podem estar ativas
+ao mesmo tempo (padrão: ~1000). Se ultrapassar:
 
-6. Um exemplo mais elaborado: divisão e conquista
-------------------------------------------------------------
-A busca binária é o exemplo clássico de um algoritmo "dividir para
-conquistar", expresso naturalmente como recursão: a cada chamada, o
-problema (encontrar um valor em uma faixa da lista) fica pela metade do
-tamanho:
+    RecursionError: maximum recursion depth exceeded
 
-    def busca_binaria(lista, alvo, inicio=0, fim=None):
-        if fim is None:
-            fim = len(lista) - 1
-        if inicio > fim:
-            return -1                         # caso base: faixa vazia, não encontrado
-        meio = (inicio + fim) // 2
-        if lista[meio] == alvo:
-            return meio                        # caso base: encontrou
-        if lista[meio] < alvo:
-            return busca_binaria(lista, alvo, meio + 1, fim)   # metade direita
-        return busca_binaria(lista, alvo, inicio, meio - 1)     # metade esquerda
+As causas mais comuns:
 
-Note os DOIS casos base (faixa vazia e valor encontrado) e como cada
-chamada recursiva reduz a faixa de busca pela metade — é isso que garante
-que o algoritmo termine rapidamente mesmo em listas muito grandes (essa
-noção de "quão rápido" é formalizada no Dia 29).
+    CAUSA 1 — Sem caso base:
+    def contar(n):
+        print(n)
+        contar(n + 1)    # nunca para!
+
+    CAUSA 2 — Caso base nunca alcançado:
+    def fatorial(n):
+        if n == 0: return 1
+        return n * fatorial(n - 2)   # -2 pula o zero se n for ímpar!
+
+    CAUSA 3 — Entrada muito grande:
+    fatorial(10000)   # recursão com 10000 níveis estoura o limite
+
+Você pode verificar e alterar o limite:
+
+    import sys
+    sys.getrecursionlimit()    # tipicamente 1000
+    sys.setrecursionlimit(5000)  # aumenta — mas geralmente o correto é
+                                  # reescrever como iteração
+
+QUANDO USAR RECURSÃO vs ITERAÇÃO:
+
+    Use recursão quando:
+    - O problema é naturalmente recursivo (árvores, estruturas aninhadas)
+    - A versão recursiva é muito mais clara que a iterativa
+    - A profundidade é limitada (< algumas centenas de níveis)
+
+    Use iteração (while/for) quando:
+    - A profundidade pode ser grande
+    - O problema se resolve bem com acumulador
+    - Desempenho é crítico (chamadas de função têm custo)
+
+    fatorial(10000) crasha com recursão — use um while.
+    Percorrer uma árvore JSON aninhada — recursão é mais natural.
+
+---------------------------------------------------------------------------
+8. Recursão em estruturas aninhadas
+---------------------------------------------------------------------------
+O lugar onde recursão realmente brilha é em estruturas cujo nível de
+aninhamento é desconhecido em tempo de escrita — como JSON aninhado,
+árvores de diretórios, ou expressões matemáticas:
+
+    def somar_aninhado(dados):
+        \"\"\"Soma todos os numeros numa lista que pode ter listas dentro.\"\"\"
+        total = 0
+        for item in dados:
+            if isinstance(item, list):
+                total += somar_aninhado(item)  # desce um nível
+            else:
+                total += item
+        return total
+
+    somar_aninhado([1, [2, [3, [4]], 5]])   # 15
+
+Com iteração, você precisaria de uma pilha manual — a recursão deixa
+o código muito mais expressivo aqui.
 """,
     exemplos=[
         Exemplo(
-            titulo="Ordenação com chaves compostas",
-            codigo='''funcionarios = [
-    {"nome": "Ana", "setor": "TI", "salario": 8000},
-    {"nome": "Bruno", "setor": "RH", "salario": 6000},
-    {"nome": "Cris", "setor": "TI", "salario": 9000},
-]
-por_setor_salario = sorted(funcionarios,
-                           key=lambda f: (f["setor"], -f["salario"]))
-for f in por_setor_salario:
-    print(f["setor"], f["nome"], f["salario"])
+            titulo="Closures criando funções especializadas",
+            codigo='''def criar_formatador(prefixo, sufixo=""):
+    """Devolve uma funcao que formata texto com prefixo e sufixo."""
+    def formatar(texto):
+        return f"{prefixo}{texto}{sufixo}"
+    return formatar     # devolve a funcao, SEM chamar
+
+# Cada chamada cria uma closure independente
+negrito = criar_formatador("**", "**")
+italico = criar_formatador("_", "_")
+titulo = criar_formatador("# ")
+alerta = criar_formatador("[ALERTA] ")
+
+print(negrito("Python"))     # **Python**
+print(italico("Python"))     # _Python_
+print(titulo("Python"))      # # Python
+print(alerta("Erro grave"))  # [ALERTA] Erro grave
+
+# Closures em lista: fabrica de multiplicadores
+multiplicadores = [criar_formatador(f"{i}x: ") for i in range(1, 4)]
+for fmt in multiplicadores:
+    print(fmt("resultado"))
 ''',
-            explicacao="A tupla (setor, -salario) ordena primeiro por setor "
-                       "(alfabético) e, dentro do mesmo setor, por salário "
-                       "decrescente — o sinal negativo inverte só esse critério.",
+            explicacao="Cada chamada de criar_formatador cria uma closure "
+                       "independente com seu próprio prefixo e sufixo "
+                       "capturados. As funções formatar compartilham o "
+                       "mesmo código mas carregam contextos diferentes. "
+                       "Isso é muito mais elegante do que criar uma classe "
+                       "ou passar prefixo/sufixo em cada chamada.",
         ),
         Exemplo(
-            titulo="Recursão em estrutura aninhada",
-            codigo='''def somar_tudo(dados):
+            titulo="lambda onde faz sentido, def onde não faz",
+            codigo='''# Lambda apropriado: argumento curto e descartavel
+dados = [
+    {"nome": "Carlos", "idade": 30, "salario": 5000},
+    {"nome": "Ana",    "idade": 25, "salario": 7000},
+    {"nome": "Bruno",  "idade": 30, "salario": 4500},
+]
+
+# Por idade, depois por salario decrescente (empates)
+por_idade_salario = sorted(dados, key=lambda d: (d["idade"], -d["salario"]))
+for p in por_idade_salario:
+    print(p["nome"], p["idade"], p["salario"])
+
+print()
+
+# Lambda inapropriado: complexo demais, extraia em funcao
+# RUIM:
+# resultado = sorted(dados, key=lambda d: d["nome"].split()[-1].lower() if " " in d["nome"] else d["nome"].lower())
+
+# BOM: extraia a logica com um nome descritivo
+def chave_sobrenome(d):
+    """Extrai o sobrenome para ordenacao, lidando com nome simples."""
+    partes = d["nome"].split()
+    return partes[-1].lower()
+
+por_sobrenome = sorted(dados, key=chave_sobrenome)
+for p in por_sobrenome:
+    print(p["nome"])
+''',
+            explicacao="Lambda com critério duplo (idade, -salario) ainda "
+                       "é legível — a tupla como chave é um padrão idiomático. "
+                       "Mas uma lambda com lógica condicional e múltiplas "
+                       "operações de string deve virar def: tem nome descritivo, "
+                       "pode ter docstring e gera mensagens de erro mais claras.",
+        ),
+        Exemplo(
+            titulo="Recursão: visualizando a pilha de chamadas",
+            codigo='''def fatorial(n, nivel=0):
+    """Fatorial com visualizacao da pilha de chamadas."""
+    recuo = "  " * nivel
+    print(f"{recuo}fatorial({n}) chamado")
+
+    if n <= 1:
+        print(f"{recuo}-> caso base: devolvendo 1")
+        return 1
+
+    resultado = n * fatorial(n - 1, nivel + 1)
+    print(f"{recuo}-> fatorial({n}) = {n} * {resultado // n} = {resultado}")
+    return resultado
+
+print(f"Resultado: {fatorial(5)}")
+print()
+
+# Recursao em estrutura aninhada
+def somar_aninhado(dados):
+    """Soma todos os numeros numa lista que pode ter listas dentro."""
     total = 0
     for item in dados:
         if isinstance(item, list):
-            total += somar_tudo(item)     # desce um nivel de aninhamento
+            total += somar_aninhado(item)    # recursao para sublista
         else:
             total += item
     return total
 
-print(somar_tudo([1, [2, [3, [4]], 5]]))   # 15
+print(somar_aninhado([1, [2, [3, [4]], 5]]))   # 15
+print(somar_aninhado([10, [20, 30], [40]]))    # 100
 ''',
-            explicacao="A recursão acompanha a forma dos próprios dados: "
-                       "cada lista aninhada dispara uma nova chamada, até "
-                       "chegar aos números (o caso base implícito).",
-        ),
-        Exemplo(
-            titulo="Closures criando funções personalizadas em série",
-            codigo='''def criar_validador(minimo, maximo):
-    def validar(valor):
-        return minimo <= valor <= maximo
-    return validar
-
-nota_valida = criar_validador(0, 10)
-idade_valida = criar_validador(0, 120)
-
-print(nota_valida(8), nota_valida(15))     # True False
-print(idade_valida(8), idade_valida(15))   # True True
-''',
-            explicacao="Cada chamada de criar_validador gera uma closure "
-                       "independente, com seu próprio 'minimo' e 'maximo' "
-                       "capturados — as duas funções não interferem entre si.",
+            explicacao="O parâmetro nivel mostra visualmente como a pilha "
+                       "de chamadas se aprofunda e depois se resolve de "
+                       "volta — cada chamada aguarda o resultado da próxima "
+                       "antes de completar a multiplicação. "
+                       "somar_aninhado mostra onde recursão brilha: "
+                       "profundidade desconhecida não exige mudança no código.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d12e1",
             enunciado=(
-                "Escreva ordenar_por_sobrenome(nomes): recebe nomes completos como\n"
-                "'Ana Silva' e devolve a lista ordenada pelo ÚLTIMO nome."
+                "Escreva a funcao ordenar_por_sobrenome(nomes) que recebe\n"
+                "uma lista de nomes completos (ex: 'Ana Silva') e devolve\n"
+                "a lista ordenada pelo ULTIMO nome (sobrenome).\n\n"
+                "Exemplos:\n"
+                "   ordenar_por_sobrenome(['Ana Silva', 'Bo Alves', 'Cris Melo'])\n"
+                "   -> ['Bo Alves', 'Cris Melo', 'Ana Silva']\n"
+                "      (Alves < Melo < Silva em ordem alfabetica)\n\n"
+                "   ordenar_por_sobrenome([]) -> []\n\n"
+                "Estrategia:\n"
+                "   Use sorted() com key= recebendo uma lambda que:\n"
+                "   1. Divide o nome em partes: n.split()\n"
+                "      'Ana Silva' -> ['Ana', 'Silva']\n"
+                "   2. Pega o ultimo elemento: [-1]\n"
+                "      ['Ana', 'Silva'][-1] -> 'Silva'\n\n"
+                "   sorted(nomes, key=lambda n: n.split()[-1])"
             ),
             funcao="ordenar_por_sobrenome",
             assinatura="def ordenar_por_sobrenome(nomes):",
@@ -1041,11 +2138,32 @@ print(idade_valida(8), idade_valida(15))   # True True
                  "['Bo Alves', 'Cris Melo', 'Ana Silva']"),
                 ("ordenar_por_sobrenome([])", "[]"),
             ],
-            dica="sorted(nomes, key=lambda n: n.split()[-1])",
+            dica="return sorted(nomes, key=lambda n: n.split()[-1])",
         ),
         Exercicio(
             id="d12e2",
-            enunciado="Escreva fatorial(n) de forma RECURSIVA (fatorial(0) == 1).",
+            enunciado=(
+                "Escreva a funcao fatorial(n) de forma RECURSIVA.\n"
+                "fatorial(0) = 1 e fatorial(1) = 1 (casos base).\n\n"
+                "Exemplos:\n"
+                "   fatorial(0)  -> 1\n"
+                "   fatorial(1)  -> 1\n"
+                "   fatorial(5)  -> 120  (5*4*3*2*1)\n"
+                "   fatorial(10) -> 3628800\n\n"
+                "A recursao funciona assim:\n"
+                "   fatorial(5)\n"
+                "   = 5 * fatorial(4)\n"
+                "   = 5 * 4 * fatorial(3)\n"
+                "   = 5 * 4 * 3 * fatorial(2)\n"
+                "   = 5 * 4 * 3 * 2 * fatorial(1)\n"
+                "   = 5 * 4 * 3 * 2 * 1\n"
+                "   = 120\n\n"
+                "Estrutura:\n"
+                "   1. if n <= 1: return 1     <- caso base\n"
+                "   2. return n * fatorial(n - 1)  <- passo recursivo\n\n"
+                "O PASSO RECURSIVO DEVE REDUZIR n a cada chamada,\n"
+                "garantindo que o caso base sera alcancado."
+            ),
             funcao="fatorial",
             assinatura="def fatorial(n):",
             testes=[
@@ -1054,13 +2172,27 @@ print(idade_valida(8), idade_valida(15))   # True True
                 ("fatorial(5)", "120"),
                 ("fatorial(10)", "3628800"),
             ],
-            dica="Caso base n <= 1 devolve 1; senão n * fatorial(n-1).",
+            dica="if n <= 1: return 1. Senao: return n * fatorial(n - 1)",
         ),
         Exercicio(
             id="d12e3",
             enunciado=(
-                "Escreva compor(f, g) que devolve uma NOVA função h tal que\n"
-                "h(x) == f(g(x))."
+                "Escreva a funcao compor(f, g) que devolve uma NOVA FUNCAO\n"
+                "h tal que h(x) == f(g(x)) — composicao matematica.\n\n"
+                "Exemplos:\n"
+                "   compor(lambda x: x+1, lambda x: x*2)(5)\n"
+                "   -> 11   (primeiro: 5*2=10, depois: 10+1=11)\n\n"
+                "   compor(str, len)('abcd')\n"
+                "   -> '4'  (primeiro: len('abcd')=4, depois: str(4)='4')\n\n"
+                "   callable(compor(len, str)) -> True\n"
+                "   (compor deve devolver algo chamavel)\n\n"
+                "Estrategia (closure):\n"
+                "   def compor(f, g):\n"
+                "       def h(x):          <- funcao interna que captura f e g\n"
+                "           return f(g(x)) <- aplica g primeiro, f depois\n"
+                "       return h            <- devolve h SEM chamar (sem parenteses)\n\n"
+                "Lembre: 'return h' devolve a funcao como objeto.\n"
+                "'return h(x)' chamaria a funcao — errado aqui!"
             ),
             funcao="compor",
             assinatura="def compor(f, g):",
@@ -1070,254 +2202,529 @@ print(idade_valida(8), idade_valida(15))   # True True
                 ("callable(compor(len, str))", "True"),
             ],
             nivel="dificil",
-            dica="Defina uma função interna e devolva-a SEM parênteses.",
+            dica="Defina uma funcao interna h(x) que retorna f(g(x)) e devolva h sem parenteses.",
         ),
     ],
     quiz=[
-        Quiz("O que falta em uma recursão que causa RecursionError?",
-             ["return", "caso base alcançável", "lambda", "global"], 1,
-             "Sem caso base (ou sem se aproximar dele a cada chamada) a pilha de chamadas estoura."),
-        Quiz("Qual é o uso mais apropriado de lambda?",
-             ["Substituir todas as funções do programa", "Como argumento curto e descartável de sorted/map/filter",
-              "Para escrever classes", "Para escrever laços"], 1,
-             "lambda é para expressões curtas de uso único; para lógica reutilizável ou complexa, use def."),
-        Quiz("Por que Python não otimiza chamadas de cauda (tail-call), diferente de outras linguagens?",
-             ["É uma limitação técnica sem solução prevista, e por isso recursão profunda em Python geralmente deve virar iteração",
-              "Python sempre otimiza automaticamente", "Só funciona em funções sem parâmetros",
-              "Isso só afeta funções recursivas com mais de um parâmetro"], 0,
-             "É uma decisão de design da linguagem: cada chamada recursiva, mesmo 'bem comportada', ocupa espaço na pilha."),
-        Quiz("O que uma closure consegue fazer que uma função comum não consegue?",
-             ["Rodar mais rápido sempre", "'Lembrar' e reutilizar variáveis do escopo onde foi criada, mesmo depois desse escopo terminar",
-              "Aceitar infinitos argumentos", "Substituir uma classe inteira"], 1,
-             "É essa capacidade de capturar o ambiente de criação que torna closures a base dos decoradores no Dia 21."),
+        Quiz(
+            "Qual a diferenca entre escrever 'dobrar' e 'dobrar()' em Python?",
+            ["Nao ha diferenca — os dois chamam a funcao",
+             "'dobrar' e o objeto funcao (sem executar); 'dobrar()' CHAMA a funcao e produz o resultado",
+             "'dobrar' imprime a funcao; 'dobrar()' executa silenciosamente",
+             "'dobrar' so funciona dentro de outras funcoes"],
+            1,
+            "Sem parenteses: voce esta referenciando o OBJETO funcao, "
+            "que pode ser passado como argumento, guardado em variavel, etc. "
+            "Com parenteses: voce esta CHAMANDO a funcao e recebendo o resultado. "
+            "sorted(lista, key=len) passa o objeto len sem chama-lo.",
+        ),
+        Quiz(
+            "O que e uma closure em Python?",
+            ["Um bloco de codigo que nao pode ser modificado",
+             "Uma funcao que 'lembra' e acessa variaveis do escopo onde foi criada, mesmo apos esse escopo terminar",
+             "Uma funcao sem parametros",
+             "Um tipo especial de lambda"],
+            1,
+            "Quando criar_multiplicador(2) termina, seu escopo local desaparece — "
+            "exceto pelas variaveis que a funcao interna ainda usa (como fator=2). "
+            "Python mantem essas variaveis vivas enquanto a closure existir. "
+            "Voce pode inspecionar com funcao.__closure__.",
+        ),
+        Quiz(
+            "Por que toda funcao recursiva precisa de um caso base?",
+            ["E so uma convencao, nao e obrigatorio",
+             "Sem caso base a funcao nao pode receber argumentos",
+             "Sem caso base a funcao chama a si mesma infinitamente ate RecursionError",
+             "Python exige caso base na sintaxe — da SyntaxError sem ele"],
+            2,
+            "O caso base e a condicao de parada da recursao. "
+            "Sem ele, a funcao continua chamando a si mesma, criando "
+            "uma pilha cada vez maior de chamadas abertas, ate "
+            "o limite ser atingido (~1000 por padrao) e RecursionError ser levantado.",
+        ),
+        Quiz(
+            "Quando lambda deve ser preferido a def?",
+            ["Sempre — lambda e mais moderno e rapido",
+             "Como argumento curto e descartavel onde a expressao e simples e o nome nao acrescentaria clareza",
+             "Quando a funcao precisa de mais de dois parametros",
+             "Quando voce precisa de docstring na funcao"],
+            1,
+            "lambda brilha como key=lambda x: x[-1] em sorted() — "
+            "curto, descartavel, a expressao diz tudo. "
+            "Mas 'dobrar = lambda x: x*2' viola o PEP 8 (use def). "
+            "Lambda complexo e dificil de depurar: mensagens de erro "
+            "dizem 'lambda' no lugar do nome da funcao.",
+        ),
     ],
     projeto=(
-        "Crie pipeline.py: uma lista de funções de transformação de texto (minúsculas, "
-        "remover acentos, trocar espaço por hífen) aplicadas em sequência por uma função "
-        "aplicar_todas() que usa reduce ou um for simples. Depois, reescreva usando compor() "
-        "do exercício de hoje para encadear apenas duas transformações."
+        "Crie pipeline_funcional.py implementando um mini-framework\n"
+        "de transformacao de dados:\n\n"
+        "   1. compor(f, g): composicao de duas funcoes (exercicio d12e3)\n\n"
+        "   2. pipeline(*funcoes): recebe N funcoes e devolve uma funcao\n"
+        "      que aplica todas em sequencia:\n"
+        "      pipeline(f, g, h)(x) == h(g(f(x)))\n\n"
+        "   3. aplicar_se(condicao, transformacao): devolve uma funcao\n"
+        "      que aplica transformacao apenas se condicao(x) for True\n\n"
+        "   4. Use essas funcoes para processar uma lista de textos:\n"
+        "      - Remover espacos nas pontas\n"
+        "      - Converter para title case\n"
+        "      - Substituir espacos por hifens\n"
+        "      - Mas so converter se o texto tiver mais de 3 caracteres\n\n"
+        "   5. Implemente fibonacci(n) de forma recursiva e demonstre\n"
+        "      o RecursionError com valores grandes (>= 1000),\n"
+        "      depois implemente a versao iterativa para comparar\n\n"
+        "BONUS: use @functools.lru_cache na fibonacci recursiva e\n"
+        "compare o desempenho com a versao sem cache para fib(35)."
     ),
-    leitura=["docs.python.org/pt-br/3/howto/functional.html", "docs.python.org/pt-br/3/library/operator.html"],
+    leitura=[
+        "docs.python.org/pt-br/3/howto/functional.html — programacao funcional em Python",
+        "docs.python.org/pt-br/3/library/functools.html — functools (lru_cache, reduce)",
+        "docs.python.org/pt-br/3/faq/programming.html#how-do-i-make-a-higher-order-function",
+    ],
 ))
 # ---------------------------------------------------------------- DIA 13
 DIAS.append(Dia(
     numero=13,
     titulo="Módulos, pacotes, venv e pip no Linux",
     nivel="Intermediário",
-    duracao="90 min",
+    duracao="100 min",
     objetivos=[
-        "Organizar código em módulos e pacotes, entendendo o papel do __init__.py",
-        "Explicar import, from-import e o papel de __name__ == '__main__'",
-        "Criar, ativar e usar ambientes virtuais no Linux, e entender por que isso importa",
-        "Saber onde o Python procura módulos e evitar o erro de sombrear a biblioteca padrão",
-        "Reconhecer os módulos essenciais da biblioteca padrão antes de reinventá-los",
-        "Usar pathlib como forma moderna de manipular caminhos de arquivo",
+        "Entender o que é um módulo e como o Python o encontra quando você importa",
+        "Usar as diferentes formas de import e saber quando cada uma é adequada",
+        "Compreender o papel do bloco if __name__ == '__main__' e por que ele importa",
+        "Organizar código em pacotes com __init__.py",
+        "Criar e ativar ambientes virtuais no Linux para isolar dependências",
+        "Instalar, listar e remover bibliotecas com pip",
+        "Usar pathlib para manipular caminhos de arquivo de forma moderna",
+        "Conhecer os módulos mais úteis da biblioteca padrão",
     ],
     teoria="""
-1. Módulo é apenas um arquivo .py
---------------------------------------
-A ideia de "módulo" em Python é mais simples do que parece: qualquer
-arquivo `.py` já é, por si só, um módulo importável por outro arquivo:
+Até agora todo o seu código ficou em um único arquivo. Programas reais
+têm centenas ou milhares de arquivos organizados em módulos e pacotes.
+Hoje você aprende a estruturar código em partes reutilizáveis e a usar
+bibliotecas de terceiros.
 
-    # matematica.py
-    PI = 3.14159
-    def area_circulo(r):
-        return PI * r ** 2
+---------------------------------------------------------------------------
+1. O que é um módulo?
+---------------------------------------------------------------------------
+Um módulo é simplesmente um ARQUIVO .py. Qualquer arquivo Python que
+você cria já é automaticamente um módulo — não há nada especial a fazer.
 
-    # main.py
-    import matematica
-    matematica.area_circulo(2)
+Quando você escreve import math, o Python:
 
-    from matematica import area_circulo, PI      # importa nomes específicos
-    import matematica as mat                      # apelido, comum para nomes longos
-    from matematica import *                       # EVITE: importa tudo, "polui" o namespace
+    1. Procura um arquivo chamado math.py (ou um pacote math/) em
+       vários lugares, nessa ordem:
+       a. O diretório do script atual
+       b. Variável de ambiente PYTHONPATH (se definida)
+       c. As pastas de instalação do Python (onde a stdlib fica)
+       d. Pacotes instalados com pip (site-packages)
 
-O motivo para evitar `from modulo import *` não é apenas estilo: ao importar
-tudo de um módulo sem prefixo, fica impossível saber, só olhando o código,
-de onde um nome específico veio — e se dois módulos importados dessa forma
-tiverem um nome em comum, um sobrescreve o outro silenciosamente, sem
-nenhum aviso.
+    2. Executa o arquivo encontrado uma única vez e guarda o resultado
+       em sys.modules como cache — importar o mesmo módulo várias
+       vezes não re-executa o arquivo
 
-2. O bloco __main__: o mesmo arquivo, dois papéis
---------------------------------------------------------
-Python dá a cada módulo uma variável especial chamada `__name__`. Quando um
-arquivo é executado DIRETAMENTE (`python3 arquivo.py`), essa variável vale
-a string `"__main__"`. Quando o MESMO arquivo é importado por outro (`import
-arquivo`), `__name__` vale o nome do módulo (`"arquivo"`), não
-`"__main__"`. Isso permite escrever um arquivo que funciona nos dois papéis
-sem conflito:
+    3. Cria um objeto módulo no seu espaço de nomes
 
-    def principal():
-        ...
+Você pode ver onde Python procura:
+
+    import sys
+    for caminho in sys.path:
+        print(caminho)
+
+---------------------------------------------------------------------------
+2. As formas de importar e quando usar cada uma
+---------------------------------------------------------------------------
+
+FORMA 1 — import módulo: traz o módulo com seu prefixo (mais seguro)
+
+    import math
+    import os
+    import datetime
+
+    math.pi           # 3.141592...
+    math.sqrt(16)     # 4.0
+    os.getcwd()       # diretório atual
+
+    # Alias: útil para nomes longos
+    import datetime as dt
+    dt.date.today()
+
+FORMA 2 — from módulo import nome: traz nomes específicos sem prefixo
+
+    from math import pi, sqrt, ceil
+    from datetime import date, timedelta
+
+    pi              # 3.141592... (sem o math. na frente)
+    sqrt(16)        # 4.0
+    date.today()    # objeto date de hoje
+
+    # Quando usar: quando você usa muito uma função e o prefixo
+    # ficaria repetitivo. Ex: pi aparece 20 vezes no código.
+
+FORMA 3 — from módulo import *: traz TUDO (quase sempre evite)
+
+    from math import *    # importa pi, e, sqrt, sin, cos, log, ...
+
+    # Por que evitar:
+    # - Polui o namespace: você não sabe mais de onde veio cada nome
+    # - Pode sobrescrever nomes existentes sem avisar
+    # - Dificulta leitura: de onde veio essa função sqrt?
+    # - A única exceção aceita: __init__.py de pacotes para expor API
+
+QUAL USAR? Uma boa heurística:
+    - Módulos da stdlib conhecidos (math, os, sys): use import módulo
+    - Funções muito usadas do módulo: use from módulo import função
+    - Nunca use import * em código de produção
+
+---------------------------------------------------------------------------
+3. O bloco if __name__ == '__main__': por que ele existe
+---------------------------------------------------------------------------
+Todo módulo Python tem uma variável especial chamada __name__:
+
+    Quando o arquivo é EXECUTADO diretamente (python3 arquivo.py):
+        __name__ vale "__main__"
+
+    Quando o arquivo é IMPORTADO por outro módulo:
+        __name__ vale o nome do arquivo (sem o .py)
+
+Por que isso importa? Imagine um arquivo calculos.py:
+
+    # calculos.py (sem o bloco __main__)
+    def media(valores):
+        return sum(valores) / len(valores)
+
+    # Este código roda SEMPRE — tanto ao executar quanto ao importar!
+    print("Testando:")
+    print(media([1, 2, 3]))
+
+Quando outro arquivo faz import calculos, ele verá "Testando:" e o
+resultado impresso na tela — efeito colateral indesejado!
+
+A solução é o bloco __main__:
+
+    # calculos.py (com o bloco __main__)
+    def media(valores):
+        return sum(valores) / len(valores)
 
     if __name__ == "__main__":
-        principal()
+        # Este bloco só executa quando rodamos: python3 calculos.py
+        # Quando importado, este bloco é PULADO
+        print("Testando:")
+        print(media([1, 2, 3]))
 
-Se alguém importar esse arquivo só para usar suas funções, o bloco dentro
-do `if` NÃO executa — só executa quando o arquivo é rodado como o programa
-principal. Sem essa proteção, importar um módulo poderia disparar efeitos
-colaterais indesejados (imprimir coisas na tela, abrir arquivos, pedir
-entrada do usuário) só por ele ter sido carregado.
+Regra prática: qualquer código que não seja definição de função/classe
+deve estar dentro do if __name__ == "__main__".
 
-3. Pacote é uma pasta que agrupa módulos
--------------------------------------------------
+---------------------------------------------------------------------------
+4. Pacotes: organizando módulos em pastas
+---------------------------------------------------------------------------
+Um PACOTE é uma pasta que contém módulos. Para que o Python reconheça
+uma pasta como pacote, ela precisa ter um arquivo __init__.py (pode ser
+vazio):
+
     meu_projeto/
-        __init__.py          (pode estar vazio; sua presença marca a pasta como pacote)
-        modelos.py
-        utils/
-            __init__.py
-            texto.py
+        __init__.py          <- marca como pacote
+        calculos.py
+        textos.py
+        util/
+            __init__.py      <- subpacote
+            formatacao.py
+            validacao.py
 
-    from meu_projeto.utils.texto import limpar
+Importando de um pacote:
 
-O arquivo `__init__.py` é o que sinaliza ao Python "esta pasta é um pacote
-importável, não apenas uma pasta qualquer" — ele pode estar completamente
-vazio, ou conter código de inicialização do pacote (imports que você quer
-disponíveis direto no nível do pacote, por exemplo).
+    import meu_projeto.calculos
+    meu_projeto.calculos.media([1, 2, 3])
 
-Dentro de um pacote, imports RELATIVOS usam pontos para indicar "a partir
-daqui":
+    from meu_projeto.calculos import media
+    media([1, 2, 3])
 
-    from . import modelos               # um módulo no mesmo pacote
-    from ..utils.texto import limpar    # subindo um nível e entrando em outro subpacote
+    from meu_projeto.util.formatacao import formatar_moeda
+    formatar_moeda(1234.56)
 
-Imports relativos só funcionam dentro de um pacote que foi ele mesmo
-importado como pacote — eles não funcionam em um script solto executado
-diretamente, o que costuma confundir iniciantes ao tentar rodar um arquivo
-de dentro de um pacote isoladamente.
+O __init__.py pode expor uma API pública do pacote:
 
-4. Onde o Python procura os módulos
-------------------------------------------
-    import sys
-    print(sys.path)
+    # meu_projeto/__init__.py
+    from .calculos import media, soma
+    from .textos import limpar, normalizar
 
-`sys.path` é a lista de lugares, em ordem, onde o Python procura um módulo
-ao encontrar um `import`: primeiro o diretório do próprio script que está
-rodando, depois a variável de ambiente `PYTHONPATH` (se definida), e por
-fim as bibliotecas instaladas (do sistema ou do ambiente virtual ativo).
+    # Agora quem importa o pacote tem acesso direto:
+    from meu_projeto import media   # sem precisar de meu_projeto.calculos.media
 
-Um erro clássico de iniciante: nomear um arquivo próprio igual a um módulo
-da biblioteca padrão — `random.py`, `json.py`, `email.py`, `test.py`. Como
-o diretório do script vem PRIMEIRO na busca, seu arquivo "sombreia" (esconde)
-o módulo original, e qualquer `import random` dentro do seu próprio projeto
-vai carregar o SEU arquivo em vez da biblioteca padrão — produzindo erros
-confusos e difíceis de diagnosticar, porque tudo parece "quebrado" sem
-motivo aparente.
+O ponto (.) em from .calculos import representa o pacote atual
+(importação relativa) — usado dentro do próprio pacote para referenciar
+módulos irmãos sem escrever o caminho completo.
 
-5. Ambiente virtual: essencial para qualquer projeto Python sério no Linux
---------------------------------------------------------------------------------
-    python3 -m venv .venv           # cria a pasta .venv com uma cópia isolada do interpretador
-    source .venv/bin/activate       # ativa o ambiente (bash/zsh) — o prompt muda para indicar isso
-    pip install requests            # instala uma biblioteca só DENTRO deste ambiente
-    pip freeze > requirements.txt   # grava a lista exata de dependências instaladas
-    pip install -r requirements.txt # reinstala essa mesma lista em outra máquina
-    deactivate                       # sai do ambiente virtual
+---------------------------------------------------------------------------
+5. Ambientes virtuais: isolando dependências no Linux
+---------------------------------------------------------------------------
+PROBLEMA: você tem dois projetos. O projeto A precisa de requests versão
+2.28 e o projeto B precisa de requests versão 2.31. Como instalar os dois?
 
-Por que isso importa tanto? Sem um ambiente virtual, todo `pip install`
-afeta o Python do sistema operacional inteiro — e projetos diferentes quase
-sempre precisam de versões diferentes das mesmas bibliotecas, o que gera
-conflitos. Em muitas distribuições Linux modernas, o `pip install` fora de
-um ambiente virtual é inclusive BLOQUEADO por padrão (uma política chamada
-PEP 668, criada exatamente para evitar que usuários quebrem acidentalmente
-ferramentas do próprio sistema operacional, que também dependem de Python).
-A prática recomendada é: todo projeto Python tem seu próprio `.venv/`, que
-NUNCA é versionado no git (por isso ele entra no `.gitignore`).
+SOLUÇÃO: ambientes virtuais. Cada projeto tem sua própria cópia isolada
+do Python e das bibliotecas instaladas.
 
-6. Biblioteca padrão que vale a pena conhecer desde já
------------------------------------------------------------------
-    math          sqrt, ceil, floor, pi, isclose, factorial
-    random        random, randint, choice, sample, shuffle, seed
-    datetime      date, datetime, timedelta
-    pathlib       Path — manipulação moderna e orientada a objetos de caminhos
-    os / sys      informações do ambiente, variáveis, argumentos de linha de comando
-    json / csv    formatos de dados amplamente usados para troca de informação
-    collections   Counter, defaultdict, deque, namedtuple (vistos nos Dias 9 e 29)
-    itertools     combinações, produtos cartesianos, agrupamentos eficientes
-    statistics    mean, median, stdev — estatística básica sem precisar de bibliotecas externas
+CRIANDO E USANDO UM AMBIENTE VIRTUAL:
 
-A regra de ouro de qualquer programador Python experiente: antes de
-escrever uma função para resolver algo do zero, vale a pena checar se a
-biblioteca padrão já não resolve isso — a documentação oficial em
-docs.python.org é organizada exatamente para essa consulta rápida.
+    # 1. Criar o ambiente (cria a pasta .venv no diretório atual)
+    python3 -m venv .venv
 
-7. pathlib em poucos minutos
----------------------------------
-`pathlib.Path` é a forma moderna e recomendada de trabalhar com caminhos de
-arquivo em Python, substituindo o estilo antigo baseado em strings e
-`os.path`:
+    # 2. Ativar o ambiente
+    source .venv/bin/activate
+
+    # O prompt muda para mostrar que o ambiente está ativo:
+    # (.venv) usuario@maquina:~/projeto$
+
+    # 3. Instalar bibliotecas (vão para .venv, não para o sistema)
+    pip install requests
+    pip install pandas numpy
+
+    # 4. Ver o que está instalado
+    pip list
+    pip freeze            # formato requirements.txt
+
+    # 5. Salvar as dependências
+    pip freeze > requirements.txt
+
+    # 6. Restaurar em outro computador
+    pip install -r requirements.txt
+
+    # 7. Desativar o ambiente
+    deactivate
+
+POR QUE .venv E NÃO OUTRO NOME?
+É a convenção mais aceita. O ponto no início faz a pasta ficar oculta
+no Linux, e a maioria dos .gitignore de Python já inclui .venv/.
+
+NUNCA versione o .venv no git! Adicione ao .gitignore:
+
+    .venv/
+    __pycache__/
+    *.pyc
+
+Em vez de .venv, versione o requirements.txt — quem clonar o repositório
+cria o próprio ambiente e instala a partir do arquivo.
+
+---------------------------------------------------------------------------
+6. pip: gerenciando bibliotecas
+---------------------------------------------------------------------------
+
+    Comando                              O que faz
+    ---------------------------------    ----------------------------------------
+    pip install nome                     instala a versão mais recente
+    pip install nome==2.28.0             instala uma versão específica
+    pip install nome>=2.0,<3.0           instala dentro de uma faixa
+    pip install -r requirements.txt      instala tudo do arquivo
+    pip uninstall nome                   remove a biblioteca
+    pip list                             lista o que está instalado
+    pip show nome                        detalhes sobre uma biblioteca
+    pip search nome                      busca no PyPI (às vezes desativado)
+    pip install --upgrade nome           atualiza para a versão mais recente
+
+PyPI (Python Package Index) em pypi.org é o repositório público de
+bibliotecas Python — qualquer pessoa pode publicar lá.
+
+---------------------------------------------------------------------------
+7. A biblioteca padrão: o que já vem pronto
+---------------------------------------------------------------------------
+Python tem uma extensa biblioteca padrão ("batteries included"). Antes
+de instalar qualquer coisa, verifique se já existe:
+
+    Módulo          Para que serve
+    ----------      -------------------------------------------------
+    math            funções matemáticas: sqrt, pi, ceil, floor, log
+    random          números aleatórios: random, randint, choice, shuffle
+    datetime        datas e horas: date, datetime, timedelta
+    pathlib         caminhos de arquivo (moderno, use isso)
+    os              interação com SO: listdir, environ, getcwd
+    sys             interpretador: argv, path, exit
+    json            serializar/deserializar JSON
+    csv             ler e escrever arquivos CSV
+    re              expressões regulares
+    collections     Counter, defaultdict, deque, namedtuple
+    itertools       ferramentas para iteração
+    functools       lru_cache, partial, reduce
+    string          constantes de caracteres
+    time            medir tempo: time(), sleep(), perf_counter()
+    statistics      media, mediana, desvio padrão
+    hashlib         MD5, SHA256 e outros hashes
+
+---------------------------------------------------------------------------
+8. pathlib: caminhos de arquivo do jeito moderno
+---------------------------------------------------------------------------
+O módulo pathlib oferece uma forma orientada a objetos de trabalhar
+com caminhos, muito mais legível que os.path antigo:
 
     from pathlib import Path
-    p = Path("/home/usuario/dados/relatorio.csv")
-    p.name      # 'relatorio.csv'                (nome completo do arquivo)
-    p.stem      # 'relatorio'                     (nome sem a extensão)
-    p.suffix    # '.csv'                          (só a extensão)
-    p.parent    # PosixPath('/home/usuario/dados')  (a pasta que contém o arquivo)
-    p.exists(), p.is_file(), p.is_dir()             (testes sobre o sistema de arquivos real)
-    (Path.home() / "projetos" / "x.txt")            # o operador / MONTA caminhos, de forma legível
 
-O uso do operador `/` para juntar partes de um caminho (em vez de
-concatenar strings manualmente com `+` ou `os.path.join`) é o que mais
-chama atenção de quem vem de outras linguagens — e funciona corretamente em
-qualquer sistema operacional, já que `Path` sabe qual separador usar
-internamente (`/` no Linux/macOS, `\\` no Windows), sem que você precise se
-preocupar com isso.
+    # Criando caminhos
+    p = Path("/home/ana/projetos/relatorio.csv")
+    p2 = Path.home() / "projetos" / "relatorio.csv"   # mesmo resultado!
+
+    # O operador / une partes de caminho de forma segura
+    # (não é divisão — é sobrecarga do operador)
+
+    # Informações sobre o caminho
+    p.name          # 'relatorio.csv'    — nome completo com extensão
+    p.stem          # 'relatorio'        — nome sem extensão
+    p.suffix        # '.csv'             — só a extensão
+    p.parent        # Path('/home/ana/projetos')
+    p.parts         # ('/', 'home', 'ana', 'projetos', 'relatorio.csv')
+
+    # Verificando o que existe no disco
+    p.exists()      # True/False — o caminho existe?
+    p.is_file()     # True/False — é um arquivo?
+    p.is_dir()      # True/False — é um diretório?
+
+    # Lendo e escrevendo (para arquivos pequenos)
+    texto = p.read_text(encoding="utf-8")
+    p.write_text("novo conteudo", encoding="utf-8")
+
+    # Listando conteúdo de diretório
+    for arquivo in Path(".").iterdir():
+        print(arquivo.name)
+
+    # Buscando arquivos recursivamente
+    for py in Path(".").rglob("*.py"):
+        print(py)
+
+    # Criando e removendo
+    Path("nova_pasta").mkdir(parents=True, exist_ok=True)
+    Path("arquivo.txt").unlink(missing_ok=True)   # remove sem erro se não existir
+
+    # Renomeando/movendo
+    Path("antigo.txt").rename("novo.txt")
 """,
     exemplos=[
         Exemplo(
-            titulo="Módulo reutilizável com bloco main",
-            codigo='''# conversores.py
-def c_para_f(c):
+            titulo="Módulo reutilizável com bloco __main__",
+            codigo='''# Simula o que estaria em um arquivo temperatura.py
+
+def celsius_para_fahrenheit(c):
+    """Converte Celsius para Fahrenheit."""
     return c * 9 / 5 + 32
 
-def f_para_c(f):
+def fahrenheit_para_celsius(f):
+    """Converte Fahrenheit para Celsius."""
     return (f - 32) * 5 / 9
 
+def celsius_para_kelvin(c):
+    """Converte Celsius para Kelvin."""
+    return c + 273.15
+
+# Este bloco so executa ao rodar diretamente: python3 temperatura.py
+# Ao importar (import temperatura), este bloco e PULADO
 if __name__ == "__main__":
-    for c in (0, 25, 100):
-        print(c, "C =", c_para_f(c), "F")
+    for temp_c in [0, 25, 100, -40]:
+        temp_f = celsius_para_fahrenheit(temp_c)
+        temp_k = celsius_para_kelvin(temp_c)
+        print(f"{temp_c:6.1f} C = {temp_f:6.1f} F = {temp_k:6.2f} K")
 ''',
-            explicacao="Rodar este arquivo diretamente executa o laço de "
-                       "teste; importá-lo de outro arquivo só traz as duas "
-                       "funções, sem disparar nenhuma impressão na tela.",
+            explicacao="Se outra parte do programa fizer 'import temperatura', "
+                       "as três funções ficam disponíveis mas o bloco de teste "
+                       "NÃO executa — não há print indesejado na tela. "
+                       "Ao rodar 'python3 temperatura.py' diretamente, "
+                       "o bloco if __name__ == '__main__' executa normalmente.",
         ),
         Exemplo(
-            titulo="Datas com datetime",
-            codigo='''from datetime import date, timedelta
+            titulo="datetime: trabalhando com datas",
+            codigo='''from datetime import date, datetime, timedelta
 
-hoje = date(2026, 7, 28)
-prazo = hoje + timedelta(days=45)
-print(prazo.isoformat())               # 2026-09-11
-print((prazo - hoje).days, "dias")     # 45 dias
-print(hoje.strftime("%d/%m/%Y"))       # 28/07/2026
+# Data de hoje
+hoje = date.today()
+print(f"Hoje: {hoje}")                    # 2026-07-28
+
+# Criando datas específicas
+nascimento = date(1990, 5, 15)
+print(f"Nascimento: {nascimento}")
+
+# Aritmética de datas
+idade_dias = (hoje - nascimento).days
+print(f"Idade em dias: {idade_dias}")
+
+anos = idade_dias // 365
+print(f"Idade aproximada: {anos} anos")
+
+# Adicionando dias
+prazo = hoje + timedelta(days=30)
+print(f"Prazo em 30 dias: {prazo}")
+
+# Formatando para exibição
+print(hoje.strftime("%d/%m/%Y"))          # 28/07/2026
+print(hoje.strftime("%A, %d de %B"))      # Monday, 28 de July
+
+# Comparando datas
+vencimento = date(2026, 12, 31)
+if hoje < vencimento:
+    faltam = (vencimento - hoje).days
+    print(f"Vence em {faltam} dias")
 ''',
-            explicacao="timedelta faz aritmética de datas sem dor de "
-                       "cabeça — Python já sabe lidar com meses de tamanhos "
-                       "diferentes e anos bissextos por trás dos panos.",
+            explicacao="timedelta representa uma duração (diferença entre datas). "
+                       "Subtrair duas datas produz um timedelta — use .days "
+                       "para obter o número inteiro de dias. "
+                       "Adicionar timedelta a uma data produz uma nova data. "
+                       "strftime formata a data como string usando códigos: "
+                       "%d=dia, %m=mês, %Y=ano com 4 dígitos.",
         ),
         Exemplo(
-            titulo="Um sombreamento de módulo, para nunca fazer isso",
-            codigo='''# Suponha um arquivo chamado random.py na mesma pasta do seu projeto,
-# contendo por exemplo: def sorteio(): return 4
+            titulo="pathlib: manipulando caminhos de forma moderna",
+            codigo='''from pathlib import Path
+import sys
 
-# Em outro arquivo do MESMO projeto:
-import random
-print(random.randint(1, 10))   # ERRO: AttributeError, pois o "random"
-                                # carregado foi o SEU arquivo, nao a
-                                # biblioteca padrao — ela nao tem sorteio()
-                                # nem foi encontrada, porque seu arquivo
-                                # veio primeiro na busca de sys.path
+# Caminho do script atual
+script = Path(__file__) if "__file__" in dir() else Path("exemplo.py")
+print("Script:", script.name)
+
+# Construindo caminhos com /
+home = Path.home()
+projetos = home / "projetos"
+arquivo = projetos / "dados" / "relatorio.csv"
+
+print("Home:", home)
+print("Arquivo:", arquivo)
+print("Nome:", arquivo.name)
+print("Stem:", arquivo.stem)
+print("Sufixo:", arquivo.suffix)
+print("Pai:", arquivo.parent)
+
+# Trabalhando com o diretório atual
+atual = Path(".")
+print("\nArquivos .py no diretório atual:")
+for py in sorted(atual.glob("*.py")):
+    tamanho = py.stat().st_size if py.exists() else 0
+    print(f"  {py.name} ({tamanho} bytes)")
+
+# Criando um arquivo temporário para demonstração
+temp = Path("/tmp/demo_pathlib.txt")
+temp.write_text("Conteúdo de demonstração\nLinha 2\n", encoding="utf-8")
+print(f"\nArquivo criado: {temp}")
+print(f"Conteúdo:\n{temp.read_text(encoding='utf-8')}")
+temp.unlink()    # remove o arquivo
+print("Arquivo removido.")
 ''',
-            explicacao="Nunca nomeie um arquivo seu igual a um módulo da "
-                       "biblioteca padrão (random, json, os, string, "
-                       "email, test...) — o Python encontra o seu primeiro.",
+            explicacao="Path.home() devolve o diretório home do usuário. "
+                       "O operador / entre Paths constrói caminhos de forma "
+                       "segura e portável — funciona em Linux, Mac e Windows "
+                       "sem precisar se preocupar com / vs \\. "
+                       "glob('*.py') lista arquivos por padrão; "
+                       "rglob('*.py') faz o mesmo recursivamente.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d13e1",
             enunciado=(
-                "Importe o módulo math e escreva area_circulo(r) devolvendo a área\n"
-                "arredondada com 4 casas decimais."
+                "Escreva a funcao area_circulo(r) que calcula a area\n"
+                "de um circulo de raio r, usando math.pi.\n"
+                "O resultado deve ser arredondado para 4 casas decimais.\n\n"
+                "Exemplos:\n"
+                "   area_circulo(1) -> 3.1416\n"
+                "   area_circulo(2) -> 12.5664\n"
+                "   area_circulo(0) -> 0.0\n\n"
+                "Formula: area = pi * r^2\n\n"
+                "O import math ja esta na assinatura — use math.pi\n"
+                "para obter o valor de pi com maxima precisao.\n"
+                "round(valor, 4) arredonda para 4 casas decimais."
             ),
             funcao="area_circulo",
             assinatura="import math\n\n\ndef area_circulo(r):",
@@ -1326,13 +2733,27 @@ print(random.randint(1, 10))   # ERRO: AttributeError, pois o "random"
                 ("area_circulo(2)", "12.5664"),
                 ("area_circulo(0)", "0.0"),
             ],
-            dica="round(math.pi * r ** 2, 4)",
+            dica="return round(math.pi * r ** 2, 4)",
         ),
         Exercicio(
             id="d13e2",
             enunciado=(
-                "Escreva dias_entre(d1, d2): recebe duas datas no formato 'AAAA-MM-DD'\n"
-                "e devolve o número de dias entre elas (sempre positivo)."
+                "Escreva a funcao dias_entre(d1, d2) que recebe duas datas\n"
+                "no formato 'AAAA-MM-DD' e devolve o numero de dias entre\n"
+                "elas (sempre positivo, independente da ordem).\n\n"
+                "Exemplos:\n"
+                "   dias_entre('2024-01-01', '2024-01-31') -> 30\n"
+                "   dias_entre('2024-03-01', '2024-02-01') -> 29\n"
+                "      (ordem invertida — resultado ainda e positivo)\n"
+                "   dias_entre('2026-07-28', '2026-07-28') -> 0\n\n"
+                "Estrategia:\n"
+                "   1. Converta as strings para objetos date:\n"
+                "      date.fromisoformat('2024-01-01') -> date(2024, 1, 1)\n"
+                "   2. Subtraia as datas:\n"
+                "      data2 - data1 produz um objeto timedelta\n"
+                "   3. Use .days para obter o numero de dias:\n"
+                "      timedelta.days pode ser negativo\n"
+                "   4. Use abs() para garantir o resultado positivo"
             ),
             funcao="dias_entre",
             assinatura="from datetime import date\n\n\ndef dias_entre(d1, d2):",
@@ -1342,13 +2763,27 @@ print(random.randint(1, 10))   # ERRO: AttributeError, pois o "random"
                 ("dias_entre('2026-07-28', '2026-07-28')", "0"),
             ],
             nivel="medio",
-            dica="date.fromisoformat() converte; abs((a - b).days) dá o valor.",
+            dica="a = date.fromisoformat(d1); b = date.fromisoformat(d2); return abs((a - b).days)",
         ),
         Exercicio(
             id="d13e3",
             enunciado=(
-                "Use pathlib para escrever info_caminho(caminho) devolvendo a tupla\n"
-                "(nome_do_arquivo, nome_sem_extensao, extensao)."
+                "Escreva a funcao info_caminho(caminho) que recebe uma\n"
+                "string de caminho de arquivo e devolve a tupla:\n"
+                "   (nome_completo, nome_sem_extensao, extensao)\n\n"
+                "Exemplos:\n"
+                "   info_caminho('/home/ana/dados/relatorio.csv')\n"
+                "   -> ('relatorio.csv', 'relatorio', '.csv')\n\n"
+                "   info_caminho('script.py')\n"
+                "   -> ('script.py', 'script', '.py')\n\n"
+                "   info_caminho('/tmp/README')\n"
+                "   -> ('README', 'README', '')  <- sem extensao: sufixo vazio\n\n"
+                "Estrategia com pathlib:\n"
+                "   p = Path(caminho)\n"
+                "   p.name    -> nome completo com extensao ('relatorio.csv')\n"
+                "   p.stem    -> nome sem extensao ('relatorio')\n"
+                "   p.suffix  -> so a extensao ('.csv') ou '' se nao tiver\n\n"
+                "Devolva os tres como uma tupla: (p.name, p.stem, p.suffix)"
             ),
             funcao="info_caminho",
             assinatura="from pathlib import Path\n\n\ndef info_caminho(caminho):",
@@ -1358,35 +2793,84 @@ print(random.randint(1, 10))   # ERRO: AttributeError, pois o "random"
                 ("info_caminho('script.py')", "('script.py', 'script', '.py')"),
                 ("info_caminho('/tmp/README')", "('README', 'README', '')"),
             ],
-            dica="Path(caminho).name, .stem e .suffix.",
+            dica="p = Path(caminho); return (p.name, p.stem, p.suffix)",
         ),
     ],
     quiz=[
-        Quiz("Para que serve `if __name__ == '__main__':`?",
-             ["Definir a função principal", "Executar código só quando o arquivo roda diretamente, não quando é importado",
-              "Criar um módulo", "Importar bibliotecas"], 1,
-             "Evita que efeitos colaterais de script (prints, execução de rotina) disparem durante um import."),
-        Quiz("Qual comando cria um ambiente virtual no Linux?",
-             ["pip venv", "python3 -m venv .venv", "virtualenv --pip", "python3 install venv"], 1,
-             "O módulo venv já vem embutido no Python 3, sem instalação adicional."),
-        Quiz("O que acontece se você criar um arquivo chamado random.py no seu projeto?",
-             ["Nada, os nomes coexistem sem problema", "Ele sombreia o módulo random da biblioteca padrão, causando erros confusos ao importar random",
-              "O Python renomeia automaticamente", "Isso só é um problema no Windows"], 1,
-             "O diretório do script vem primeiro na busca de módulos (sys.path), então seu arquivo é encontrado antes do original."),
-        Quiz("Por que usar ambientes virtuais (venv) em vez de instalar tudo globalmente com pip?",
-             ["É apenas uma preferência estética", "Evita conflitos de versão entre projetos diferentes e não afeta o Python do sistema operacional",
-              "Torna o código mais rápido", "É a única forma de usar bibliotecas externas"], 1,
-             "Cada projeto pode ter suas próprias versões de dependências, isoladas das de outros projetos e do sistema."),
+        Quiz(
+            "O que acontece quando voce importa o mesmo modulo duas vezes em sequencia?",
+            ["O arquivo e executado duas vezes, dobrando o tempo de carga",
+             "O Python usa o cache em sys.modules e nao re-executa o arquivo",
+             "Causa um ImportError de importacao duplicada",
+             "A segunda importacao sobrescreve a primeira"],
+            1,
+            "Na primeira importacao, Python executa o arquivo e guarda o resultado "
+            "em sys.modules. Nas importacoes seguintes, encontra o modulo no cache "
+            "e o reutiliza sem executar o arquivo novamente. "
+            "Isso e importante: codigo no nivel de modulo roda apenas uma vez.",
+        ),
+        Quiz(
+            "Por que adicionar '.venv/' ao .gitignore e essencial?",
+            ["Para economizar espaco em disco no repositorio",
+             "Ambientes virtuais contem binarios especificos da maquina e nao devem ser compartilhados — use requirements.txt para reproducibilidade",
+             "O git nao consegue versionar pastas que comecam com ponto",
+             "E apenas uma convencao opcional sem consequencia pratica"],
+            1,
+            "O .venv contem executaveis compilados para o SO especifico. "
+            "Em outro computador (ou SO diferente), esses binarios nao funcionam. "
+            "O correto e versionar requirements.txt e cada desenvolvedor criar "
+            "seu proprio .venv com 'pip install -r requirements.txt'.",
+        ),
+        Quiz(
+            "Qual e a diferenca entre Path.name, Path.stem e Path.suffix para o caminho '/dados/relatorio.csv'?",
+            ["Os tres retornam a mesma coisa: 'relatorio.csv'",
+             "name='relatorio.csv' (nome completo), stem='relatorio' (sem extensao), suffix='.csv' (so extensao)",
+             "name='/dados/relatorio.csv' (caminho completo), stem='relatorio', suffix='.csv'",
+             "stem e suffix nao existem em pathlib — apenas name"],
+            1,
+            "name e o arquivo com extensao, stem e sem extensao, suffix e so a extensao "
+            "(incluindo o ponto). Para '/dados/rel.tar.gz': name='rel.tar.gz', "
+            "stem='rel.tar', suffix='.gz'. suffixes devolve ['.tar', '.gz'].",
+        ),
+        Quiz(
+            "Quando o bloco 'if __name__ == \"__main__\":' NAO executa?",
+            ["Quando o arquivo e vazio",
+             "Quando o arquivo e IMPORTADO por outro modulo (nao executado diretamente)",
+             "Quando o arquivo tem erros de sintaxe",
+             "Nunca — esse bloco sempre executa independente de como o arquivo e usado"],
+            1,
+            "Ao executar 'python3 arquivo.py', __name__ vale '__main__' e o bloco executa. "
+            "Ao fazer 'import arquivo' em outro script, __name__ vale 'arquivo' "
+            "(o nome do modulo) e o bloco e pulado. "
+            "Isso permite o mesmo arquivo ser script E modulo reutilizavel.",
+        ),
     ],
     projeto=(
-        "Transforme suas funções dos dias anteriores num pacote utilitarios/ com módulos "
-        "texto.py, numeros.py e datas.py (cada um com seu próprio bloco __main__ de teste), "
-        "e um main.py que importa e demonstra cada um. Crie um .venv para o projeto, mesmo "
-        "sem dependências externas ainda, só para praticar o fluxo."
+        "Organize o codigo dos dias anteriores em um pacote:\n\n"
+        "   meu_curso/\n"
+        "       __init__.py\n"
+        "       matematica.py    (area_circulo, fatorial, media, segundo_maior)\n"
+        "       textos.py        (gritar, inverter, eh_palindromo, slug)\n"
+        "       datas.py         (dias_entre, eh_bissexto)\n"
+        "       main.py          (demonstra cada modulo)\n\n"
+        "Requisitos:\n"
+        "   1. Cada modulo tem if __name__ == '__main__' com testes proprios\n"
+        "   2. main.py importa de cada modulo e demonstra as funcoes\n"
+        "   3. __init__.py expoe as funcoes mais importantes do pacote\n"
+        "   4. Crie um .venv para o projeto:\n"
+        "      python3 -m venv .venv\n"
+        "      source .venv/bin/activate\n"
+        "      pip install pytest\n"
+        "      pip freeze > requirements.txt\n\n"
+        "BONUS: escreva um arquivo tests/test_matematica.py usando pytest\n"
+        "e rode com 'pytest tests/' para ver os testes passando."
     ),
-    leitura=["docs.python.org/pt-br/3/tutorial/modules.html", "PEP 668"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/modules.html — modulos e pacotes",
+        "docs.python.org/pt-br/3/library/pathlib.html — pathlib",
+        "pip.pypa.io — documentacao do pip",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 14
 DIAS.append(Dia(
     numero=14,
@@ -1394,213 +2878,440 @@ DIAS.append(Dia(
     nivel="Intermediário",
     duracao="100 min",
     objetivos=[
-        "Ler e escrever arquivos com with, entendendo por que isso é sempre preferível",
-        "Escolher o modo de abertura correto e sempre especificar o encoding no Linux",
-        "Ler arquivos grandes por streaming, sem carregar tudo na memória de uma vez",
-        "Serializar e desserializar dados com json, sabendo o que não é serializável",
-        "Processar tabelas com o módulo csv, incluindo DictReader e DictWriter",
-        "Escrever em arquivo de forma seguraatômica, sem risco de corromper dados a meio caminho",
+        "Abrir, ler e escrever arquivos de texto com with open() de forma segura",
+        "Entender os modos de abertura e quando usar cada um",
+        "Ler arquivos grandes linha por linha sem carregar tudo na memória",
+        "Serializar e desserializar dados com o módulo json",
+        "Entender o que é serializável em JSON e o que não é",
+        "Ler e escrever arquivos CSV com DictReader e DictWriter",
+        "Usar pathlib para operações simples de leitura e escrita",
     ],
     teoria="""
-1. Sempre use `with` para abrir arquivos
-------------------------------------------------
-    with open("dados.txt", "r", encoding="utf-8") as f:
+Programas que encerram e perdem tudo que foi calculado são de pouca
+utilidade prática. Para persistir dados entre execuções — salvar
+configurações, resultados, registros — você precisa escrever em arquivos.
+Hoje vamos dominar as três formas mais comuns de arquivo em Python:
+texto simples, JSON e CSV.
+
+---------------------------------------------------------------------------
+1. Abrindo arquivos: sempre use with
+---------------------------------------------------------------------------
+A forma correta de abrir um arquivo em Python é com o bloco with:
+
+    with open("arquivo.txt", "r", encoding="utf-8") as f:
         conteudo = f.read()
-    # o arquivo já está fechado aqui, mesmo que ocorra um erro dentro do bloco
+    # arquivo já foi fechado aqui, mesmo se houve erro dentro do bloco
 
-O bloco `with` (um "gerenciador de contexto", explicado a fundo no Dia 22)
-garante que o arquivo seja fechado automaticamente ao sair do bloco — seja
-pelo caminho normal, seja porque uma exceção interrompeu a execução no
-meio. Sem `with`, seria necessário chamar `f.close()` manualmente, e
-esquecer isso (ou esquecer de fechá-lo quando um erro interrompe o código
-antes do close) pode deixar arquivos "presos", consumindo recursos do
-sistema operacional até o programa terminar.
+Por que with e não open()/close() manual?
 
-Os modos de abertura mais comuns:
+    # Jeito manual (frágil):
+    f = open("arquivo.txt", "r")
+    conteudo = f.read()    # se uma exceção ocorrer aqui...
+    f.close()              # ...esta linha nunca executa! arquivo fica aberto
 
-    "r"   leitura (é o padrão se você omitir) — levanta erro se o arquivo não existir
-    "w"   escrita — CRIA o arquivo se não existir, ou APAGA todo o conteúdo existente
-    "a"   append (adicionar) — escreve sempre no final, sem apagar o que já havia
-    "x"   criação exclusiva — levanta erro se o arquivo já existir (evita sobrescrever sem querer)
-    "r+"  leitura e escrita simultâneas
-    "rb" / "wb"  modo binário (para imagens, arquivos zip, executáveis) — sem parâmetro de encoding
+    # Com with (seguro):
+    with open("arquivo.txt", "r") as f:
+        conteudo = f.read()    # exceção aqui? with fecha o arquivo mesmo assim
 
-No Linux (e em qualquer sistema, na verdade), é uma boa prática sempre
-passar `encoding="utf-8"` explicitamente ao abrir arquivos de texto. Sem
-isso, Python usa o encoding padrão do LOCALE da máquina — que pode variar
-entre sistemas, containers e servidores, e já foi causa de bugs difíceis de
-reproduzir em produção ("funciona na minha máquina, mas quebra no
-servidor" é, frequentemente, um problema de encoding).
+O with é um "gerenciador de contexto" que garante a limpeza dos recursos
+(fechar o arquivo) independente de ter ocorrido erro ou não. Aprenderemos
+como criar os nossos no Dia 22.
 
-2. Formas de ler um arquivo, e por que a maioria delas é uma armadilha
-------------------------------------------------------------------------------
-    f.read()             lê TUDO de uma vez, devolvendo uma única string
-    f.readline()         lê uma única linha por vez
-    f.readlines()        lê TUDO de uma vez, mas já devolve uma lista de linhas
-    for linha in f:      MELHOR: percorre linha por linha, sem carregar o arquivo inteiro na memória
+OS MODOS DE ABERTURA:
 
-Para arquivos pequenos (configurações, textos curtos), `.read()` é
-perfeitamente aceitável. Mas para arquivos GRANDES — logs de um sistema em
-produção, exportações de banco de dados com milhões de linhas — usar
-`.read()` ou `.readlines()` tenta carregar o conteúdo inteiro na memória
-RAM de uma vez, o que pode travar ou derrubar o programa. `for linha in f:`
-processa em STREAMING: uma linha entra na memória, é processada, e é
-descartada antes da próxima linha ser lida — o consumo de memória fica
-praticamente constante, não importa o tamanho do arquivo.
+    Modo    Significado          Arquivo não existe    Conteúdo existente
+    ------  -------------------  --------------------  ------------------
+    'r'     leitura (padrão)     FileNotFoundError     preservado
+    'w'     escrita              cria o arquivo        APAGADO (cuidado!)
+    'a'     append (adicionar)   cria o arquivo        preservado, escreve no fim
+    'x'     criação exclusiva    cria o arquivo        FileExistsError (seguro!)
+    'r+'    leitura e escrita    FileNotFoundError     preservado
+    'rb'    leitura binária      FileNotFoundError     preservado
+    'wb'    escrita binária      cria o arquivo        APAGADO
 
-    for linha in f:
-        linha = linha.rstrip("\\n")     # cada linha lida já vem com a quebra de linha no final
+SEMPRE ESPECIFIQUE O ENCODING:
 
-3. Escrevendo em um arquivo
---------------------------------
+    # Ruim: usa o encoding padrão do sistema (varia entre máquinas!)
+    with open("dados.txt", "r") as f:
+        ...
+
+    # Bom: comportamento consistente em qualquer sistema
+    with open("dados.txt", "r", encoding="utf-8") as f:
+        ...
+
+Texto com acentos pode quebrar se o encoding não for especificado,
+porque o padrão varia entre Linux (UTF-8), Windows (cp1252) e outros.
+Sempre use encoding="utf-8" para máxima compatibilidade.
+
+---------------------------------------------------------------------------
+2. Lendo arquivos: as três formas
+---------------------------------------------------------------------------
+
+FORMA 1 — read(): lê o arquivo inteiro de uma vez
+
+    with open("arquivo.txt", encoding="utf-8") as f:
+        conteudo = f.read()       # string com todo o conteúdo
+    print(conteudo)
+
+    Quando usar: arquivos pequenos (configurações, templates)
+    Quando evitar: arquivos grandes — carrega tudo na RAM
+
+FORMA 2 — readlines(): lê todas as linhas em uma lista
+
+    with open("arquivo.txt", encoding="utf-8") as f:
+        linhas = f.readlines()    # lista de strings, cada uma com \n
+    print(linhas[0])              # 'Primeira linha\n'
+
+    Detalhe: cada linha ainda contém o \n no final.
+    Use linha.rstrip() ou linha.strip() para remover.
+
+FORMA 3 — iteração direta (melhor para arquivos grandes)
+
+    with open("arquivo.txt", encoding="utf-8") as f:
+        for linha in f:           # lê uma linha por vez, sob demanda
+            linha = linha.rstrip("\n")
+            print(linha)
+
+    Quando usar: sempre que o arquivo puder ser grande
+    Por quê: só uma linha ocupa memória por vez — arquivo de 10 GB
+    funciona igual a arquivo de 1 KB em termos de consumo de RAM
+
+---------------------------------------------------------------------------
+3. Escrevendo arquivos
+---------------------------------------------------------------------------
+
+    # write(): escreve uma string (não adiciona \n automaticamente!)
     with open("saida.txt", "w", encoding="utf-8") as f:
-        f.write("primeira linha\\n")       # write() NÃO adiciona quebra de linha sozinho!
-        f.writelines(["a\\n", "b\\n"])      # escreve uma lista de strings, sem separador automático
-        print("via print", file=f)         # print() também sabe escrever direto num arquivo
+        f.write("Primeira linha\n")
+        f.write("Segunda linha\n")
 
-Um erro comum: esperar que `f.write("texto")` pule para a próxima linha
-automaticamente, como `print` faz por padrão. `write()` escreve EXATAMENTE
-o que você passar, sem adicionar nada — se você quer uma quebra de linha,
-precisa incluir `"\\n"` você mesmo.
+    # writelines(): escreve uma lista de strings (também sem \n automático)
+    linhas = ["linha 1\n", "linha 2\n", "linha 3\n"]
+    with open("saida.txt", "w", encoding="utf-8") as f:
+        f.writelines(linhas)
 
-4. pathlib para tarefas simples de arquivo
-----------------------------------------------
-Para operações rápidas (ler ou escrever o conteúdo inteiro de um arquivo
-pequeno), `pathlib.Path` (Dia 13) oferece atalhos que dispensam o `with`
-explícito, já cuidando de abrir e fechar o arquivo internamente:
+    # print() também aceita arquivo como destino:
+    with open("saida.txt", "w", encoding="utf-8") as f:
+        print("Olá, arquivo!", file=f)    # print adiciona \n automaticamente
+
+    # append: adiciona ao final sem apagar o que já existe
+    with open("log.txt", "a", encoding="utf-8") as f:
+        f.write("Nova entrada de log\n")
+
+CUIDADO COM 'w': ele APAGA o arquivo existente antes de escrever.
+Se quiser acrescentar, use 'a'. Se quiser garantir que não vai sobrescrever
+um arquivo existente, use 'x' (levanta FileExistsError se já existir).
+
+---------------------------------------------------------------------------
+4. pathlib para arquivos simples
+---------------------------------------------------------------------------
+Para arquivos pequenos, pathlib oferece atalhos muito convenientes:
 
     from pathlib import Path
-    p = Path("nota.txt")
-    p.write_text("conteudo", encoding="utf-8")
-    texto = p.read_text(encoding="utf-8")
-    p.unlink(missing_ok=True)              # apaga o arquivo; não erra se ele não existir
-    for arquivo in Path(".").glob("*.py"): ...       # lista arquivos .py na pasta atual
-    for arquivo in Path(".").rglob("*.py"): ...      # o mesmo, mas RECURSIVO em subpastas
 
-5. JSON: o formato universal de troca de dados estruturados
-------------------------------------------------------------------
+    # Leitura completa em uma linha
+    conteudo = Path("arquivo.txt").read_text(encoding="utf-8")
+
+    # Escrita completa em uma linha (equivale a open com 'w')
+    Path("saida.txt").write_text("conteúdo aqui", encoding="utf-8")
+
+    # Leitura de bytes (arquivos binários)
+    dados = Path("imagem.png").read_bytes()
+
+Para arquivos grandes ou quando precisa de controle de linha por linha,
+use open() com with. Para ler/escrever arquivos pequenos de uma vez,
+pathlib é mais conciso.
+
+---------------------------------------------------------------------------
+5. JSON: o formato universal de dados estruturados
+---------------------------------------------------------------------------
+JSON (JavaScript Object Notation) é um formato de texto para representar
+dados estruturados. É o formato mais usado para trocar dados entre sistemas:
+APIs web, configurações, resultados de análise.
+
+O mapeamento entre Python e JSON:
+
+    Python              JSON
+    ---------------     ---------------
+    dict                object { }
+    list, tuple         array [ ]
+    str                 string " "
+    int, float          number
+    True                true
+    False               false
+    None                null
+
+As quatro funções essenciais do módulo json:
+
     import json
-    json.dumps(obj, ensure_ascii=False, indent=2)   # converte um objeto Python para uma STRING JSON
-    json.loads(texto)                               # converte uma STRING JSON de volta para um objeto Python
-    json.dump(obj, arquivo)                         # como dumps, mas escreve DIRETO em um arquivo
-    json.load(arquivo)                               # como loads, mas lê DIRETO de um arquivo
 
-O mapeamento de tipos entre Python e JSON segue uma tabela previsível: `dict`
-vira objeto JSON, `list` vira array JSON, `str`/`int`/`float` mantêm
-correspondência direta, `True`/`False`/`None` viram `true`/`false`/`null`
-(em minúsculas, seguindo a convenção JSON, diferente do Python). Uma
-armadilha comum: TUPLAS viram LISTAS ao serem serializadas — o JSON não tem
-o conceito de tupla, então essa distinção se perde na conversão. Outra:
-objetos `datetime` NÃO são serializáveis diretamente — é preciso convertê-
-los para string antes (com `.isoformat()`) ou fornecer uma função customizada
-através do parâmetro `default=` de `json.dumps`.
+    # Python -> string JSON
+    json.dumps(obj)
+    json.dumps(obj, indent=2)           # formatado, mais legível
+    json.dumps(obj, ensure_ascii=False) # preserva acentos (não escapa para \uXXXX)
 
-    json.dumps({"nome": "João"}, ensure_ascii=False)   # 'ensure_ascii=False' preserva acentos como estão,
-                                                         # em vez de escapá-los como sequências \\uXXXX
+    # string JSON -> Python
+    json.loads(texto)
 
-6. CSV: o formato universal de tabelas
----------------------------------------------
+    # Python -> arquivo JSON
+    with open("dados.json", "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False)
+
+    # arquivo JSON -> Python
+    with open("dados.json", encoding="utf-8") as f:
+        obj = json.load(f)
+
+O QUE NÃO É SERIALIZÁVEL EM JSON:
+
+    json.dumps(datetime.date.today())   # TypeError!
+    json.dumps(set())                   # TypeError!
+    json.dumps(Path("/tmp"))            # TypeError!
+
+    Solução: converta antes de serializar
+    json.dumps(str(datetime.date.today()))   # '2026-07-28'
+    json.dumps(list(meu_set))               # [...]
+
+TUPLAS VIRAM LISTAS: json.dumps((1, 2, 3)) produz "[1, 2, 3]" — ao
+deserializar, você recebe uma lista, não uma tupla de volta.
+
+ensure_ascii=False: por padrão, json.dumps escapa caracteres não-ASCII:
+"São Paulo" vira "S\u00e3o Paulo". Com ensure_ascii=False, os acentos
+ficam como estão — muito mais legível no arquivo final.
+
+---------------------------------------------------------------------------
+6. CSV: tabelas como texto
+---------------------------------------------------------------------------
+CSV (Comma-Separated Values) é o formato mais simples para tabelas:
+cada linha é um registro, cada campo separado por vírgula (ou outro
+delimitador).
+
+    nome,idade,cidade
+    Ana,30,Recife
+    Bruno,25,São Paulo
+    Carla,35,Belo Horizonte
+
+O módulo csv lida com casos complicados automaticamente: campos com
+vírgulas dentro de aspas, campos com quebras de linha, etc.
+
+LENDO COM DictReader (recomendado):
+
     import csv
-    with open("dados.csv", newline="", encoding="utf-8") as f:
-        for linha in csv.DictReader(f):
-            print(linha["nome"], linha["nota"])     # atenção: os valores lidos são sempre STRINGS!
 
-    with open("saida.csv", "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["nome", "nota"])
-        w.writeheader()
-        w.writerows(registros)
+    with open("dados.csv", encoding="utf-8", newline="") as f:
+        leitor = csv.DictReader(f)
+        for linha in leitor:
+            # linha é um dicionário com as chaves do cabeçalho
+            print(linha["nome"], linha["idade"])
 
-`csv.DictReader` lê cada linha do arquivo como um dicionário, usando a
-PRIMEIRA linha do CSV como os nomes das chaves — muito mais legível do que
-acessar colunas por índice numérico. Um detalhe fácil de esquecer: todo
-valor lido de um CSV vem como STRING, mesmo que pareça um número — se você
-precisar de `9` como inteiro em vez de `'9'` como texto, a conversão
-(`int()`, `float()`) é sua responsabilidade.
+    # Por que newline=""?
+    # csv precisa controlar as quebras de linha internamente
+    # sem isso, pode dobrar os \r\n no Windows
 
-O parâmetro `newline=""` ao abrir o arquivo é uma exigência específica do
-módulo `csv` para evitar linhas em branco extras no Windows (mas é uma boa
-prática incluir sempre, mesmo em Linux, por portabilidade). Para arquivos
-com separador diferente de vírgula (comum em CSVs exportados de planilhas
-em português, que usam ponto e vírgula): `csv.reader(f, delimiter=";")`.
+IMPORTANTE: todos os valores lidos são STRINGS. Se precisar de número:
+    int(linha["idade"]) ou float(linha["preco"])
 
-7. Escrita segura: evitando arquivos corrompidos pela metade
---------------------------------------------------------------------
-Se o programa for interrompido (queda de energia, `kill -9`, um erro não
-tratado) exatamente no meio de uma escrita, o arquivo final pode ficar
-truncado — com metade do conteúdo antigo e metade do novo, ou pior, vazio.
-A técnica profissional para evitar isso é escrever em um arquivo TEMPORÁRIO
-primeiro e só então RENOMEAR para o nome final:
+ESCREVENDO COM DictWriter:
 
-    from pathlib import Path
-    temporario = Path("dados.json.tmp")
-    temporario.write_text(novo_conteudo, encoding="utf-8")
-    temporario.replace("dados.json")     # operação atômica no mesmo sistema de arquivos
+    import csv
 
-`Path.replace()` é ATÔMICA quando origem e destino estão no mesmo sistema
-de arquivos — ou seja, do ponto de vista de qualquer programa observando de
-fora, o arquivo `dados.json` muda instantaneamente do conteúdo antigo para
-o novo, sem nunca existir um estado "pela metade" visível para outros
-processos.
+    dados = [
+        {"nome": "Ana", "nota": 9.5},
+        {"nome": "Bruno", "nota": 7.0},
+    ]
+
+    with open("notas.csv", "w", encoding="utf-8", newline="") as f:
+        escritor = csv.DictWriter(f, fieldnames=["nome", "nota"])
+        escritor.writeheader()   # escreve a linha de cabeçalho
+        escritor.writerows(dados)
+
+LENDO PARA UMA LISTA DE DICIONÁRIOS de uma vez:
+
+    with open("dados.csv", encoding="utf-8", newline="") as f:
+        registros = list(csv.DictReader(f))
+    # registros é uma lista de dicts — arquivo já fechado
+
+DELIMITADOR DIFERENTE (ponto e vírgula, comum em CSV brasileiro):
+
+    csv.DictReader(f, delimiter=";")
+    csv.DictWriter(f, fieldnames=..., delimiter=";")
+
+---------------------------------------------------------------------------
+7. Usando io.StringIO para testar sem arquivos reais
+---------------------------------------------------------------------------
+io.StringIO cria um "arquivo em memória" — um objeto que se comporta
+como arquivo, mas existe só na RAM. Muito útil para testes:
+
+    import io
+    import csv
+
+    texto_csv = "nome,nota\nana,9\nbia,7"
+    buffer = io.StringIO(texto_csv)    # "arquivo" em memória
+
+    leitor = csv.DictReader(buffer)
+    for linha in leitor:
+        print(linha)    # {'nome': 'ana', 'nota': '9'}
+
+Isso evita criar arquivos temporários só para testar código que processa
+CSV — o mesmo padrão é usado nos exercícios deste dia.
+
+---------------------------------------------------------------------------
+8. Boas práticas ao trabalhar com arquivos
+---------------------------------------------------------------------------
+    Use sempre with — nunca open/close manual
+    Sempre especifique encoding="utf-8"
+    Use newline="" ao abrir arquivos CSV
+    Prefira iteração linha por linha para arquivos grandes
+    Trate FileNotFoundError quando o arquivo pode não existir
+    Para JSON com acentos: ensure_ascii=False
+    Lembre: valores de CSV são sempre strings — converta se necessário
+    Para arquivos críticos, escreva em temporário e renomeie (atômico)
 """,
     exemplos=[
         Exemplo(
-            titulo="Ler, filtrar e gravar",
+            titulo="Lendo e escrevendo arquivos de texto",
             codigo='''from pathlib import Path
 
-entrada = Path("/tmp/log.txt")
-entrada.write_text("INFO ok\\nERRO falhou\\nINFO fim\\n", encoding="utf-8")
+# Criando um arquivo de exemplo
+Path("/tmp/notas.txt").write_text(
+    "# Arquivo de notas de estudo\n"
+    "Python e uma linguagem incrivel\n"
+    "\n"
+    "# Topicos aprendidos:\n"
+    "- variaveis e tipos\n"
+    "- funcoes e modulos\n"
+    "- arquivos e JSON\n",
+    encoding="utf-8"
+)
 
-erros = [l for l in entrada.read_text(encoding="utf-8").splitlines()
-         if l.startswith("ERRO")]
-Path("/tmp/erros.txt").write_text("\\n".join(erros), encoding="utf-8")
-print(erros)
-''',
-            explicacao="Para arquivos pequenos, pathlib elimina o "
-                       "boilerplate de abrir/fechar manualmente com with.",
-        ),
-        Exemplo(
-            titulo="JSON de ida e volta",
-            codigo='''import json
-
-config = {"tema": "escuro", "fontes": [12, 14], "auto_salvar": True}
-texto = json.dumps(config, ensure_ascii=False, indent=2)
-print(texto)
-recuperado = json.loads(texto)
-print(recuperado["fontes"][1])      # 14
-''',
-            explicacao="indent deixa a saída legível para humanos; "
-                       "ensure_ascii=False preserva acentos em vez de "
-                       "escapá-los como \\uXXXX.",
-        ),
-        Exemplo(
-            titulo="Streaming versus carregar tudo de uma vez",
-            codigo='''from pathlib import Path
-
-arquivo = Path("/tmp/numeros.txt")
-arquivo.write_text("\\n".join(str(i) for i in range(100000)), encoding="utf-8")
-
-# Carrega tudo de uma vez (aceitavel para arquivos pequenos):
-total_read = sum(int(l) for l in arquivo.read_text(encoding="utf-8").splitlines())
-
-# Streaming linha a linha (preferivel para arquivos grandes):
-total_stream = 0
-with open(arquivo, encoding="utf-8") as f:
+# Lendo linha por linha (eficiente para qualquer tamanho)
+print("=== Linhas uteis (sem comentarios e vazias): ===")
+with open("/tmp/notas.txt", encoding="utf-8") as f:
     for linha in f:
-        total_stream += int(linha)
+        linha = linha.strip()
+        if linha and not linha.startswith("#"):
+            print(" ", linha)
 
-print(total_read == total_stream, total_stream)
+# Adicionando ao final (modo append)
+with open("/tmp/notas.txt", "a", encoding="utf-8") as f:
+    f.write("- arquivos CSV\n")
+
+# Lendo tudo de uma vez para verificar
+conteudo = Path("/tmp/notas.txt").read_text(encoding="utf-8")
+print(f"\nTotal de linhas: {len(conteudo.splitlines())}")
 ''',
-            explicacao="Os dois chegam ao mesmo resultado, mas o segundo "
-                       "nunca guarda o arquivo inteiro na memória — só uma "
-                       "linha de cada vez.",
+            explicacao="A iteração direta 'for linha in f' é a forma mais "
+                       "eficiente: apenas uma linha fica na memória por vez. "
+                       "Para filtrar, use condições dentro do loop. "
+                       "Modo 'a' (append) adiciona ao final sem apagar — "
+                       "ideal para logs onde cada execução acrescenta.",
+        ),
+        Exemplo(
+            titulo="JSON: ida e volta com dados complexos",
+            codigo='''import json
+from pathlib import Path
+from datetime import date
+
+# Dados com tipos variados
+config = {
+    "app": "MeuSistema",
+    "versao": "1.0.0",
+    "debug": False,
+    "max_usuarios": 1000,
+    "taxa_desconto": 0.15,
+    "funcionalidades": ["login", "relatorio", "exportar"],
+    "banco": {
+        "host": "localhost",
+        "porta": 5432,
+    },
+    "criado_em": str(date.today()),   # date nao e serializavel, converta!
+}
+
+# Serializando para string (visualizacao)
+texto = json.dumps(config, indent=2, ensure_ascii=False)
+print(texto[:200], "...")
+
+# Salvando em arquivo
+arquivo = Path("/tmp/config.json")
+with open(arquivo, "w", encoding="utf-8") as f:
+    json.dump(config, f, indent=2, ensure_ascii=False)
+
+# Carregando de volta
+with open(arquivo, encoding="utf-8") as f:
+    carregado = json.load(f)
+
+print(f"\nApp: {carregado['app']}")
+print(f"Funcionalidades: {carregado['funcionalidades']}")
+print(f"Tipos recuperados: debug={type(carregado['debug']).__name__}, "
+      f"max={type(carregado['max_usuarios']).__name__}")
+''',
+            explicacao="indent=2 torna o JSON legível por humanos. "
+                       "ensure_ascii=False preserva acentos como estão "
+                       "em vez de escapar para \\uXXXX. "
+                       "date não é serializável diretamente — convertemos "
+                       "para string antes. Ao carregar, o JSON preserva os "
+                       "tipos: bool, int e float voltam como Python nativo.",
+        ),
+        Exemplo(
+            titulo="CSV: lendo e escrevendo tabelas",
+            codigo='''import csv
+import io
+from pathlib import Path
+
+# Criando um CSV de exemplo
+dados = [
+    {"nome": "Ana", "nota": 9.5, "aprovado": True},
+    {"nome": "Bruno", "nota": 5.0, "aprovado": False},
+    {"nome": "Carla", "nota": 7.8, "aprovado": True},
+]
+
+arquivo = Path("/tmp/turma.csv")
+with open(arquivo, "w", encoding="utf-8", newline="") as f:
+    escritor = csv.DictWriter(f, fieldnames=["nome", "nota", "aprovado"])
+    escritor.writeheader()
+    escritor.writerows(dados)
+
+print("CSV criado:")
+print(arquivo.read_text(encoding="utf-8"))
+
+# Lendo de volta
+print("Lendo o CSV:")
+with open(arquivo, encoding="utf-8", newline="") as f:
+    for linha in csv.DictReader(f):
+        # TODOS os valores sao strings! converta o que precisar
+        nome = linha["nome"]
+        nota = float(linha["nota"])          # converte para float
+        aprovado = linha["aprovado"] == "True"  # converte para bool
+        print(f"  {nome}: {nota:.1f} ({'Aprovado' if aprovado else 'Reprovado'})")
+''',
+            explicacao="DictWriter.writeheader() escreve a linha de cabeçalho. "
+                       "writerows() escreve todos os registros de uma vez. "
+                       "Na leitura, TUDO vira string: nota '9.5' não é o "
+                       "float 9.5, e 'True' não é o bool True. "
+                       "Sempre converta os tipos ao ler CSV.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d14e1",
             enunciado=(
-                "Escreva ida_e_volta(dados): grava o dicionário em um arquivo JSON\n"
-                "temporário, lê de volta e devolve o objeto lido."
+                "Escreva a funcao ida_e_volta(dados) que:\n"
+                "   1. Converte o dicionario para JSON e salva em um\n"
+                "      arquivo temporario em /tmp\n"
+                "   2. Le o arquivo de volta\n"
+                "   3. Devolve o objeto Python recuperado\n\n"
+                "Exemplos:\n"
+                "   ida_e_volta({'a': 1, 'b': [2, 3]}) -> {'a': 1, 'b': [2, 3]}\n"
+                "   ida_e_volta({}) -> {}\n\n"
+                "Estrategia:\n"
+                "   1. Escolha um caminho temporario:\n"
+                "      arquivo = Path('/tmp') / 'temp_ida_volta.json'\n"
+                "   2. Escreva o JSON:\n"
+                "      with open(arquivo, 'w', encoding='utf-8') as f:\n"
+                "          json.dump(dados, f)\n"
+                "   3. Leia de volta:\n"
+                "      with open(arquivo, encoding='utf-8') as f:\n"
+                "          return json.load(f)\n\n"
+                "O modulo json e pathlib ja estao importados na assinatura."
             ),
             funcao="ida_e_volta",
             assinatura="import json\nimport tempfile\nfrom pathlib import Path\n\n\ndef ida_e_volta(dados):",
@@ -1609,13 +3320,29 @@ print(total_read == total_stream, total_stream)
                 ("ida_e_volta({})", "{}"),
             ],
             nivel="medio",
-            dica="Use tempfile.gettempdir() ou Path('/tmp') para o arquivo.",
+            dica="arquivo = Path('/tmp/temp_ida_volta.json'); json.dump(...); depois json.load(...)",
         ),
         Exercicio(
             id="d14e2",
             enunciado=(
-                "Escreva linhas_uteis(texto): devolve a lista de linhas sem espaços nas\n"
-                "pontas, descartando linhas vazias e as que começam com #."
+                "Escreva a funcao linhas_uteis(texto) que recebe um texto\n"
+                "com multiplas linhas e devolve uma lista com apenas as\n"
+                "linhas que tenham conteudo real:\n"
+                "   - Remove espacos das pontas de cada linha\n"
+                "   - Descarta linhas vazias (apos o strip)\n"
+                "   - Descarta linhas que comecam com # (comentarios)\n\n"
+                "Exemplos:\n"
+                "   linhas_uteis('a\\n\\n # com\\n b ')\n"
+                "   -> ['a', 'b']\n"
+                "   (espaco antes do # conta: ' # com' comeca com espaco, nao #\n"
+                "    mas apos strip() vira '# com', que comeca com #)\n\n"
+                "   linhas_uteis('') -> []\n"
+                "   linhas_uteis('#tudo comentado') -> []\n\n"
+                "Estrategia:\n"
+                "   1. texto.splitlines() divide em lista de linhas\n"
+                "   2. Para cada linha: linha = linha.strip()\n"
+                "   3. Descarte se vazia (not linha) ou comentario (startswith('#'))\n"
+                "   4. Inclua o restante na lista resultado"
             ),
             funcao="linhas_uteis",
             assinatura="def linhas_uteis(texto):",
@@ -1624,13 +3351,28 @@ print(total_read == total_stream, total_stream)
                 ("linhas_uteis('')", "[]"),
                 ("linhas_uteis('#tudo comentado')", "[]"),
             ],
-            dica="splitlines() + strip() + filtros.",
+            dica="[l.strip() for l in texto.splitlines() if l.strip() and not l.strip().startswith('#')]",
         ),
         Exercicio(
             id="d14e3",
             enunciado=(
-                "Escreva csv_para_dicts(texto_csv) que converte um CSV (com cabeçalho,\n"
-                "separado por vírgula) em uma lista de dicionários."
+                "Escreva csv_para_dicts(texto_csv) que converte um texto\n"
+                "no formato CSV (com cabecalho) em uma lista de dicionarios.\n\n"
+                "Exemplos:\n"
+                "   csv_para_dicts('nome,nota\\nana,9\\nbia,7')\n"
+                "   -> [{'nome': 'ana', 'nota': '9'}, {'nome': 'bia', 'nota': '7'}]\n\n"
+                "   csv_para_dicts('a,b')\n"
+                "   -> []  (so tem cabecalho, sem dados)\n\n"
+                "O truque: io.StringIO transforma uma STRING em um objeto\n"
+                "que se comporta como arquivo, sem criar arquivo real no disco.\n\n"
+                "Estrategia:\n"
+                "   1. buffer = io.StringIO(texto_csv)\n"
+                "      (cria um 'arquivo em memoria' a partir da string)\n"
+                "   2. leitor = csv.DictReader(buffer)\n"
+                "      (DictReader usa o 1o linha como cabecalho das chaves)\n"
+                "   3. return list(leitor)\n"
+                "      (materializa todos os registros em uma lista)\n\n"
+                "csv e io ja estao importados na assinatura."
             ),
             funcao="csv_para_dicts",
             assinatura="import csv\nimport io\n\n\ndef csv_para_dicts(texto_csv):",
@@ -1640,271 +3382,592 @@ print(total_read == total_stream, total_stream)
                 ("csv_para_dicts('a,b')", "[]"),
             ],
             nivel="dificil",
-            dica="io.StringIO(texto) transforma a string em um arquivo em memória para o DictReader.",
+            dica="return list(csv.DictReader(io.StringIO(texto_csv)))",
         ),
     ],
     quiz=[
-        Quiz("O que acontece ao abrir um arquivo existente no modo 'w'?",
-             ["Erro", "O conteúdo existente é apagado (truncado)", "Escreve no final, preservando o conteúdo", "Abre só para leitura"], 1,
-             "'w' trunca o arquivo inteiro; para preservar o conteúdo existente e adicionar ao final, use 'a'."),
-        Quiz("Por que usar `with open(...)` em vez de open()/close() manual?",
-             ["É mais rápido de executar", "Garante o fechamento do arquivo automaticamente, mesmo se ocorrer um erro no meio",
-              "Só with permite ler JSON", "with é obrigatório na sintaxe do Python"], 1,
-             "with é um gerenciador de contexto que fecha o recurso de forma confiável, mesmo diante de exceções."),
-        Quiz("Por que 'for linha in arquivo:' é preferível a arquivo.read() para arquivos muito grandes?",
-             ["Não há diferença real de comportamento", "Processa uma linha por vez (streaming), sem carregar o arquivo inteiro na memória",
-              "É a única forma de ler arquivos de texto", "read() não funciona com encoding utf-8"], 1,
-             "read() e readlines() carregam tudo de uma vez; o for direto no arquivo consome memória praticamente constante."),
-        Quiz("Por que valores lidos de um CSV com DictReader vêm sempre como string?",
-             ["É um bug do módulo csv", "O formato CSV é puro texto; não existe tipo número dentro do próprio arquivo",
-              "Porque o arquivo não foi aberto com encoding correto", "Só acontece se o CSV tiver cabeçalho"], 1,
-             "CSV é um formato inteiramente textual; a conversão para int/float é sempre responsabilidade de quem lê."),
+        Quiz(
+            "Por que usar 'with open(...)' em vez de open() e close() separados?",
+            ["with open e mais rapido que open manual",
+             "with garante que o arquivo sera fechado mesmo se ocorrer uma excecao dentro do bloco",
+             "open() sem with nao consegue ler arquivos grandes",
+             "E apenas uma questao de estilo — os dois funcionam igualmente"],
+            1,
+            "Se uma excecao ocorrer entre open() e close() manual, o close() "
+            "nunca executa e o arquivo fica aberto, ocupando recursos do sistema. "
+            "with garante a limpeza independente do que acontecer — "
+            "mesmo com return, break ou excecao no meio do bloco.",
+        ),
+        Quiz(
+            "O que acontece com o conteudo existente ao abrir um arquivo no modo 'w'?",
+            ["O conteudo e preservado e a escrita e adicionada ao final",
+             "O arquivo e bloqueado para escrita por outros programas",
+             "O conteudo e completamente APAGADO antes de qualquer escrita",
+             "Python levanta FileExistsError se o arquivo ja existir"],
+            2,
+            "'w' trunca (apaga) o arquivo ao abri-lo, mesmo antes de escrever qualquer coisa. "
+            "Para adicionar ao final sem apagar: use 'a' (append). "
+            "Para criar apenas se nao existir: use 'x' (exclusivo).",
+        ),
+        Quiz(
+            "Qual o tipo de todos os valores lidos por csv.DictReader?",
+            ["O tipo original: int para numeros, str para texto",
+             "str (string) — CSV e texto puro, sem informacao de tipo",
+             "dict para cada linha",
+             "Depende do cabecalho do arquivo"],
+            1,
+            "CSV e um formato de texto puro — nao tem como saber se '9' e um "
+            "inteiro ou um texto de um digito. DictReader sempre devolve strings. "
+            "Voce e responsavel por converter: int(linha['idade']), float(linha['preco']).",
+        ),
+        Quiz(
+            "Por que json.dumps({'nome': 'Sao Paulo'}, ensure_ascii=True) e ruim?",
+            ["ensure_ascii=True e o padrao e nao afeta acentos",
+             "Com ensure_ascii=True, caracteres nao-ASCII como acentos sao escapados para \\uXXXX, tornando o arquivo ilegivel",
+             "ensure_ascii=True faz json.dumps falhar com ValueError",
+             "Nao ha diferenca — o resultado e identico"],
+            1,
+            "Com ensure_ascii=True (padrao), 'Sao Paulo' fica como 'S\\u00e3o Paulo'. "
+            "Com ensure_ascii=False, fica como 'Sao Paulo' — muito mais legivel. "
+            "Use sempre ensure_ascii=False para arquivos que humanos vao ler.",
+        ),
     ],
     projeto=(
-        "Crie notas_csv.py: leia um CSV de alunos e notas, calcule a média de cada aluno, "
-        "grave um novo CSV com a situação (aprovado/reprovado) e um resumo em JSON. Implemente "
-        "a escrita segura (arquivo temporário + replace) para o resumo em JSON."
+        "Crie sistema_notas.py que gerencie notas de alunos em CSV e JSON:\n\n"
+        "   ESTRUTURA DE DADOS:\n"
+        "   Um CSV com colunas: nome, nota1, nota2, nota3\n\n"
+        "   FUNCOES A IMPLEMENTAR:\n\n"
+        "   1. carregar_csv(caminho) -> lista de dicts\n"
+        "      Le o CSV e converte as notas para float\n\n"
+        "   2. calcular_medias(alunos) -> lista de dicts com media\n"
+        "      Adiciona 'media' e 'situacao' (Aprovado/Reprovado) a cada dict\n\n"
+        "   3. salvar_relatorio_json(alunos, caminho)\n"
+        "      Salva o relatorio completo em JSON com indent=2\n\n"
+        "   4. salvar_aprovados_csv(alunos, caminho)\n"
+        "      Salva apenas os aprovados em um novo CSV\n\n"
+        "   5. resumo(alunos) -> dict\n"
+        "      Retorna: total, aprovados, reprovados, media_turma, melhor_aluno\n\n"
+        "   EXECUCAO:\n"
+        "   Crie um CSV de exemplo com 5 alunos, processe e salve\n"
+        "   o relatorio JSON e o CSV de aprovados.\n\n"
+        "BONUS: use try/except ao carregar o CSV para tratar\n"
+        "FileNotFoundError (arquivo nao existe) e\n"
+        "ValueError (nota nao e numero valido)."
     ),
-    leitura=["docs.python.org/pt-br/3/library/json.html", "docs.python.org/pt-br/3/library/csv.html"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/inputoutput.html — arquivos",
+        "docs.python.org/pt-br/3/library/json.html — modulo json",
+        "docs.python.org/pt-br/3/library/csv.html — modulo csv",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 15
 DIAS.append(Dia(
     numero=15,
     titulo="Erros e exceções",
     nivel="Intermediário",
-    duracao="90 min",
+    duracao="100 min",
     objetivos=[
-        "Tratar erros com try/except/else/finally, entendendo o papel exato de cada bloco",
-        "Capturar exceções específicas em vez de genéricas, e usar a instância da exceção",
-        "Criar exceções personalizadas que carregam dados úteis para quem as captura",
-        "Aplicar o estilo EAFP e entender por que a comunidade Python o prefere a LBYL",
-        "Diferenciar assert de uma validação de verdade, e saber quando usar cada um",
-        "Adotar boas práticas de tratamento de erro: falhar cedo, falhar alto, nunca em silêncio",
+        "Entender a diferença entre erros de sintaxe e exceções de tempo de execução",
+        "Usar try/except/else/finally e entender o papel exato de cada bloco",
+        "Capturar exceções específicas em vez de genéricas, e saber por que isso importa",
+        "Levantar exceções com raise para sinalizar problemas no próprio código",
+        "Criar exceções personalizadas que comunicam erros do seu domínio",
+        "Diferenciar o estilo EAFP (pythônico) do estilo LBYL (de outras linguagens)",
+        "Reconhecer os anti-padrões mais comuns no tratamento de exceções",
     ],
     teoria="""
-1. Estrutura completa: try/except/else/finally
---------------------------------------------------------
+Até agora, quando algo dava errado no seu código, o programa parava e
+mostrava um traceback. Isso é útil durante o desenvolvimento, mas um
+programa real precisa lidar com erros de forma elegante: tentar de novo,
+usar um valor padrão, registrar o problema e continuar.
+
+---------------------------------------------------------------------------
+1. Dois tipos de erro: sintaxe versus exceção
+---------------------------------------------------------------------------
+Python tem dois tipos de erro fundamentalmente diferentes:
+
+ERRO DE SINTAXE (SyntaxError):
+Acontece ANTES do programa rodar. O Python analisa o arquivo e detecta
+código que viola as regras gramaticais da linguagem:
+
+    if x > 0      # SyntaxError: faltou o dois-pontos
+    def f(        # SyntaxError: parêntese não fechado
+    x === 5       # SyntaxError: === não existe em Python
+
+O programa não inicia de forma alguma quando há SyntaxError.
+
+EXCEÇÃO (Exception):
+Acontece DURANTE a execução, quando uma operação que parecia válida
+encontra um problema em tempo de execução:
+
+    10 / 0           # ZeroDivisionError: divisão por zero
+    int("abc")       # ValueError: valor inválido para a conversão
+    lista[100]       # IndexError: índice fora do alcance
+    nome_inexistente # NameError: nome não foi definido
+
+O programa estava rodando normalmente e então algo deu errado. Exceções
+podem — e devem — ser capturadas e tratadas pelo seu código.
+
+---------------------------------------------------------------------------
+2. try/except/else/finally: a estrutura completa
+---------------------------------------------------------------------------
+    try:
+        # código que PODE gerar uma exceção
+        resultado = int(input("Digite um número: "))
+    except ValueError:
+        # executado SE ocorrer um ValueError
+        print("Isso não é um número válido!")
+        resultado = 0
+    except ZeroDivisionError:
+        # executado SE ocorrer ZeroDivisionError
+        print("Não pode dividir por zero!")
+    else:
+        # executado SOMENTE SE nenhuma exceção ocorreu no try
+        print(f"Número lido com sucesso: {resultado}")
+    finally:
+        # executado SEMPRE — com ou sem exceção, com ou sem return
+        print("Processamento concluído.")
+
+O papel de cada bloco:
+
+    try       — o código "arriscado" que pode falhar
+    except    — o que fazer quando falha (pode ter vários, para tipos diferentes)
+    else      — o que fazer quando DEU CERTO (sem exceção)
+    finally   — limpeza que deve ocorrer independente do resultado
+
+else É SUBUTILIZADO MAS MUITO ÚTIL:
+Separa "o código que pode falhar" do "código que roda após o sucesso":
+
+    # Sem else: o print pode mascarar erros
+    try:
+        dados = carregar_arquivo("config.json")
+        print("Arquivo carregado!")    # e se print falhar?
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+
+    # Com else: fica claro o que é crítico e o que vem depois
+    try:
+        dados = carregar_arquivo("config.json")
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+    else:
+        print("Arquivo carregado!")    # só roda se não houve exceção
+
+finally GARANTE EXECUÇÃO:
+finally executa mesmo com return, break ou uma nova exceção:
+
+    def ler_arquivo(caminho):
+        f = open(caminho)
+        try:
+            return f.read()       # return não impede o finally
+        finally:
+            f.close()             # SEMPRE executa, mesmo com o return acima
+            print("arquivo fechado")
+
+(Na prática, use with open() — mas o exemplo mostra o poder do finally)
+
+---------------------------------------------------------------------------
+3. Capturando exceções específicas
+---------------------------------------------------------------------------
+NUNCA capture exceções mais amplas do que o necessário:
+
+    # PÉSSIMO: captura tudo, engole erros silenciosamente
+    try:
+        resultado = calcular(x)
+    except:
+        pass    # o programa falhou, mas você nunca vai saber por quê!
+
+    # RUIM: Exception captura quase tudo, ainda muito amplo
+    try:
+        resultado = calcular(x)
+    except Exception:
+        pass    # ainda esconde o problema real
+
+    # BOM: captura apenas o que você sabe tratar
+    try:
+        resultado = calcular(x)
+    except ZeroDivisionError:
+        resultado = 0    # sei exatamente por que falhou e o que fazer
+
+CAPTURANDO MÚLTIPLOS TIPOS:
+
+    # Opção 1: um except para cada tipo (tratamentos diferentes)
     try:
         valor = int(texto)
+    except ValueError:
+        print("Texto inválido para conversão")
+    except TypeError:
+        print("O argumento não é texto")
+
+    # Opção 2: tupla para o mesmo tratamento
+    try:
+        valor = int(texto)
+    except (ValueError, TypeError):
+        valor = 0    # ambos recebem o mesmo tratamento
+
+ACESSANDO OS DETALHES DA EXCEÇÃO:
+
+    try:
+        int("abc")
     except ValueError as e:
-        print("conversao falhou:", e)
-        valor = 0
-    except (TypeError, KeyError):
-        valor = -1
-    else:
-        print("deu certo, nenhum erro ocorreu")     # só executa se NÃO houve exceção
-    finally:
-        print("sempre executa")                     # limpeza, mesmo com return ou raise dentro do try
+        print(f"Erro: {e}")             # invalid literal for int() with base 10: 'abc'
+        print(f"Tipo: {type(e).__name__}")  # ValueError
+        print(e.args)                   # ('invalid literal...',)
 
-Cada bloco tem um papel bem definido, que vale a pena decorar por
-significado, não só por posição:
+---------------------------------------------------------------------------
+4. A hierarquia de exceções
+---------------------------------------------------------------------------
+Exceções em Python formam uma hierarquia de herança. Conhecer os
+principais ramos ajuda a capturar no nível certo:
 
-- `try`: o código que PODE falhar;
-- `except`: o que fazer quando falha (pode haver vários, para tipos
-  diferentes de erro, testados na ordem em que aparecem);
-- `else`: código que só roda quando NADA deu errado — útil para separar
-  "o que pode falhar" (dentro do try) de "o que fazer depois que deu certo"
-  (no else), deixando ambos mais claros isoladamente;
-- `finally`: código que roda SEMPRE, independente de ter havido erro ou não,
-  e mesmo que um `return` tenha sido executado dentro do try ou do except —
-  é o lugar certo para liberar recursos (fechar arquivos, conexões de rede).
-
-2. Hierarquia de exceções (resumo do essencial)
-----------------------------------------------------
     BaseException
-     +- SystemExit, KeyboardInterrupt, GeneratorExit
-     +- Exception
-         +- ArithmeticError -> ZeroDivisionError
-         +- LookupError     -> IndexError, KeyError
-         +- OSError         -> FileNotFoundError, PermissionError
-         +- ValueError, TypeError, AttributeError, NameError
-         +- RuntimeError    -> RecursionError
-         +- StopIteration
+    ├── SystemExit          (sys.exit() — NÃO capture, a não ser que saiba o que faz)
+    ├── KeyboardInterrupt   (Ctrl+C — NÃO capture na maioria dos casos)
+    └── Exception           (a base de praticamente tudo que você vai capturar)
+        ├── ArithmeticError
+        │   └── ZeroDivisionError
+        ├── LookupError
+        │   ├── IndexError
+        │   └── KeyError
+        ├── OSError
+        │   ├── FileNotFoundError
+        │   └── PermissionError
+        ├── ValueError
+        ├── TypeError
+        ├── AttributeError
+        ├── NameError
+        └── RuntimeError
+            └── RecursionError
 
-Toda exceção do dia a dia herda de `Exception`, que por sua vez herda de
-`BaseException` — mas note que `SystemExit` e `KeyboardInterrupt` (disparado
-por Ctrl+C) ficam FORA de `Exception`, diretamente sob `BaseException`. Isso
-é deliberado: um `except Exception:` genérico não captura essas duas, o que
-significa que Ctrl+C ainda consegue interromper seu programa mesmo que ele
-tenha um bloco `except Exception` "pegando tudo".
+Por que isso importa? Se você captura ArithmeticError, captura todos
+os seus filhos: ZeroDivisionError, OverflowError, etc. Capture sempre
+o nível mais específico que faz sentido para o seu caso.
 
-A regra de ouro é capturar sempre o tipo MAIS ESPECÍFICO possível para cada
-situação. `except Exception:` só se justifica na FRONTEIRA do programa —
-por exemplo, para registrar o erro em log e encerrar com uma mensagem
-decente ao usuário, não silenciosamente. E `except:` sozinho, sem
-especificar nenhum tipo, é considerado um erro grave de estilo: ele captura
-literalmente TUDO, inclusive `KeyboardInterrupt` e `SystemExit`, tornando
-impossível até mesmo interromper o programa com Ctrl+C enquanto ele estiver
-dentro desse bloco.
+SOBRE except Exception: é aceitável apenas na "fronteira" do programa —
+o ponto mais alto onde você quer registrar erros inesperados antes de
+encerrar graciosamente. Nunca no meio da lógica de negócio.
 
-O anti-padrão mais citado da linguagem, que vale memorizar para NUNCA
-escrever:
+---------------------------------------------------------------------------
+5. Levantando exceções com raise
+---------------------------------------------------------------------------
+Você não é apenas receptor de exceções — pode levantá-las para comunicar
+problemas ao código que chamou a sua função:
+
+    def dividir(a, b):
+        if b == 0:
+            raise ValueError("O divisor não pode ser zero")
+        return a / b
+
+    def definir_idade(idade):
+        if not isinstance(idade, int):
+            raise TypeError(f"Idade deve ser int, recebi {type(idade).__name__}")
+        if idade < 0 or idade > 150:
+            raise ValueError(f"Idade {idade} está fora do intervalo válido (0-150)")
+        self.idade = idade
+
+RE-LEVANTANDO A EXCEÇÃO ATUAL:
+Dentro de um except, raise sozinho re-levanta a exceção capturada:
 
     try:
-        fazer_tudo()
-    except Exception:
-        pass                # o erro desaparece silenciosamente — e o bug nunca é descoberto
+        processar()
+    except ValueError as e:
+        registrar_erro(e)    # registra o erro
+        raise               # re-levanta a mesma exceção para cima
 
-Esse padrão (apelidado às vezes de "exceção engolida" ou, em inglês,
-"the bare except that swallows everything") é responsável por incontáveis
-horas de depuração em código profissional, porque o sintoma do bug aparece
-muito longe (ou muito depois) da causa real, que foi silenciada aqui.
-
-3. Levantando exceções deliberadamente
---------------------------------------------
-    raise ValueError("idade nao pode ser negativa")
-    raise                                    # dentro de um except: relevanta a MESMA exceção capturada
-
-Uma técnica importante para preservar contexto ao converter um erro em
-outro é o encadeamento com `from`, que mantém visível no traceback QUAL foi
-a causa original, em vez de esconder essa informação:
+ENCADEAMENTO DE EXCEÇÕES:
+Preserve a causa original ao converter um tipo de exceção em outro:
 
     try:
-        configuracao = obter_config()
-    except KeyError as e:
-        raise ConfiguracaoInvalida("falta a chave obrigatória") from e
+        dados = json.loads(texto)
+    except json.JSONDecodeError as e:
+        raise ValueError("Configuração inválida") from e
+        # O traceback vai mostrar que ValueError foi CAUSADO por JSONDecodeError
 
-Sem o `from e`, quem depurar o problema veria apenas a nova exceção
-`ConfiguracaoInvalida`, sem saber que ela foi causada por um `KeyError`
-específico — o `from` preserva essa cadeia de causalidade no próprio
-traceback impresso.
+Sem o "from e", a causa original seria perdida — quem depura não
+saberia que o verdadeiro problema era JSON malformado.
 
-4. Exceções personalizadas: comunicando erros do SEU domínio
-------------------------------------------------------------------
+---------------------------------------------------------------------------
+6. Exceções personalizadas: comunicando erros do seu domínio
+---------------------------------------------------------------------------
+Criar suas próprias exceções permite comunicar erros específicos do
+problema que você está resolvendo, em vez de reutilizar exceções
+genéricas que podem não fazer sentido no contexto:
+
+    # Hierarquia de exceções do seu sistema
     class ErroDeNegocio(Exception):
-        \"\"\"Classe base para todos os erros específicos desta aplicação.\"\"\"
+        """Classe base para todos os erros de negócio do sistema."""
+        pass
 
     class SaldoInsuficiente(ErroDeNegocio):
-        def __init__(self, saldo, valor):
-            super().__init__(f"saldo {saldo} < saque {valor}")
-            self.saldo = saldo
-            self.valor = valor
+        def __init__(self, saldo_atual, valor_solicitado):
+            self.saldo_atual = saldo_atual
+            self.valor_solicitado = valor_solicitado
+            self.faltam = valor_solicitado - saldo_atual
+            mensagem = (
+                f"Saldo insuficiente: tem R$ {saldo_atual:.2f}, "
+                f"precisa de R$ {valor_solicitado:.2f} "
+                f"(faltam R$ {self.faltam:.2f})"
+            )
+            super().__init__(mensagem)
 
-Criar uma classe BASE própria (`ErroDeNegocio` aqui) para toda a família de
-erros do seu programa permite que quem usa seu código capture a família
-inteira de uma vez, com um único `except ErroDeNegocio:`, sem precisar
-listar cada subtipo específico — e ainda assim capturar um subtipo
-específico quando precisar de um tratamento diferenciado para ele.
+    class LimiteExcedido(ErroDeNegocio):
+        pass
 
-5. EAFP contra LBYL: duas filosofias de programação defensiva
---------------------------------------------------------------------
-A comunidade Python tem uma preferência clara e batizada por um acrônimo
-memorável: EAFP, de "Easier to Ask Forgiveness than Permission" ("é mais
-fácil pedir perdão do que permissão"):
+Usando a hierarquia:
 
-    try:                            # estilo EAFP: tenta e trata o erro se ocorrer
-        return dados["chave"]
-    except KeyError:
-        return padrao
+    try:
+        conta.sacar(1000)
+    except SaldoInsuficiente as e:
+        print(e)                        # mensagem formatada
+        print(f"Faltam: R$ {e.faltam:.2f}")  # dados estruturados
+    except ErroDeNegocio:
+        print("Erro de negócio genérico")   # captura qualquer filho
 
-    if "chave" in dados:            # estilo LBYL ("Look Before You Leap"): checa antes de agir
-        return dados["chave"]
+A vantagem: quem captura SaldoInsuficiente tem acesso a saldo_atual,
+valor_solicitado e faltam como atributos — não precisa fazer parsing
+da mensagem de erro para extrair os valores.
+
+---------------------------------------------------------------------------
+7. EAFP versus LBYL: dois estilos de programação defensiva
+---------------------------------------------------------------------------
+Existem duas filosofias para lidar com situações que podem dar errado:
+
+LBYL — "Look Before You Leap" (Olhe antes de pular):
+Verificar se está tudo certo ANTES de tentar a operação:
+
+    # Estilo LBYL
+    if "chave" in dicionario:
+        valor = dicionario["chave"]
     else:
-        return padrao
+        valor = padrao
 
-Por que EAFP é preferido? Duas razões práticas: primeiro, ele evita
-CONDIÇÕES DE CORRIDA (race conditions) — por exemplo, checar
-`arquivo.exists()` e, um instante depois, tentar abrir o arquivo, corre o
-risco de o arquivo ter sido apagado bem NESSE intervalo entre a checagem e
-a ação, por outro processo do sistema; o `try/except` direto elimina essa
-janela de tempo vulnerável. Segundo, EAFP costuma ser mais rápido no
-"caminho feliz" (quando tudo dá certo), porque não paga o custo de checar a
-condição toda vez antes de agir — a checagem só acontece (via exceção) nos
-casos raros em que algo realmente deu errado.
+    if os.path.exists(caminho):
+        with open(caminho) as f:
+            conteudo = f.read()
 
-6. assert não substitui validação de entrada
---------------------------------------------------
-`assert condicao, "mensagem"` levanta `AssertionError` se a condição for
-falsa — mas existe um detalhe crítico que torna `assert` inadequado para
-validar dados de usuário ou entrada externa: quando o Python roda com a
-flag de otimização `-O`, TODAS as instruções `assert` do programa são
-simplesmente REMOVIDAS, como se nunca tivessem existido. Por isso, `assert`
-deve ser usado apenas para checagens INTERNAS de desenvolvimento (verificar
-uma invariante que, se falhar, indica um BUG no seu próprio código, não um
-erro do usuário) — nunca para validar CPF, senha, faixa de idade ou
-qualquer coisa que possa legitimamente vir errada de fora do programa.
+EAFP — "Easier to Ask Forgiveness than Permission" (É mais fácil pedir
+perdão do que permissão):
+Tentar a operação e tratar o erro se ocorrer:
 
-7. Boas práticas consolidadas
------------------------------------
-- valide cedo e falhe de forma clara e alta: um erro silencioso hoje é um
-  bug muito mais caro (e difícil de rastrear) amanhã;
-- mensagens de erro devem orientar sobre O QUE FAZER a seguir, não apenas
-  descrever o que deu errado — "arquivo de configuração não encontrado em
-  /etc/app/config.json; copie o modelo de config.example.json" é mais útil
-  do que apenas "FileNotFoundError";
-- use `finally`, ou melhor ainda, gerenciadores de contexto (`with`, tema do
-  Dia 22) para garantir a liberação de recursos, mesmo diante de erro;
-- registre erros com o módulo `logging` (Dia 25) em código de produção, não
-  com `print()` — logging permite níveis de severidade, redirecionamento
-  para arquivos e muito mais controle sobre o que é registrado e onde.
+    # Estilo EAFP
+    try:
+        valor = dicionario["chave"]
+    except KeyError:
+        valor = padrao
+
+    try:
+        with open(caminho) as f:
+            conteudo = f.read()
+    except FileNotFoundError:
+        conteudo = ""
+
+EAFP É O ESTILO PYTHÔNICO. Por quê?
+
+    RAZÃO 1 — Condições de corrida: no LBYL, entre o if os.path.exists()
+    e o open(), outro processo pode excluir o arquivo. A janela de tempo
+    é pequena mas real. EAFP não tem esse problema.
+
+    RAZÃO 2 — Performance: verificar antes paga o custo da verificação
+    SEMPRE. EAFP paga o custo do except apenas quando há falha (que
+    esperamos ser raro).
+
+    RAZÃO 3 — Clareza: EAFP separa o caminho feliz (try) do caminho
+    de erro (except) de forma clara.
+
+QUANDO LBYL AINDA FAZ SENTIDO:
+Quando a verificação é barata, óbvia e a falha seria crítica:
+
+    if not isinstance(x, (int, float)):
+        raise TypeError("x deve ser número")
+    # agora podemos usar x com segurança
+
+---------------------------------------------------------------------------
+8. Anti-padrões a evitar
+---------------------------------------------------------------------------
+
+ANTI-PADRÃO 1 — except vazio ou genérico demais:
+
+    try:
+        algo()
+    except:          # captura TUDO, incluindo KeyboardInterrupt
+        pass         # engole o erro silenciosamente — debugging nightmare
+
+ANTI-PADRÃO 2 — except Exception: pass:
+Similar ao anterior — esconde erros reais que você precisaria saber.
+
+ANTI-PADRÃO 3 — Usar exceção para controle de fluxo normal:
+
+    # MAU USO: exceção como goto
+    try:
+        for item in lista:
+            if item == alvo:
+                raise StopIteration("Encontrou!")
+    except StopIteration:
+        pass    # use break no lugar!
+
+ANTI-PADRÃO 4 — Capturar e re-levantar sem adicionar informação:
+
+    try:
+        processar()
+    except ValueError as e:
+        raise ValueError(str(e))    # inútil — só adiciona ruído ao traceback
+
+ANTI-PADRÃO 5 — Esconder a causa original:
+
+    try:
+        resultado = json.loads(texto)
+    except json.JSONDecodeError:
+        raise ValueError("Dados inválidos")  # perdeu a causa original!
+        # Use: raise ValueError("Dados inválidos") from e
 """,
     exemplos=[
         Exemplo(
-            titulo="Leitura robusta de configuração",
-            codigo='''import json
-
-def carregar_config(caminho, padrao=None):
-    padrao = padrao or {"tema": "claro"}
+            titulo="try/except/else/finally em ação",
+            codigo='''def ler_numero(texto):
+    """Converte texto para inteiro com tratamento completo."""
     try:
-        with open(caminho, encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return padrao
-    except json.JSONDecodeError as e:
-        raise ValueError(f"config invalida em {caminho}: {e}") from e
-
-print(carregar_config("/tmp/nao_existe.json"))
-''',
-            explicacao="Cada tipo de falha tem um tratamento próprio e "
-                       "explícito; nada é engolido em silêncio, e o segundo "
-                       "except preserva a causa original com 'from e'.",
-        ),
-        Exemplo(
-            titulo="Exceção própria carregando dados úteis",
-            codigo='''class SaldoInsuficiente(Exception):
-    def __init__(self, saldo, valor):
-        super().__init__(f"Saldo {saldo:.2f} insuficiente para {valor:.2f}")
-        self.faltam = valor - saldo
-
-try:
-    raise SaldoInsuficiente(50, 120)
-except SaldoInsuficiente as e:
-    print(e)               # Saldo 50.00 insuficiente para 120.00
-    print(e.faltam)        # 70
-''',
-            explicacao="Carregar dados extras na própria exceção (como "
-                       "e.faltam) facilita muito o tratamento de quem a "
-                       "captura, sem precisar reprocessar a mensagem de texto.",
-        ),
-        Exemplo(
-            titulo="EAFP evitando uma condição de corrida",
-            codigo='''from pathlib import Path
-
-def ler_com_seguranca(caminho):
-    # LBYL (arriscado): o arquivo pode sumir ENTRE o exists() e o read_text()
-    # if Path(caminho).exists():
-    #     return Path(caminho).read_text(encoding="utf-8")
-
-    # EAFP (preferido): tenta direto, trata a falha se ela realmente ocorrer
-    try:
-        return Path(caminho).read_text(encoding="utf-8")
-    except FileNotFoundError:
+        numero = int(texto.strip())
+    except ValueError:
+        print(f"  -> '{texto}' nao e um numero valido")
         return None
+    except AttributeError:
+        print(f"  -> Esperava texto, recebi {type(texto).__name__}")
+        return None
+    else:
+        # So executa se nenhuma excecao ocorreu
+        print(f"  -> Convertido com sucesso: {numero}")
+        return numero
+    finally:
+        # Sempre executa — util para logging, limpeza, etc.
+        print(f"  -> Tentativa finalizada para: {repr(texto)}")
 
-print(ler_com_seguranca("/tmp/talvez_exista.txt"))
+# Testando com casos variados
+for entrada in ["42", " 7 ", "abc", None, "3.14", "-10"]:
+    print(f"\nProcessando {repr(entrada)}:")
+    resultado = ler_numero(entrada)
+    print(f"  Resultado: {resultado}")
 ''',
-            explicacao="Na versão comentada (LBYL), outro processo poderia "
-                       "apagar o arquivo bem no intervalo entre a checagem e "
-                       "a leitura — o EAFP fecha essa janela de risco.",
+            explicacao="else executa apenas quando o try completou sem erros "
+                       "— é o lugar certo para código que depende do sucesso "
+                       "do try mas não precisa de tratamento de erro. "
+                       "finally sempre executa, mesmo com return dentro do try "
+                       "— ideal para logging e limpeza de recursos.",
+        ),
+        Exemplo(
+            titulo="Exceção personalizada com dados estruturados",
+            codigo='''class ErroDeNegocio(Exception):
+    """Base para erros de negocio do sistema bancario."""
+    pass
+
+class SaldoInsuficiente(ErroDeNegocio):
+    def __init__(self, saldo, valor):
+        self.saldo = saldo
+        self.valor = valor
+        self.faltam = valor - saldo
+        super().__init__(
+            f"Saldo R${saldo:.2f} insuficiente para saque de R${valor:.2f} "
+            f"(faltam R${self.faltam:.2f})"
+        )
+
+class ValorInvalido(ErroDeNegocio):
+    pass
+
+def sacar(saldo, valor):
+    if valor <= 0:
+        raise ValorInvalido(f"Valor de saque deve ser positivo, recebi {valor}")
+    if valor > saldo:
+        raise SaldoInsuficiente(saldo, valor)
+    return saldo - valor
+
+# Testando
+for saldo, valor in [(100, 30), (100, 150), (100, 0), (50, 50)]:
+    try:
+        novo_saldo = sacar(saldo, valor)
+        print(f"Saque R${valor:.2f}: OK. Novo saldo: R${novo_saldo:.2f}")
+    except SaldoInsuficiente as e:
+        print(f"NEGADO: {e}")
+        print(f"  Deposite pelo menos R${e.faltam:.2f} para continuar")
+    except ErroDeNegocio as e:
+        print(f"ERRO DE NEGOCIO: {e}")
+''',
+            explicacao="A hierarquia ErroDeNegocio -> SaldoInsuficiente permite "
+                       "capturar especificamente (except SaldoInsuficiente) "
+                       "ou genericamente (except ErroDeNegocio). "
+                       "Carregar dados na exceção (saldo, valor, faltam) "
+                       "evita fazer parsing da mensagem de texto para "
+                       "extrair valores — muito mais robusto.",
+        ),
+        Exemplo(
+            titulo="EAFP versus LBYL: comparando os estilos",
+            codigo='''# Cenario: acessar uma chave em dicionario que pode nao existir
+
+dados = {"nome": "Ana", "idade": 30}
+
+# Estilo LBYL (comum em C, Java)
+if "email" in dados:
+    email = dados["email"]
+else:
+    email = "nao informado"
+print("LBYL:", email)
+
+# Estilo EAFP (pythônico)
+try:
+    email = dados["email"]
+except KeyError:
+    email = "nao informado"
+print("EAFP:", email)
+
+# Para dicionario, .get() e ainda mais simples
+email = dados.get("email", "nao informado")
+print("get():", email)
+
+# Cenario onde EAFP e claramente superior: multiplas condicoes
+import os
+
+# LBYL: multiplas verificacoes (e ainda pode falhar entre elas!)
+caminho = "/tmp/arquivo_inexistente.txt"
+if os.path.exists(caminho) and os.access(caminho, os.R_OK):
+    with open(caminho) as f:
+        conteudo = f.read()
+else:
+    conteudo = ""
+
+# EAFP: tenta direto, trata se falhar
+try:
+    with open(caminho) as f:
+        conteudo = f.read()
+except (FileNotFoundError, PermissionError):
+    conteudo = ""
+
+print("Conteudo:", repr(conteudo))
+''',
+            explicacao="Para dicionários, .get() é a forma mais idiomática "
+                       "quando há um valor padrão simples. "
+                       "Para arquivos, EAFP é claramente melhor: o LBYL "
+                       "faz duas chamadas ao sistema operacional (exists + access) "
+                       "e ainda pode falhar entre elas se outro processo "
+                       "alterar o arquivo nesse intervalo.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d15e1",
             enunciado=(
-                "Escreva divisao_segura(a, b) devolvendo o resultado da divisão\n"
-                "ou None se o divisor for zero (use try/except, não if)."
+                "Escreva a funcao divisao_segura(a, b) que divide a por b\n"
+                "e devolve o resultado. Se b for zero, devolve None em vez\n"
+                "de deixar o programa travar com ZeroDivisionError.\n\n"
+                "Exemplos:\n"
+                "   divisao_segura(10, 2)  -> 5.0\n"
+                "   divisao_segura(1, 0)   -> None\n"
+                "   divisao_segura(-9, 3)  -> -3.0\n\n"
+                "Use try/except, NAO use if b == 0.\n"
+                "O objetivo e praticar o estilo EAFP:\n"
+                "   try:\n"
+                "       return a / b      <- tente a divisao\n"
+                "   except ZeroDivisionError:\n"
+                "       return None       <- trate se der errado\n\n"
+                "Nota: a divisao / sempre devolve float em Python,\n"
+                "por isso 10/2 retorna 5.0 (nao o inteiro 5)."
             ),
             funcao="divisao_segura",
             assinatura="def divisao_segura(a, b):",
@@ -1913,13 +3976,28 @@ print(ler_com_seguranca("/tmp/talvez_exista.txt"))
                 ("divisao_segura(1, 0)", "None"),
                 ("divisao_segura(-9, 3)", "-3.0"),
             ],
-            dica="except ZeroDivisionError: return None",
+            dica="try: return a / b  except ZeroDivisionError: return None",
         ),
         Exercicio(
             id="d15e2",
             enunciado=(
-                "Escreva para_int(texto, padrao=0): converte para inteiro e devolve\n"
-                "`padrao` se a conversão falhar (por valor inválido ou tipo errado)."
+                "Escreva a funcao para_int(texto, padrao=0) que tenta\n"
+                "converter texto para inteiro e devolve padrao se falhar.\n\n"
+                "Exemplos:\n"
+                "   para_int('42')      -> 42\n"
+                "   para_int('abc')     -> 0   (padrao)\n"
+                "   para_int(None, -1)  -> -1  (None causa TypeError)\n"
+                "   para_int('  7  ')   -> 7   (int() ja ignora espacos)\n\n"
+                "Dois tipos de erro podem ocorrer:\n"
+                "   ValueError: quando o texto nao representa um inteiro\n"
+                "               ex: int('abc'), int('3.14')\n"
+                "   TypeError:  quando o argumento nao e texto\n"
+                "               ex: int(None), int([1, 2])\n\n"
+                "Capture os dois com uma tupla:\n"
+                "   except (ValueError, TypeError):\n"
+                "       return padrao\n\n"
+                "Curiosidade: int('  7  ') funciona! int() ignora\n"
+                "espacos nas pontas de strings numericas."
             ),
             funcao="para_int",
             assinatura="def para_int(texto, padrao=0):",
@@ -1930,14 +4008,29 @@ print(ler_com_seguranca("/tmp/talvez_exista.txt"))
                 ("para_int('  7  ')", "7"),
             ],
             nivel="medio",
-            dica="Capture (ValueError, TypeError) em um único except.",
+            dica="try: return int(texto)  except (ValueError, TypeError): return padrao",
         ),
         Exercicio(
             id="d15e3",
             enunciado=(
-                "Crie a exceção SaldoInsuficiente(Exception) e a função\n"
-                "sacar(saldo, valor) que devolve o novo saldo, mas levanta\n"
-                "SaldoInsuficiente se valor > saldo e ValueError se valor <= 0."
+                "Crie a excecao SaldoInsuficiente e a funcao sacar(saldo, valor)\n"
+                "que devem funcionar assim:\n\n"
+                "   sacar(100, 30)  -> 70       (novo saldo)\n"
+                "   sacar(100, 500) -> levanta SaldoInsuficiente\n"
+                "   sacar(100, 0)   -> levanta ValueError\n"
+                "   sacar(100, 100) -> 0         (saque total)\n\n"
+                "Regras de validacao (nessa ordem!):\n"
+                "   1. Se valor <= 0:\n"
+                "      raise ValueError('Valor de saque deve ser positivo')\n"
+                "   2. Se valor > saldo:\n"
+                "      raise SaldoInsuficiente('Saldo insuficiente')\n"
+                "   3. Devolva saldo - valor\n\n"
+                "A classe SaldoInsuficiente ja esta na assinatura:\n"
+                "   class SaldoInsuficiente(Exception):\n"
+                "       pass\n\n"
+                "Herdar de Exception e o suficiente para criar uma\n"
+                "excecao personalizada basica. O 'pass' indica que\n"
+                "nao ha atributos ou metodos adicionais."
             ),
             funcao="sacar",
             assinatura="class SaldoInsuficiente(Exception):\n    pass\n\n\ndef sacar(saldo, valor):",
@@ -1948,30 +4041,90 @@ print(ler_com_seguranca("/tmp/talvez_exista.txt"))
                 ("sacar(100, 100)", "0"),
             ],
             nivel="dificil",
-            dica="Valide primeiro o valor (ValueError), depois o saldo, e por fim retorne.",
+            dica="Valide valor <= 0 primeiro (ValueError), depois valor > saldo (SaldoInsuficiente), por fim return saldo - valor.",
         ),
     ],
     quiz=[
-        Quiz("Quando o bloco `else` de um try executa?",
-             ["Sempre", "Quando ocorre exceção", "Quando NÃO ocorre exceção", "No lugar de finally"], 2,
-             "else roda apenas no caminho em que nenhum erro aconteceu dentro do try."),
-        Quiz("Por que `except:` puro (sem especificar o tipo) é considerado ruim?",
-             ["É mais lento de executar", "Captura até KeyboardInterrupt e SystemExit, escondendo até o Ctrl+C",
-              "Não é sintaxe válida em Python", "Só funciona dentro de funções"], 1,
-             "Ele engole absolutamente tudo, incluindo sinais que deveriam poder interromper o programa."),
-        Quiz("Por que o estilo EAFP é geralmente preferido a LBYL em Python?",
-             ["Porque LBYL não é suportado pela linguagem", "Porque evita condições de corrida e costuma ser mais rápido no caminho sem erros",
-              "Porque EAFP nunca levanta exceções", "Não há preferência real, é só estilo pessoal"], 1,
-             "Checar e agir em dois passos separados (LBYL) deixa uma janela de tempo onde o estado pode mudar entre a checagem e a ação."),
-        Quiz("Por que assert não deve ser usado para validar entrada de usuário?",
-             ["assert é mais lento que if", "Instruções assert são REMOVIDAS quando o Python roda com a flag -O",
-              "assert só funciona com números", "assert sempre levanta ValueError, nunca AssertionError"], 1,
-             "Se o programa rodar otimizado (-O), todo assert desaparece silenciosamente — inadequado para validação que precisa sempre ocorrer."),
+        Quiz(
+            "Quando o bloco 'else' de um try/except executa?",
+            ["Sempre, apos o try terminar",
+             "Somente se uma excecao foi capturada pelo except",
+             "Somente se o try completou SEM nenhuma excecao",
+             "Apenas quando o finally nao esta presente"],
+            2,
+            "else no try/except e o oposto do except: "
+            "executa quando TUDO DEU CERTO no try. "
+            "E util para separar 'codigo que pode falhar' (try) "
+            "de 'codigo que depende do sucesso' (else), "
+            "sem misturar tudo no bloco try.",
+        ),
+        Quiz(
+            "Por que 'except: pass' e considerado um dos piores habitos em Python?",
+            ["pass e uma palavra reservada que nao pode ser usada em except",
+             "Captura TODAS as excecoes, incluindo KeyboardInterrupt (Ctrl+C), e suprime silenciosamente — bugs desaparecem sem deixar rastro",
+             "e mais lento que except Exception: pass",
+             "Funciona apenas com Python 2, nao com Python 3"],
+            1,
+            "except: sem tipo captura BaseException, que inclui SystemExit e "
+            "KeyboardInterrupt. O programa nao consegue mais ser interrompido "
+            "com Ctrl+C! Alem disso, qualquer erro real desaparece silenciosamente. "
+            "Sempre especifique o tipo: except ValueError, except FileNotFoundError, etc.",
+        ),
+        Quiz(
+            "Qual a diferenca entre 'raise' sozinho e 'raise ExcecaoNova()'?",
+            ["Nao ha diferenca — os dois levantam a mesma excecao",
+             "'raise' sozinho re-levanta a excecao ATUAL capturada pelo except; 'raise ExcecaoNova()' levanta uma nova excecao diferente",
+             "'raise' sozinho encerra o programa; 'raise Excecao()' continua a execucao",
+             "'raise' sozinho so funciona fora de um bloco except"],
+            1,
+            "'raise' sozinho dentro de um except preserva o traceback original "
+            "e re-levanta exatamente a excecao que foi capturada — util para "
+            "logar o erro e ainda propaga-lo. "
+            "'raise NovaExcecao() from e' levanta uma nova mas preserva a causa.",
+        ),
+        Quiz(
+            "Por que o estilo EAFP e preferido ao LBYL em Python?",
+            ["EAFP e mais rapido em todos os casos",
+             "LBYL nao e valido em Python — causa SyntaxError",
+             "EAFP evita condicoes de corrida, tem melhor performance no caminho feliz e torna o codigo mais claro",
+             "E apenas uma preferencia pessoal sem justificativa tecnica"],
+            2,
+            "LBYL faz a verificacao SEMPRE, mesmo quando o caso de erro e raro. "
+            "EAFP paga custo apenas quando ha excecao. "
+            "Alem disso, entre 'if existe' e 'usar', outro processo pode alterar "
+            "o estado (condicao de corrida) — EAFP nao tem essa janela vulneravel.",
+        ),
     ],
     projeto=(
-        "Refaça a calculadora do Dia 11 tornando-a à prova de falhas: entradas não numéricas, "
-        "divisão por zero e Ctrl+C tratados, com mensagens claras e uma exceção própria "
-        "OperacaoInvalida que herda de uma classe base ErroDeCalculadora."
+        "Crie validador_dados.py com um sistema robusto de validacao:\n\n"
+        "EXCECOES PERSONALIZADAS:\n"
+        "   class ErroDeValidacao(Exception): pass\n"
+        "   class CampoObrigatorio(ErroDeValidacao): pass\n"
+        "   class ValorForaDeFaixa(ErroDeValidacao): pass\n"
+        "   class FormatoInvalido(ErroDeValidacao): pass\n\n"
+        "FUNCOES:\n\n"
+        "   1. validar_nome(nome):\n"
+        "      - Levanta CampoObrigatorio se vazio\n"
+        "      - Levanta FormatoInvalido se tiver numeros\n"
+        "      - Devolve nome.strip().title()\n\n"
+        "   2. validar_idade(valor):\n"
+        "      - Converte para int (levanta FormatoInvalido se falhar)\n"
+        "      - Levanta ValorForaDeFaixa se < 0 ou > 150\n"
+        "      - Devolve o int\n\n"
+        "   3. validar_email(email):\n"
+        "      - Levanta CampoObrigatorio se vazio\n"
+        "      - Levanta FormatoInvalido se nao contem '@'\n"
+        "      - Devolve email.lower()\n\n"
+        "   4. validar_cadastro(dados_dict):\n"
+        "      Chama as tres funcoes anteriores com try/except\n"
+        "      Coleta TODOS os erros (nao para no primeiro)\n"
+        "      Devolve (dados_validos, lista_de_erros)\n\n"
+        "BONUS: adicione logging com o modulo logging para registrar\n"
+        "cada tentativa de validacao em um arquivo de log."
     ),
-    leitura=["docs.python.org/pt-br/3/tutorial/errors.html", "docs.python.org/pt-br/3/library/exceptions.html#exception-hierarchy"],
+    leitura=[
+        "docs.python.org/pt-br/3/tutorial/errors.html — erros e excecoes",
+        "docs.python.org/pt-br/3/library/exceptions.html — hierarquia completa",
+        "PEP 3151 — racionalizacao da hierarquia de excecoes de OS",
+    ],
 ))
