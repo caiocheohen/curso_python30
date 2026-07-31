@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curso de Python em 30 Dias</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🐍</text></svg>">
+</head>
+<body data-token="{{TOKEN}}">
+
+<header class="topo">
+  <div class="marca">
+    <span class="logo">🐍</span>
+    <div>
+      <h1>Python em 30 Dias</h1>
+      <p class="sub">do zero ao avançado</p>
+    </div>
+  </div>
+
+  <div class="busca">
+    <input id="busca" type="search" placeholder="Buscar assunto (ex: zip, decorador, asyncio)" autocomplete="off">
+    <div id="resultados-busca" class="resultados-busca oculto"></div>
+  </div>
+
+  <div class="medidores">
+    <div class="medidor">
+      <span class="rotulo">Aulas</span>
+      <div class="barra"><i id="barra-aulas"></i></div>
+      <span id="txt-aulas" class="valor">0/30</span>
+    </div>
+    <div class="medidor">
+      <span class="rotulo">Exercícios</span>
+      <div class="barra"><i id="barra-ex"></i></div>
+      <span id="txt-ex" class="valor">0/90</span>
+    </div>
+    <div class="chama" id="sequencia" title="dias seguidos de estudo">🔥 0</div>
+  </div>
+</header>
+
+<div class="corpo">
+  <nav class="lateral" id="lateral"></nav>
+
+  <main class="principal" id="principal">
+    <div class="carregando">Carregando o curso…</div>
+  </main>
+</div>
+
+<div id="aviso" class="aviso oculto"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+name: verificação
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Tudo compila, sem avisos de sintaxe
+        run: |
+          python -W error::SyntaxWarning -m compileall -q \
+            curso.py curso_web.py nucleo conteudo
+
+      - name: Integridade do conteúdo
+        run: |
+          python - <<'FIM'
+          import conteudo
+
+          assert len(conteudo.DIAS) == 30, "deveriam ser 30 dias"
+          assert len(conteudo.TODOS_EXERCICIOS) == 90, "deveriam ser 90 exercícios"
+
+          ids = [e.id for e in conteudo.TODOS_EXERCICIOS]
+          assert len(set(ids)) == 90, "há ids de exercício repetidos"
+
+          for d in conteudo.DIAS:
+              onde = f"dia {d.numero}"
+              assert d.titulo and d.teoria.strip(), f"{onde}: sem título ou teoria"
+              assert d.objetivos and d.exemplos, f"{onde}: sem objetivos ou exemplos"
+              assert len(d.exercicios) == 3, f"{onde}: não tem 3 exercícios"
+              assert d.quiz and d.projeto, f"{onde}: sem quiz ou projeto"
+              for q in d.quiz:
+                  assert 0 <= q.correta < len(q.alternativas), f"{onde}: quiz com gabarito inválido"
+              for e in d.exercicios:
+                  assert e.enunciado and e.assinatura, f"{e.id}: sem enunciado ou assinatura"
+                  assert e.testes, f"{e.id}: sem testes"
+                  assert e.dia == d.numero, f"{e.id}: id não bate com o dia"
+
+          print(f"ok: {len(conteudo.DIAS)} dias, {len(ids)} exercícios")
+          FIM
+
+      - name: A interface de terminal responde
+        env:
+          CURSO_SEM_COR: "1"
+          CURSO_DIR: ${{ runner.temp }}/curso
+        run: |
+          python curso.py ementa > /dev/null
+          python curso.py buscar zip > /dev/null
+          python curso.py progresso > /dev/null
+
+      - name: O servidor da interface gráfica sobe e responde
+        env:
+          CURSO_DIR: ${{ runner.temp }}/curso-web
+        run: |
+          python curso_web.py --porta 8765 --sem-navegador > servidor.log 2>&1 &
+          sleep 3
+          TOKEN=$(grep -o 't=[A-Za-z0-9_-]*' servidor.log | head -1 | cut -d= -f2)
+          test -n "$TOKEN" || { cat servidor.log; exit 1; }
+          curl -sf -H "X-Token: $TOKEN" http://127.0.0.1:8765/api/painel > /dev/null
+          curl -sf -H "X-Token: $TOKEN" "http://127.0.0.1:8765/api/dia?n=1" > /dev/null
+          echo "servidor respondeu"
