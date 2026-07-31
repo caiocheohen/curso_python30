@@ -9,42 +9,31 @@ DIAS.append(Dia(
     numero=16,
     titulo="POO I: classes, objetos e estado",
     nivel="Intermediário",
-    duracao="100 min",
+    duracao="90 min",
     objetivos=[
-        "Explicar por que agrupar dados e comportamento numa classe resolve um problema real",
-        "Definir classes com __init__ e métodos, entendendo o papel exato de self",
-        "Diferenciar atributo de instância de atributo de classe, e a armadilha do atributo mutável",
-        "Usar __str__ e __repr__ para dar identidade legível a um objeto",
-        "Aplicar as convenções de encapsulamento do Python (_ e __) e saber seus limites reais",
-        "Reconhecer quando um problema pede uma classe e quando pede apenas uma função ou dataclass",
+        "Definir classes com __init__ e métodos",
+        "Entender self e a diferença entre atributo de instância e de classe",
+        "Modelar um problema com objetos",
+        "Usar __str__ e __repr__",
     ],
     teoria="""
-1. Por que objetos? O problema que a POO resolve
------------------------------------------------------------
-Até aqui, seus programas guardaram dados em dicionários e listas, e
-comportamento em funções separadas que recebiam esses dados como
-parâmetro. Isso funciona bem para programas pequenos, mas começa a doer
-quando o mesmo conjunto de dados precisa passar por MUITAS funções
-diferentes, todas esperando exatamente o mesmo formato de dicionário — e
-nada impede que uma delas receba um dicionário incompleto ou mal formado.
+1. Por que objetos?
+-------------------
+Quando dados e comportamento andam juntos, passar dicionários e funções soltas
+começa a doer. Uma classe agrupa ESTADO (atributos) e COMPORTAMENTO (métodos)
+sob um mesmo nome e garante que o objeto sempre nasça consistente.
 
-Uma classe resolve isso agrupando ESTADO (os atributos, ou seja, os dados)
-e COMPORTAMENTO (os métodos, ou seja, as funções que operam sobre esses
-dados) sob um único nome, e garantindo — através do construtor — que todo
-objeto criado já nasça em um estado consistente, sem depender de quem o usa
-lembrar de preencher tudo corretamente.
-
-2. Anatomia de uma classe
-------------------------------
+2. Anatomia
+-----------
     class ContaBancaria:
         \"\"\"Conta simples com depósito e saque.\"\"\"
 
-        taxa_manutencao = 2.5          # atributo de CLASSE (compartilhado por todas as contas)
+        taxa_manutencao = 2.5          # atributo de CLASSE (compartilhado)
 
         def __init__(self, titular, saldo=0.0):
-            self.titular = titular      # atributo de INSTÂNCIA (cada conta tem o seu)
+            self.titular = titular      # atributo de INSTÂNCIA
             self.saldo = saldo
-            self._historico = []        # o _ no início sinaliza "uso interno"
+            self._historico = []        # _ indica uso interno
 
         def depositar(self, valor):
             if valor <= 0:
@@ -58,113 +47,53 @@ lembrar de preencher tudo corretamente.
 
     c = ContaBancaria("Ana", 100)
     c.depositar(50)
-    print(c)             # usa __str__ automaticamente
+    print(c)             # usa __str__
 
-`__init__` é o CONSTRUTOR: o método especial chamado automaticamente
-sempre que uma nova instância é criada com `ContaBancaria(...)`. É ali, e
-só ali, que o objeto recebe seus valores iniciais — depois de sair do
-`__init__`, o objeto já deve estar em um estado válido e utilizável.
+3. self
+-------
+`self` é o próprio objeto, passado automaticamente na chamada.
+`c.depositar(50)` é açúcar para `ContaBancaria.depositar(c, 50)`.
+O nome self é convenção — mas quebrá-la é considerado erro de estilo grave.
 
-3. self: o objeto se referenciando a si mesmo
-----------------------------------------------------
-`self` é o próprio objeto, passado AUTOMATICAMENTE como primeiro
-argumento sempre que você chama um método através de uma instância. Na
-prática, `c.depositar(50)` é apenas açúcar sintático para
-`ContaBancaria.depositar(c, 50)` — Python insere o objeto `c` como
-primeiro argumento por trás dos panos.
+4. Atributo de classe x de instância
+------------------------------------
+    ContaBancaria.taxa_manutencao = 3.0    # muda para TODOS
+    c.taxa_manutencao = 0.0                # cria um atributo SÓ para c
 
-O nome `self` é apenas uma CONVENÇÃO — tecnicamente você poderia chamar
-esse primeiro parâmetro de qualquer coisa —, mas quebrar essa convenção é
-considerado um erro de estilo grave, porque toda a comunidade Python
-espera encontrar `self` ali, e ferramentas de análise de código também
-assumem essa convenção.
-
-4. Atributo de instância versus atributo de classe
---------------------------------------------------------
-    ContaBancaria.taxa_manutencao = 3.0    # muda o valor para TODAS as contas existentes e futuras
-    c.taxa_manutencao = 0.0                # cria um atributo NOVO, só para o objeto c
-
-Atributos de CLASSE (declarados diretamente no corpo da classe, fora de
-qualquer método) são compartilhados por todas as instâncias — mudar o
-valor pela classe afeta todo mundo que ainda não tenha um valor próprio
-sobrescrevendo-o. Atributos de INSTÂNCIA (criados dentro de `__init__` com
-`self.algo = ...`) pertencem exclusivamente àquele objeto.
-
-Existe uma armadilha séria aqui, muito parecida com a do valor padrão
-mutável em funções (Dia 11): se o atributo de CLASSE for um objeto
-MUTÁVEL (uma lista, por exemplo), ele é compartilhado entre TODAS as
-instâncias, o que quase nunca é o que se pretende:
+Armadilha: atributo de classe MUTÁVEL é compartilhado por todas as instâncias.
 
     class Carrinho:
-        itens = []              # ERRADO: existe UMA lista para TODOS os carrinhos!
+        itens = []              # ERRADO: uma lista para todo mundo
+Correto: criar em __init__ (`self.itens = []`).
 
-    a = Carrinho()
-    b = Carrinho()
-    a.itens.append("caneta")
-    print(b.itens)               # ['caneta'] — apareceu no carrinho de b também!
+5. __str__ x __repr__
+---------------------
+    __str__   texto amigável para o usuário final (usado por print e str())
+    __repr__  texto técnico para o desenvolvedor (usado no REPL e em listas)
 
-A correção é sempre criar listas, dicionários e outros objetos mutáveis
-DENTRO de `__init__`, atribuindo a `self`, para que cada instância receba
-o seu próprio objeto independente:
+Se você só implementar um, implemente __repr__ — ele serve de reserva para o
+__str__. O ideal é que repr pareça código: `Ponto(x=1, y=2)`.
 
-    class Carrinho:
-        def __init__(self):
-            self.itens = []      # CORRETO: uma lista nova a cada objeto criado
+6. Métodos e encapsulamento (visão inicial)
+-------------------------------------------
+Python não tem private de verdade. As convenções:
+    nome        público
+    _nome       interno (não mexa se você não escreveu a classe)
+    __nome      name mangling: vira _Classe__nome, evita colisão em herança
 
-5. __str__ versus __repr__: dois públicos diferentes
-------------------------------------------------------------
-    __str__   texto amigável, pensado para o USUÁRIO FINAL (usado por print() e str())
-    __repr__  texto técnico, pensado para o DESENVOLVEDOR (usado no REPL e dentro de listas)
+7. Introspecção
+---------------
+    isinstance(c, ContaBancaria)     # True
+    type(c).__name__                 # 'ContaBancaria'
+    c.__dict__                       # atributos de instância
+    dir(c), hasattr(c, "saldo"), getattr(c, "saldo", 0)
 
-Se você só puder implementar um dos dois, implemente `__repr__` — ele
-serve como reserva automática para `__str__` quando este não existe (mas o
-inverso não é verdade). A convenção da comunidade é que `__repr__`
-pareça código Python válido, capaz de recriar o objeto: algo como
-`Ponto(x=1, y=2)`, não uma frase em português.
-
-6. Encapsulamento em Python: convenção, não imposição
-------------------------------------------------------------
-Diferente de linguagens como Java ou C++, Python não tem um modificador
-`private` de verdade que IMPEÇA o acesso externo a um atributo. Existem
-apenas convenções, respeitadas por acordo cultural entre programadores:
-
-    nome        público — parte da interface oficial da classe
-    _nome       "interno": um aviso de "não mexa aqui se você não escreveu esta classe"
-    __nome      name mangling: o Python renomeia internamente para _Classe__nome,
-                dificultando (mas não impedindo) colisões acidentais em herança
-
-Essa filosofia é resumida na expressão "somos todos adultos aqui" (we're
-all consenting adults), presente até no Zen do Python: a linguagem confia
-que o programador vai respeitar as convenções, em vez de impor barreiras
-técnicas rígidas que, em outras linguagens, às vezes acabam sendo
-contornadas de formas ainda mais complicadas.
-
-7. Introspecção: perguntando ao objeto sobre si mesmo
-------------------------------------------------------------
-    isinstance(c, ContaBancaria)     # True: c é uma instância dessa classe (ou de uma subclasse)
-    type(c).__name__                 # 'ContaBancaria': o nome do tipo, como texto
-    c.__dict__                       # dicionário com os atributos de INSTÂNCIA de c
-    dir(c)                           # lista tudo que o objeto sabe fazer (métodos e atributos)
-    hasattr(c, "saldo")              # True/False: o objeto tem esse atributo?
-    getattr(c, "saldo", 0)           # pega o atributo, ou devolve 0 se não existir
-
-Essas ferramentas são particularmente úteis ao explorar uma biblioteca ou
-classe desconhecida no REPL, sem precisar abrir a documentação — o próprio
-objeto revela sua estrutura.
-
-8. Como saber se um problema realmente pede uma classe?
-------------------------------------------------------------------
-Um sinal claro de que uma classe está "escondida" no seu código: você
-percebe que várias funções diferentes sempre recebem os mesmos parâmetros
-juntos, ou que um mesmo dicionário circula por dez funções distintas,
-sempre com as mesmas chaves esperadas. Isso sugere que esses dados e
-funções deveriam estar reunidos sob uma classe.
-
-Por outro lado, se o que você precisa é apenas um AGRUPAMENTO de dados,
-sem comportamento associado (sem métodos que fazem cálculos ou validações
-sobre esses dados), a ferramenta mais adequada costuma ser uma
-`dataclass` (Dia 19) ou até uma tupla nomeada — estruturas mais leves que
-uma classe completa escrita à mão.
+8. Como saber se precisa de classe?
+-----------------------------------
+Se você tem várias funções que recebem sempre os mesmos parâmetros, ou um
+dicionário passeando por dez funções, provavelmente há uma classe escondida
+ali. Se é só um agrupamento de dados sem comportamento, prefira dataclass
+(Dia 19) ou até uma tupla nomeada.
 """,
     exemplos=[
         Exemplo(
@@ -196,8 +125,7 @@ c = ContaBancaria("Ana", 100)
 c.depositar(50); c.sacar(30)
 print(c, c.extrato)
 ''',
-            explicacao="!r dentro da f-string aplica repr ao valor, útil "
-                       "para ver aspas em strings dentro de mensagens de depuração.",
+            explicacao="!r dentro da f-string aplica repr ao valor.",
         ),
         Exemplo(
             titulo="Contador de instâncias com atributo de classe",
@@ -206,34 +134,12 @@ print(c, c.extrato)
 
     def __init__(self, nome):
         self.nome = nome
-        Usuario.total += 1        # note: Usuario, nao self — e proposital
+        Usuario.total += 1        # note: Usuario, não self
 
 a, b = Usuario("ana"), Usuario("bia")
 print(Usuario.total)      # 2
 ''',
-            explicacao="Usar self.total += 1 aqui criaria um atributo de "
-                       "INSTÂNCIA chamado total, deixando o contador de "
-                       "classe intocado — o oposto do que se pretende.",
-        ),
-        Exemplo(
-            titulo="A armadilha do atributo de classe mutável, ao vivo",
-            codigo='''class CarrinhoErrado:
-    itens = []          # UMA lista compartilhada por TODOS os carrinhos
-
-class CarrinhoCerto:
-    def __init__(self):
-        self.itens = []  # uma lista NOVA a cada carrinho criado
-
-a1, a2 = CarrinhoErrado(), CarrinhoErrado()
-a1.itens.append("caneta")
-print(a2.itens)          # ['caneta']  -- vazou para o outro carrinho!
-
-b1, b2 = CarrinhoCerto(), CarrinhoCerto()
-b1.itens.append("caneta")
-print(b2.itens)          # []  -- cada carrinho tem sua propria lista
-''',
-            explicacao="O mesmo padrão de bug do argumento padrão mutável "
-                       "(Dia 11), agora no contexto de atributos de classe.",
+            explicacao="Usar self.total += 1 criaria um atributo de instância.",
         ),
     ],
     exercicios=[
@@ -291,26 +197,17 @@ print(b2.itens)          # []  -- cada carrinho tem sua propria lista
         Quiz("O que é `self` em um método?",
              ["Uma palavra reservada", "A referência à instância atual",
               "A classe", "Um módulo"], 1,
-             "self é o primeiro parâmetro e recebe o próprio objeto, passado automaticamente pelo Python."),
+             "self é o primeiro parâmetro e recebe o próprio objeto."),
         Quiz("Onde criar uma lista que deve ser exclusiva de cada objeto?",
              ["No corpo da classe", "Dentro de __init__ com self.",
               "Como variável global", "Em __repr__"], 1,
-             "No corpo da classe ela vira atributo de classe, compartilhado entre todas as instâncias."),
-        Quiz("Se você não implementar __str__ mas implementar __repr__, o que print(objeto) mostra?",
-             ["Um erro, pois __str__ é obrigatório", "O endereço de memória cru",
-              "O resultado de __repr__, que serve de reserva", "Sempre 'object at 0x...'"], 2,
-             "__repr__ funciona como fallback automático para __str__ quando este não é definido."),
-        Quiz("O prefixo __nome (dois underscores) em um atributo faz o quê exatamente?",
-             ["Torna o atributo impossível de acessar de fora", "Aplica name mangling, renomeando para _Classe__nome (dificulta, mas não impede acesso)",
-              "Cria um atributo de classe", "Não tem efeito nenhum"], 1,
-             "É uma barreira de convenção mais forte que o _ simples, mas ainda contornável — Python não tem private de verdade."),
+             "No corpo da classe ela vira atributo de classe, compartilhado."),
     ],
     projeto=(
         "Modele uma Biblioteca com as classes Livro e Biblioteca: emprestar, devolver, "
-        "listar disponíveis e buscar por autor, com validações. Preste atenção especial "
-        "em onde a lista de livros emprestados é criada."
+        "listar disponíveis e buscar por autor, com validações."
     ),
-    leitura=["docs.python.org/pt-br/3/tutorial/classes.html", "PEP 20 (o Zen do Python, item sobre 'namespaces')"],
+    leitura=["docs.python.org/pt-br/3/tutorial/classes.html"],
 ))
 
 # ---------------------------------------------------------------- DIA 17
@@ -318,37 +215,30 @@ DIAS.append(Dia(
     numero=17,
     titulo="POO II: propriedades, métodos de classe e estáticos",
     nivel="Intermediário",
-    duracao="100 min",
+    duracao="90 min",
     objetivos=[
-        "Explicar o problema que @property resolve e por que Python o faz de forma diferente de Java",
-        "Validar dados no setter de uma propriedade, sem quebrar quem já usa o atributo",
-        "Criar atributos calculados, somente leitura, com @property",
-        "Usar @classmethod como construtor alternativo (padrão de fábrica)",
-        "Saber quando @staticmethod é apropriado, e quando na verdade deveria ser uma função de módulo",
-        "Conhecer __slots__ como otimização de memória, e seu trade-off",
+        "Controlar acesso a atributos com @property",
+        "Validar dados no setter",
+        "Usar @classmethod como construtor alternativo",
+        "Saber quando usar @staticmethod",
     ],
     teoria="""
-1. O problema que motiva @property
-----------------------------------------
-    conta.saldo = -1000     # nada impede isso, se saldo for um atributo comum
+1. O problema
+-------------
+    conta.saldo = -1000     # ninguém impediu
 
-Em linguagens como Java, a prática recomendada desde o início é NUNCA
-expor atributos diretamente — sempre criar `getSaldo()`/`setSaldo()`,
-mesmo quando eles só fazem a atribuição trivial, "por garantia". Python
-segue uma filosofia diferente: comece com o atributo público simples
-(`self.saldo = saldo`), e SÓ SE, mais tarde, você precisar de validação
-ou de um cálculo, converta esse atributo em uma propriedade — sem que o
-código que já usa `objeto.saldo = valor` precise mudar uma única linha.
-Essa é uma das vantagens práticas mais citadas do design de `@property`.
+Em Java, criaríamos getSaldo/setSaldo desde o início. Em Python, começamos com
+o atributo simples e, SE precisarmos de lógica, convertemos em propriedade sem
+quebrar quem já usava `objeto.saldo`.
 
-2. @property: getter, setter e atributo calculado
---------------------------------------------------------
+2. @property
+------------
     class Produto:
         def __init__(self, preco):
-            self.preco = preco            # já passa pelo SETTER, mesmo aqui no __init__!
+            self.preco = preco            # já passa pelo setter!
 
         @property
-        def preco(self):                  # o GETTER
+        def preco(self):                  # getter
             return self._preco
 
         @preco.setter
@@ -358,98 +248,64 @@ Essa é uma das vantagens práticas mais citadas do design de `@property`.
             self._preco = valor
 
         @property
-        def preco_com_imposto(self):      # atributo CALCULADO, só leitura (sem setter)
+        def preco_com_imposto(self):      # atributo CALCULADO, só leitura
             return round(self._preco * 1.18, 2)
 
     p = Produto(100)
-    p.preco = 200            # passa pela validação do setter
-    p.preco_com_imposto      # acessado SEM parênteses, como um atributo comum
-    p.preco_com_imposto = 5  # AttributeError: não existe @preco_com_imposto.setter
+    p.preco = 200            # validado
+    p.preco_com_imposto      # sem parênteses
+    p.preco_com_imposto = 5  # AttributeError (não há setter)
 
-Note que, dentro do próprio `__init__`, a linha `self.preco = preco` já
-passa pelo setter decorado — é assim que a validação se aplica também na
-criação do objeto, não só em atribuições posteriores.
+Regra: se o cálculo é barato e parece um dado, use property; se é caro ou tem
+efeito colateral, deixe como método comum.
 
-A regra prática para decidir entre `@property` e um método comum: se o
-cálculo é BARATO (rápido) e semanticamente PARECE um dado do objeto (como
-"preço com imposto"), use property; se é CARO (uma consulta a banco de
-dados, uma chamada de rede) ou tem EFEITO COLATERAL, prefira deixá-lo como
-um método comum (`objeto.calcular_algo()`), para que quem lê o código veja
-os parênteses e entenda que ali pode haver trabalho sendo feito.
-
-3. @classmethod: fábricas de construção alternativas
------------------------------------------------------------
-Um método de classe recebe `cls` (a própria CLASSE) como primeiro
-argumento, em vez de `self` (a instância). O uso mais comum, de longe, é
-criar CONSTRUTORES ALTERNATIVOS — formas diferentes de montar um objeto a
-partir de dados em outro formato:
+3. @classmethod
+---------------
+Recebe a classe (cls) em vez da instância. Uso principal: construtores
+alternativos (fábricas).
 
     class Data:
         def __init__(self, dia, mes, ano):
             self.dia, self.mes, self.ano = dia, mes, ano
 
         @classmethod
-        def de_texto(cls, texto):          # recebe algo como '25/12/2026'
+        def de_texto(cls, texto):          # '25/12/2026'
             d, m, a = map(int, texto.split("/"))
-            return cls(d, m, a)            # cls(...), não Data(...) — respeita subclasses!
+            return cls(d, m, a)            # cls respeita subclasses
 
     Data.de_texto("25/12/2026")
 
-Usar `cls(...)` em vez de escrever o nome da classe diretamente
-(`Data(...)`) é o que garante que, se alguém criar uma subclasse de
-`Data`, chamar `Subclasse.de_texto(...)` produza uma instância de
-`Subclasse`, não de `Data` — o método herda o comportamento correto
-automaticamente, sem precisar ser reescrito.
-
-4. @staticmethod: uma função guardada por afinidade temática
-------------------------------------------------------------------
-Um método estático não recebe nem `self` nem `cls` — na prática, é apenas
-uma função comum que vive DENTRO do namespace da classe, por conveniência
-de organização:
+4. @staticmethod
+----------------
+Não recebe self nem cls: é apenas uma função guardada dentro da classe por
+afinidade temática.
 
     class Validador:
         @staticmethod
         def cpf_valido(cpf):
             return len(cpf) == 11 and cpf.isdigit()
 
-O critério prático para escolher `@staticmethod`: se o método não usa nem
-`self` nem `cls` E faz sentido logicamente "pertencer" àquela classe (por
-exemplo, uma validação diretamente relacionada aos dados que a classe
-representa), é um bom candidato. Se ele não usa nem um nem outro e também
-não tem relação temática forte com a classe, talvez devesse simplesmente
-ser uma função solta no módulo — forçar tudo a virar método estático
-"porque parece mais organizado" é um antipadrão comum entre quem está
-aprendendo POO.
+Se o método não usa nem self nem cls e não faz sentido "pertencer" à classe,
+talvez devesse ser uma função de módulo. Não force.
 
-5. Resumo comparativo dos três tipos de método
-------------------------------------------------------
-    método comum (padrão)   recebe self    opera sobre uma INSTÂNCIA específica
-    @classmethod             recebe cls     opera sobre a CLASSE (fábricas, contadores globais)
-    @staticmethod             não recebe nada especial   utilitário relacionado ao tema da classe
+5. Resumo comparativo
+---------------------
+    método comum     recebe self   opera na INSTÂNCIA
+    @classmethod     recebe cls    opera na CLASSE (fábricas, contadores)
+    @staticmethod    não recebe    utilitário relacionado
 
-6. __slots__: um bônus de otimização de memória
-------------------------------------------------------
+6. __slots__ (bônus)
+--------------------
     class Ponto:
         __slots__ = ("x", "y")
+Impede a criação de atributos não previstos e reduz memória (útil quando você
+cria milhões de objetos). Perde a flexibilidade de atributos dinâmicos.
 
-Por padrão, cada instância de uma classe Python carrega um dicionário
-interno (`__dict__`) para guardar seus atributos — flexível, mas com um
-custo de memória por objeto. Declarar `__slots__` com os nomes exatos dos
-atributos permitidos elimina esse dicionário, reduzindo o consumo de
-memória por instância — uma otimização que só costuma valer a pena quando
-seu programa cria MILHÕES de objetos da mesma classe. O custo é perder a
-flexibilidade de adicionar atributos dinamicamente fora da lista declarada
-em `__slots__` — tentar isso levanta `AttributeError`.
-
-7. Reforçando: atributos "privados" de verdade não existem
-------------------------------------------------------------------
-    self.__segredo = 1     # continua acessível de fora, como obj._Classe__segredo
-
-Isso retoma o ponto do Dia 16: mesmo o name mangling do `__` duplo não é
-uma barreira de segurança real, apenas uma dificuldade adicional para
-colisões acidentais. A cultura Python continua sendo "somos todos adultos
-responsáveis" — o underscore comunica INTENÇÃO ("não deveria mexer
-aqui"), não impõe uma restrição técnica inquebrável.
+7. Atributos privados de verdade não existem
+--------------------------------------------
+    self.__segredo = 1     # acessível como obj._Classe__segredo
+A cultura Python é "somos todos adultos responsáveis": o _ comunica intenção,
+não impõe barreira.
 """,
     exemplos=[
         Exemplo(
@@ -481,12 +337,10 @@ print(t.fahrenheit)      # 77.0
 t.fahrenheit = 212
 print(t.celsius)         # 100.0
 ''',
-            explicacao="Os dois atributos ficam sincronizados por "
-                       "construção: alterar fahrenheit recalcula celsius, "
-                       "porque o setter de fahrenheit delega para o setter de celsius.",
+            explicacao="Os dois atributos ficam sincronizados por construção.",
         ),
         Exemplo(
-            titulo="Construtores alternativos com classmethod e staticmethod",
+            titulo="Construtores alternativos",
             codigo='''class Pessoa:
     def __init__(self, nome, idade):
         self.nome, self.idade = nome, idade
@@ -506,43 +360,7 @@ print(t.celsius)         # 100.0
 p = Pessoa.de_string("Ana, 30")
 print(p, Pessoa.maioridade(p.idade))
 ''',
-            explicacao="cls(...) garante que subclasses de Pessoa criem "
-                       "instâncias do tipo certo ao chamar de_string; "
-                       "maioridade nem precisa de um objeto para ser chamado.",
-        ),
-        Exemplo(
-            titulo="O mesmo atributo, com e sem property",
-            codigo='''class SemProtecao:
-    def __init__(self, saldo):
-        self.saldo = saldo
-
-class ComProtecao:
-    def __init__(self, saldo):
-        self.saldo = saldo    # ja passa pelo setter
-
-    @property
-    def saldo(self):
-        return self._saldo
-
-    @saldo.setter
-    def saldo(self, valor):
-        if valor < 0:
-            raise ValueError("saldo nao pode ser negativo")
-        self._saldo = valor
-
-a = SemProtecao(100)
-a.saldo = -500          # aceito sem aviso nenhum
-
-b = ComProtecao(100)
-try:
-    b.saldo = -500
-except ValueError as e:
-    print("bloqueado:", e)
-''',
-            explicacao="A interface pública (objeto.saldo) é idêntica nos "
-                       "dois casos — a diferença fica invisível para quem "
-                       "usa a classe corretamente, e só aparece quando "
-                       "alguém tenta um valor inválido.",
+            explicacao="cls(...) garante que subclasses criem instâncias do tipo certo.",
         ),
     ],
     exercicios=[
@@ -596,27 +414,19 @@ except ValueError as e:
         ),
     ],
     quiz=[
-        Quiz("Qual a vantagem de @property sobre get_x()/set_x() escritos manualmente?",
-             ["É mais rápida em tempo de execução", "Permite adicionar validação ou cálculo sem mudar a interface pública (objeto.x continua funcionando)",
-              "É obrigatória em toda classe Python", "Cria atributos privados de verdade"], 1,
-             "Quem já usava objeto.x continua usando exatamente da mesma forma, mesmo depois de você adicionar lógica no setter."),
+        Quiz("Qual a vantagem de @property sobre get_x()/set_x()?",
+             ["É mais rápida", "Permite adicionar lógica sem mudar o código que usa o atributo",
+              "É obrigatória", "Cria atributos privados"], 1,
+             "A interface pública continua sendo objeto.x."),
         Quiz("O que @classmethod recebe como primeiro parâmetro?",
              ["self", "cls (a classe)", "nada", "o módulo"], 1,
-             "cls permite que o método crie instâncias respeitando a subclasse que o chamou, não só a classe original."),
-        Quiz("Quando faz mais sentido usar @staticmethod em vez de uma função solta no módulo?",
-             ["Sempre, staticmethod é sempre melhor", "Quando o método não usa self/cls, mas tem forte relação temática com a classe",
-              "Nunca, staticmethod é um recurso obsoleto", "Apenas quando a classe tem herança múltipla"], 1,
-             "Se não há relação temática nem uso de self/cls, geralmente uma função de módulo comum é mais simples."),
-        Quiz("Qual é o principal custo de usar __slots__ numa classe?",
-             ["O código fica mais lento", "Perde-se a flexibilidade de adicionar atributos fora dos declarados",
-              "Não é mais possível criar métodos", "A classe deixa de aceitar herança"], 1,
-             "__slots__ economiza memória eliminando o __dict__ por instância, mas restringe quais atributos podem existir."),
+             "cls permite criar instâncias respeitando a subclasse."),
     ],
     projeto=(
         "Evolua a ContaBancaria: saldo como property somente leitura, limite validado, "
         "classmethod de_dict() e staticmethod validar_agencia()."
     ),
-    leitura=["docs.python.org/pt-br/3/library/functions.html#property", "docs.python.org/pt-br/3/reference/datamodel.html#slots"],
+    leitura=["docs.python.org/pt-br/3/library/functions.html#property"],
 ))
 
 # ---------------------------------------------------------------- DIA 18
@@ -624,18 +434,16 @@ DIAS.append(Dia(
     numero=18,
     titulo="POO III: herança, polimorfismo e métodos mágicos",
     nivel="Avançado",
-    duracao="110 min",
+    duracao="100 min",
     objetivos=[
-        "Reutilizar código com herança, usando super() corretamente",
-        "Explicar polimorfismo e duck typing com exemplos concretos",
-        "Entender a ordem de resolução de métodos (MRO) em herança múltipla",
-        "Implementar métodos mágicos (dunder) que integram uma classe à linguagem",
-        "Decidir entre herança ('é um') e composição ('tem um') com um critério prático",
-        "Usar classes abstratas (ABC) para impor um contrato a subclasses",
+        "Reutilizar código com herança e super()",
+        "Aplicar polimorfismo e duck typing",
+        "Implementar dunder methods",
+        "Preferir composição quando fizer sentido",
     ],
     teoria="""
-1. Herança: reaproveitando comportamento entre classes relacionadas
-------------------------------------------------------------------------------
+1. Herança
+----------
     class Animal:
         def __init__(self, nome):
             self.nome = nome
@@ -650,124 +458,69 @@ DIAS.append(Dia(
 
     class Gato(Animal):
         def __init__(self, nome, vidas=7):
-            super().__init__(nome)        # SEMPRE chame o inicializador do pai
+            super().__init__(nome)        # chame SEMPRE o pai
             self.vidas = vidas
         def falar(self):
             return "miau"
 
-`super()` delega a chamada para a PRÓXIMA classe na ordem de resolução de
-métodos (MRO, seção 3) — que, em herança simples, é a superclasse direta,
-mas em herança múltipla pode ser outra classe na cadeia. É exatamente esse
-mecanismo, mais sofisticado do que "chamar o pai diretamente", que permite
-herança múltipla funcionar de forma previsível, sem chamar o mesmo
-inicializador duas vezes acidentalmente.
-
-Um princípio a internalizar: sempre que você sobrescrever `__init__` numa
-subclasse, chame `super().__init__(...)` explicitamente, a menos que
-tenha um motivo deliberado para não inicializar a parte herdada — do
-contrário, atributos que a classe base esperava configurar (como `self.nome`
-aqui) simplesmente não existirão na subclasse.
+`super()` delega para a próxima classe na ordem de resolução — não
+necessariamente a superclasse direta, e é isso que faz herança múltipla
+funcionar de forma previsível.
 
 2. Polimorfismo e duck typing
------------------------------------
+-----------------------------
     for bicho in [Cachorro("Rex"), Gato("Mia")]:
-        print(bicho.apresentar())      # cada um responde à sua própria maneira
+        print(bicho.apresentar())      # cada um responde à sua maneira
 
-Polimorfismo é a ideia de que o MESMO código (`bicho.apresentar()`) produz
-comportamentos diferentes dependendo do tipo real do objeto, sem que quem
-escreveu o laço precise saber qual subclasse específica está em mãos.
+Em Python, o que importa é o objeto TER o método, não herdar de alguém:
+"se anda como pato e grasna como pato, é um pato". Por isso funções genéricas
+raramente checam isinstance.
 
-Em Python, essa flexibilidade vai além da herança formal: o que
-efetivamente importa é o objeto TER o método esperado, não descender de
-uma classe específica — o princípio conhecido como "duck typing" ("se anda
-como um pato e grasna como um pato, é tratado como um pato"). Por essa
-razão, funções Python idiomáticas raramente fazem checagens explícitas de
-`isinstance()` antes de chamar um método — elas simplesmente chamam o
-método e confiam que, se o objeto não o tiver, um erro claro (`AttributeError`)
-vai aparecer ali mesmo.
-
-3. MRO (Method Resolution Order): a ordem de busca em herança múltipla
-------------------------------------------------------------------------------
+3. MRO (Method Resolution Order)
+--------------------------------
     class A: ...
     class B(A): ...
     class C(A): ...
     class D(B, C): ...
-    D.__mro__        # (D, B, C, A, object)
+    D.__mro__        # D, B, C, A, object
 
-Quando uma classe herda de mais de uma classe ao mesmo tempo (herança
-múltipla), Python precisa de uma regra determinística para decidir, ao
-buscar um método, em qual ordem procurar entre as várias classes-base. O
-algoritmo usado é o C3 linearization: busca da esquerda para a direita,
-sem repetir uma classe já visitada, e sempre respeitando a ordem de
-declaração de herança.
+Python usa o algoritmo C3: da esquerda para a direita, sem repetir, respeitando
+a ordem de herança. Herança múltipla funciona melhor com MIXINS: classes
+pequenas, sem estado, que agregam um comportamento (ex.: SerializavelJSONMixin).
 
-Herança múltipla direta costuma ser complexa de raciocinar; a comunidade
-Python geralmente recomenda usar esse recurso através de MIXINS — classes
-pequenas, sem estado próprio (sem `__init__` que crie atributos), que
-adicionam UM comportamento específico e bem isolado (por exemplo, uma
-`SerializavelJSONMixin` que só adiciona um método `para_json()`).
+4. Métodos mágicos (dunder)
+---------------------------
+    __init__            construção
+    __repr__ __str__    representação
+    __eq__ __lt__       comparação (com functools.total_ordering, os demais saem de graça)
+    __hash__            permite usar em set/dict (defina junto com __eq__)
+    __len__ __bool__    tamanho e veracidade
+    __getitem__ __setitem__ __contains__     indexação e `in`
+    __iter__ __next__   iteração
+    __add__ __sub__ __mul__                  operadores
+    __call__            torna o objeto chamável
+    __enter__ __exit__  context manager (Dia 22)
 
-4. Métodos mágicos (dunder): integrando sua classe à linguagem
-------------------------------------------------------------------------
-    __init__            construção do objeto
-    __repr__ __str__    representação textual (Dia 16)
-    __eq__ __lt__       comparação (com functools.total_ordering, os demais operadores saem "de graça")
-    __hash__            permite que instâncias sejam usadas em set/dict (defina sempre junto com __eq__)
-    __len__ __bool__    tamanho (para len(obj)) e veracidade (para if obj:)
-    __getitem__ __setitem__ __contains__     indexação (obj[i]) e o operador in
-    __iter__ __next__   protocolo de iteração (Dia 20)
-    __add__ __sub__ __mul__                  sobrecarga de operadores aritméticos
-    __call__            torna instâncias do objeto CHAMÁVEIS, como se fossem funções: obj(x)
-    __enter__ __exit__  protocolo de context manager (Dia 22)
+Implementar dunders é o que integra sua classe à linguagem: len(obj),
+obj1 + obj2, for x in obj passam a funcionar naturalmente.
 
-Implementar dunders é literalmente o que torna sua classe "cidadã de
-primeira classe" na linguagem: depois de definir `__len__`, `len(obj)`
-passa a funcionar; depois de `__add__`, `obj1 + obj2` funciona; depois de
-`__iter__`, `for x in obj` funciona — tudo isso sem que o usuário da
-classe precise chamar métodos com nomes especiais, só os operadores e
-funções que já conhece dos tipos embutidos.
+5. Herança x composição
+-----------------------
+Herança expressa "É UM" (Gato É UM Animal). Composição expressa "TEM UM"
+(Carro TEM UM Motor). Herança acopla fortemente: mudanças na base afetam todos
+os filhos. Prefira composição quando você quer só reaproveitar código.
 
-5. Herança ("é um") versus composição ("tem um")
-------------------------------------------------------------
-Herança expressa uma relação "É UM": um Gato É UM Animal, então herdar faz
-sentido semântico. Composição expressa uma relação "TEM UM": um Carro TEM
-UM Motor — o Carro não deveria HERDAR de Motor, apenas guardar uma
-instância de Motor como atributo.
-
-    class Motor:
-        def ligar(self): ...
-
-    class Carro:
-        def __init__(self):
-            self.motor = Motor()      # composição: Carro TEM UM Motor
-        def ligar(self):
-            self.motor.ligar()        # delega a chamada
-
-A razão prática para preferir composição quando a relação é "tem um": herança
-cria um ACOPLAMENTO FORTE — qualquer mudança na classe base pode afetar
-(às vezes de forma inesperada) TODAS as subclasses que dependem dela.
-Composição é mais flexível: trocar a implementação interna (o Motor) não
-exige mudar a estrutura de herança do Carro. Um princípio de design
-conhecido resume isso: "prefira composição a herança" sempre que a
-motivação for apenas REAPROVEITAR código, guardando herança para quando
-existe de fato uma relação de tipo (é-um) legítima.
-
-6. Classes abstratas: impondo um contrato
-----------------------------------------------
+6. Classes abstratas
+--------------------
     from abc import ABC, abstractmethod
 
     class Forma(ABC):
         @abstractmethod
         def area(self): ...
 
-    Forma()        # TypeError: Can't instantiate abstract class Forma with abstract method area
+    Forma()        # TypeError: não pode instanciar classe abstrata
 
-Herdar de `ABC` e marcar um método com `@abstractmethod` garante, em
-TEMPO DE EXECUÇÃO, que nenhuma subclasse consiga ser instanciada sem
-implementar todos os métodos abstratos declarados — é a forma explícita de
-Python de definir uma INTERFACE que qualquer implementação concreta é
-obrigada a respeitar, algo que outras linguagens fariam com uma palavra-
-chave `interface` dedicada.
+Isso garante em tempo de execução que subclasses implementem o contrato.
 """,
     exemplos=[
         Exemplo(
@@ -794,9 +547,7 @@ equipe = [Funcionario("Ana", 3000), Vendedor("Bruno", 2000, 50000)]
 for f in equipe:
     print(f)
 ''',
-            explicacao="super().pagamento() reaproveita a lógica da base "
-                       "(devolver o salário) e só ACRESCENTA a comissão, "
-                       "sem duplicar o cálculo do salário base.",
+            explicacao="super().pagamento() reaproveita a lógica da base.",
         ),
         Exemplo(
             titulo="Classe que se integra à linguagem via dunders",
@@ -822,32 +573,7 @@ for f in equipe:
 v = Vetor(1, 2) + Vetor(3, 4)
 print(v, v * 2, abs(Vetor(3, 4)))
 ''',
-            explicacao="Depois de implementados, esses operadores passam a "
-                       "funcionar em Vetor exatamente como funcionam em int "
-                       "ou float — sem nenhuma sintaxe especial extra no uso.",
-        ),
-        Exemplo(
-            titulo="Herança versus composição, lado a lado",
-            codigo='''class Motor:
-    def __init__(self, potencia):
-        self.potencia = potencia
-    def ligar(self):
-        return f"motor de {self.potencia}cv ligado"
-
-# Composicao: Carro TEM UM motor -- mais flexivel
-class Carro:
-    def __init__(self, potencia):
-        self.motor = Motor(potencia)
-    def ligar(self):
-        return self.motor.ligar()
-
-carro = Carro(120)
-print(carro.ligar())
-print(isinstance(carro, Motor))   # False -- e o esperado: Carro nao E UM Motor
-''',
-            explicacao="Se Carro herdasse de Motor, ele passaria a ser um "
-                       "tipo de Motor tecnicamente, o que não corresponde à "
-                       "relação real entre os dois conceitos.",
+            explicacao="Operadores passam a funcionar como em tipos nativos.",
         ),
     ],
     exercicios=[
@@ -905,42 +631,35 @@ print(isinstance(carro, Motor))   # False -- e o esperado: Carro nao E UM Motor
         Quiz("Para que serve super().__init__(...)?",
              ["Criar uma nova classe", "Executar o inicializador da classe base",
               "Apagar atributos", "Declarar herança"], 1,
-             "Sem isso, os atributos que o __init__ da base configuraria não existiriam na subclasse."),
+             "Sem isso, a inicialização da base não acontece."),
         Quiz("O que é duck typing?",
-             ["Herdar de várias classes ao mesmo tempo", "Importar tipos de outros módulos",
-              "O que importa é o objeto ter o método esperado, não seu tipo declarado ou sua hierarquia",
-              "Um tipo específico de erro de execução"], 2,
-             "O comportamento (ter o método) define a compatibilidade, não a árvore de herança formal."),
-        Quiz("Qual critério prático ajuda a escolher entre herança e composição?",
-             ["Herança é sempre melhor por reaproveitar mais código", "Se a relação é 'é um', considere herança; se é 'tem um', prefira composição",
-              "Composição nunca deve ser usada em Python", "A escolha não faz diferença prática"], 1,
-             "Um Gato É UM Animal (herança faz sentido); um Carro TEM UM Motor (composição é mais apropriada)."),
-        Quiz("O que acontece ao tentar instanciar uma classe ABC com um @abstractmethod não implementado?",
-             ["Funciona normalmente, o método fica None", "TypeError é levantado, impedindo a instanciação",
-              "Um aviso é impresso, mas o objeto é criado", "Apenas ferramentas como mypy detectam isso"], 1,
-             "A checagem ocorre em tempo de execução: Python literalmente impede a criação do objeto."),
+             ["Herdar de várias classes", "Importar tipos",
+              "Importar o que importa é o objeto ter o método, não o seu tipo",
+              "Um tipo de erro"], 2,
+             "O comportamento define a compatibilidade, não a hierarquia."),
     ],
     projeto=(
         "Crie um sistema de formas geométricas: base abstrata Forma com area() e perimetro(), "
         "subclasses Circulo, Retangulo e Triangulo, __repr__ e uma função que ordena por área."
     ),
-    leitura=["docs.python.org/pt-br/3/reference/datamodel.html", "docs.python.org/pt-br/3/tutorial/classes.html#multiple-inheritance"],
+    leitura=["docs.python.org/pt-br/3/reference/datamodel.html"],
 ))
+
 # ---------------------------------------------------------------- DIA 19
 DIAS.append(Dia(
     numero=19,
     titulo="dataclasses, Enum, NamedTuple e ABC",
     nivel="Avançado",
-    duracao="90 min",
+    duracao="80 min",
     objetivos=[
-        "Eliminar boilerplate repetitivo com @dataclass, entendendo o que ele gera automaticamente",
-        "Representar conjuntos fixos e nomeados de valores com Enum, evitando 'strings mágicas'",
-        "Usar NamedTuple para registros imutáveis e leves",
-        "Definir contratos formais com ABC e diferenciar quando usar cada uma dessas quatro ferramentas",
+        "Eliminar boilerplate com @dataclass",
+        "Representar conjuntos fixos de valores com Enum",
+        "Usar NamedTuple para registros imutáveis",
+        "Definir contratos com ABC",
     ],
     teoria="""
-1. @dataclass: quando a classe é principalmente sobre dados
-------------------------------------------------------------------
+1. @dataclass
+-------------
     from dataclasses import dataclass, field
 
     @dataclass
@@ -953,62 +672,38 @@ DIAS.append(Dia(
         def total(self):
             return self.preco * self.quantidade
 
-Escrever uma classe "tradicional" só para guardar alguns campos exige
-repetir o mesmo `__init__` (atribuindo cada parâmetro a `self`), depois um
-`__repr__` para debug legível, e depois um `__eq__` para comparar duas
-instâncias por conteúdo — um boilerplate mecânico que praticamente nunca
-muda de padrão. O decorador `@dataclass` GERA essas três coisas
-automaticamente a partir das anotações de tipo dos campos: `__init__`,
-`__repr__` e `__eq__` já vêm prontos, sem você escrever uma linha.
+O decorador gera automaticamente __init__, __repr__ e __eq__. Opções úteis:
 
-Opções úteis do decorador, combináveis entre si:
+    @dataclass(frozen=True)     imutável e hashável (pode ir em set/dict)
+    @dataclass(order=True)      gera <, <=, >, >= comparando campo a campo
+    @dataclass(slots=True)      usa __slots__ (3.10+), mais leve
 
-    @dataclass(frozen=True)     torna a instância IMUTÁVEL e HASHÁVEL (pode entrar em set/dict)
-    @dataclass(order=True)      gera <, <=, >, >=, comparando campo a campo, na ordem declarada
-    @dataclass(slots=True)      usa __slots__ por baixo dos panos (Python 3.10+), mais leve em memória
+Para valores padrão MUTÁVEIS use `field(default_factory=list)` — passar
+`tags: list = []` levanta erro justamente para evitar a armadilha do Dia 11.
 
-Para um valor padrão que seja um objeto MUTÁVEL (lista, dicionário,
-conjunto), é preciso usar `field(default_factory=...)` em vez de escrever o
-valor diretamente — a própria linguagem levanta um erro se você tentar
-`tags: list = []` diretamente, JUSTAMENTE para evitar a armadilha do
-argumento padrão mutável (Dia 11), que aqui teria o mesmo efeito
-colateral perigoso entre instâncias diferentes.
+Funções auxiliares: `asdict(obj)`, `astuple(obj)`, `replace(obj, preco=9)`.
+`__post_init__` roda depois do __init__ gerado — lugar ideal para validação.
 
-Algumas funções auxiliares do módulo `dataclasses` completam o pacote:
-`asdict(obj)` converte a instância para um dicionário comum;
-`astuple(obj)` converte para tupla; `replace(obj, preco=9)` cria uma CÓPIA
-do objeto com apenas um campo alterado, sem mutar o original (útil
-principalmente com `frozen=True`). E `__post_init__`, se você o definir,
-roda automaticamente logo depois do `__init__` gerado — o lugar ideal para
-validações que dependem de mais de um campo ao mesmo tempo.
-
-2. Enum: dando nome a um conjunto fixo de valores
---------------------------------------------------------
+2. Enum
+-------
     from enum import Enum, auto
 
     class Status(Enum):
         PENDENTE = "pendente"
         PAGO = "pago"
-        CANCELADO = auto()          # gera um valor automaticamente (aqui, um int)
+        CANCELADO = auto()
 
-    Status.PAGO.name      # 'PAGO'   -- o nome do membro
-    Status.PAGO.value     # 'pago'   -- o valor associado
-    Status("pago")        # busca um membro PELO VALOR
-    list(Status)          # itera todos os membros da enumeração
+    Status.PAGO.name      # 'PAGO'
+    Status.PAGO.value     # 'pago'
+    Status("pago")        # busca pelo valor
+    list(Status)          # itera os membros
 
-Antes de `Enum` existir, era comum representar status ou categorias com
-strings soltas espalhadas pelo código (`"pendente"`, `"pago"`), o que traz
-dois problemas: um erro de digitação (`"pendete"`) só é descoberto em
-tempo de execução, silenciosamente, e não há como o editor de código
-autocompletar os valores válidos. `Enum` resolve os dois: qualquer valor
-inválido falha imediatamente ao tentar criar o membro (`Status("invalido")`
-levanta `ValueError`), e o autocompletar da IDE já sugere os membros
-existentes. `IntEnum` e `StrEnum` (este último desde o Python 3.11) vão
-além: seus membros também se comportam como `int` ou `str` de verdade,
-facilitando a integração direta com JSON e bancos de dados.
+Enum elimina "strings mágicas" espalhadas pelo código, permite autocompletar e
+falha alto quando alguém inventa um valor inválido. `IntEnum` e `StrEnum`
+(3.11+) se comportam também como int/str, facilitando integração com JSON.
 
-3. NamedTuple: um registro imutável que também é uma tupla
-------------------------------------------------------------------
+3. NamedTuple
+-------------
     from typing import NamedTuple
 
     class Ponto(NamedTuple):
@@ -1016,22 +711,18 @@ facilitando a integração direta com JSON e bancos de dados.
         y: float = 0.0
 
     p = Ponto(1, 2)
-    p.x, p[0]          # acesso por NOME e por ÍNDICE funcionam igualmente
-    p._replace(x=9)    # cria uma cópia com um campo alterado (não muta p)
-    x, y = p           # desempacota exatamente como uma tupla comum
+    p.x, p[0]          # acesso por nome E por índice
+    p._replace(x=9)
+    x, y = p           # desempacota como tupla
 
-`NamedTuple` é a escolha certa quando o registro é imutável, pequeno, e
-precisa circular pelo programa se comportando como uma tupla comum em
-qualquer lugar que espere uma (por exemplo, como chave de dicionário, ou
-desempacotado num `for`). Um resumo comparativo entre as três estruturas
-mais usadas para "agrupar dados relacionados":
+Use quando o registro é imutável, pequeno e vai circular como tupla.
+Comparação rápida:
+    NamedTuple   imutável, leve, comporta-se como tupla
+    dataclass    mutável por padrão, com métodos, mais flexível
+    dict         chaves dinâmicas, sem garantias de estrutura
 
-    NamedTuple   imutável, leve, comporta-se como tupla (aceito onde tuplas são esperadas)
-    dataclass    mutável por padrão (a menos que frozen=True), aceita métodos, mais flexível
-    dict comum   chaves totalmente dinâmicas, sem garantia estrutural nenhuma sobre quais existem
-
-4. ABC — classe base abstrata, formalizando um contrato
-------------------------------------------------------------------
+4. ABC — classe base abstrata
+-----------------------------
     from abc import ABC, abstractmethod
 
     class Repositorio(ABC):
@@ -1041,23 +732,12 @@ mais usadas para "agrupar dados relacionados":
         @abstractmethod
         def buscar(self, id_): ...
 
-        def salvar_varios(self, itens):     # método CONCRETO, herdado normalmente
+        def salvar_varios(self, itens):     # método concreto herdado
             for i in itens:
                 self.salvar(i)
 
-Uma `ABC` pode misturar métodos abstratos (que toda subclasse É OBRIGADA a
-implementar, sob pena de não conseguir ser instanciada — como vimos no Dia
-18) com métodos CONCRETOS já prontos, que todas as subclasses herdam
-gratuitamente (aqui, `salvar_varios` já funciona para qualquer subclasse
-que tenha implementado `salvar`). Essa combinação é a forma mais explícita
-que Python oferece de definir uma INTERFACE com parte da implementação já
-compartilhada.
-
-Um critério rápido para escolher entre as quatro ferramentas deste dia:
-dados fixos e imutáveis que circulam como tupla -> `NamedTuple`; dados que
-podem mudar e/ou têm métodos próprios -> `dataclass`; um conjunto fechado
-e nomeado de opções válidas -> `Enum`; um contrato que várias
-implementações diferentes precisam seguir -> `ABC`.
+Quem herdar e não implementar todos os métodos abstratos não consegue nem
+instanciar a classe. É a forma explícita de definir uma interface.
 """,
     exemplos=[
         Exemplo(
@@ -1078,12 +758,10 @@ itens = [Item(2, "b"), Item(1, "a")]
 print(sorted(itens)[0].nome)      # a
 print(asdict(itens[0]))
 ''',
-            explicacao="compare=False remove nome e tags da comparação "
-                       "gerada automaticamente, deixando a ordenação "
-                       "depender só do campo prioridade.",
+            explicacao="compare=False deixa a ordenação só pela prioridade.",
         ),
         Exemplo(
-            titulo="Enum controlando o fluxo do programa",
+            titulo="Enum controlando o fluxo",
             codigo='''from enum import Enum
 
 class Status(Enum):
@@ -1097,41 +775,7 @@ def pode_enviar(status):
 print(pode_enviar(Status("pago")))     # True
 print([s.value for s in Status])
 ''',
-            explicacao="Compare membros de Enum com `is`, não `==` — eles "
-                       "são valores únicos e singleton, então is funciona "
-                       "com segurança e é a convenção recomendada.",
-        ),
-        Exemplo(
-            titulo="As quatro ferramentas, lado a lado",
-            codigo='''from dataclasses import dataclass
-from enum import Enum
-from typing import NamedTuple
-from abc import ABC, abstractmethod
-
-class Prioridade(Enum):          # conjunto fechado de opções nomeadas
-    BAIXA = 1
-    ALTA = 2
-
-class Coordenada(NamedTuple):    # registro fixo, imutavel, tupla-like
-    x: float
-    y: float
-
-@dataclass
-class Tarefa:                     # dados mutaveis, com metodos proprios
-    titulo: str
-    prioridade: Prioridade
-
-class Notificador(ABC):           # contrato que implementacoes seguem
-    @abstractmethod
-    def enviar(self, mensagem): ...
-
-t = Tarefa("revisar PR", Prioridade.ALTA)
-c = Coordenada(10, 20)
-print(t, c)
-''',
-            explicacao="Cada ferramenta resolve um problema diferente: "
-                       "escolher a certa evita reescrever manualmente o "
-                       "que ela já oferece pronto.",
+            explicacao="Compare membros de Enum com `is`.",
         ),
     ],
     exercicios=[
@@ -1187,27 +831,19 @@ print(t, c)
         ),
     ],
     quiz=[
-        Quiz("O que @dataclass gera automaticamente a partir dos campos anotados?",
-             ["Só __init__", "__init__, __repr__ e __eq__", "Métodos de acesso a banco de dados", "Nada, é apenas decorativo"], 1,
-             "E, opcionalmente, comparação de ordem (order=True), imutabilidade (frozen=True) e slots (slots=True)."),
-        Quiz("Como declarar corretamente uma lista como valor padrão em uma dataclass?",
+        Quiz("O que @dataclass gera automaticamente?",
+             ["Só __init__", "__init__, __repr__ e __eq__", "Métodos de banco", "Nada"], 1,
+             "E opcionalmente ordenação, imutabilidade e slots."),
+        Quiz("Como declarar uma lista como valor padrão em dataclass?",
              ["tags: list = []", "tags: list = field(default_factory=list)",
-              "tags = list()", "não é possível ter listas em dataclass"], 1,
-             "default_factory garante uma lista NOVA por instância, evitando o compartilhamento indevido."),
-        Quiz("Por que comparar membros de Enum com 'is' é preferível a '=='?",
-             ["is é apenas uma preferência estética sem diferença real", "Membros de Enum são valores únicos (singleton); is expressa isso com precisão e é a convenção",
-              "== não funciona com Enum", "is é mais lento, mas mais seguro"], 1,
-             "Cada membro existe uma única vez no programa, tornando is tanto correto quanto idiomático."),
-        Quiz("Quando NamedTuple é mais apropriado que dataclass?",
-             ["Sempre, NamedTuple substitui completamente dataclass", "Quando o registro é pequeno, imutável e precisa se comportar como uma tupla comum",
-              "Quando você precisa de métodos complexos", "NamedTuple e dataclass são idênticos em tudo"], 1,
-             "NamedTuple é aceito em qualquer lugar que espera uma tupla (desempacotamento, chave de dict); dataclass é mais flexível, mas não tem essa propriedade."),
+              "tags = list()", "não é possível"], 1,
+             "default_factory cria uma lista nova por instância."),
     ],
     projeto=(
         "Modele um sistema de pedidos: dataclass Pedido com itens, Enum StatusPedido, "
         "NamedTuple ItemPedido e uma ABC MeioPagamento com implementações Pix e Cartao."
     ),
-    leitura=["docs.python.org/pt-br/3/library/dataclasses.html", "docs.python.org/pt-br/3/library/enum.html"],
+    leitura=["docs.python.org/pt-br/3/library/dataclasses.html"],
 ))
 
 # ---------------------------------------------------------------- DIA 20
@@ -1215,141 +851,103 @@ DIAS.append(Dia(
     numero=20,
     titulo="Iteradores, geradores e itertools",
     nivel="Avançado",
-    duracao="100 min",
+    duracao="90 min",
     objetivos=[
-        "Entender o protocolo de iteração que sustenta todo 'for' da linguagem",
-        "Escrever um iterador manualmente, para depois apreciar o que o yield economiza",
-        "Escrever geradores com yield e explicar por que eles pausam e retomam a execução",
-        "Processar dados potencialmente enormes com memória praticamente constante",
-        "Usar as ferramentas mais úteis de itertools em vez de reimplementá-las",
-        "Reconhecer as limitações de um gerador: esgota-se, não tem len(), não reinicia",
+        "Entender o protocolo de iteração",
+        "Escrever geradores com yield",
+        "Processar dados grandes com memória constante",
+        "Usar itertools",
     ],
     teoria="""
-1. O protocolo de iteração: o que `for` realmente faz por baixo
-------------------------------------------------------------------------
-Todo `for x in obj:` que você já escreveu, desde o Dia 7, é, na verdade,
-açúcar sintático para um processo mais explícito:
+1. O protocolo de iteração
+--------------------------
+`for x in obj` faz, por baixo:
 
-    it = iter(obj)          # chama obj.__iter__(), pedindo um ITERADOR
+    it = iter(obj)          # chama obj.__iter__()
     while True:
         try:
-            x = next(it)    # chama it.__next__(), pedindo o PRÓXIMO valor
+            x = next(it)    # chama it.__next__()
         except StopIteration:
-            break            # o iterador sinalizou "acabou"
+            break
 
-A distinção entre ITERÁVEL e ITERADOR, embora sutil, explica um
-comportamento que costuma confundir: um ITERÁVEL é qualquer objeto que tem
-`__iter__` (uma lista, por exemplo); um ITERADOR tem tanto `__iter__`
-quanto `__next__`, E se ESGOTA depois de percorrido uma vez. Uma lista é
-iterável, mas NÃO é ela mesma um iterador — cada `for` sobre a mesma lista
-cria um iterador novo do zero, por isso você pode percorrer a mesma lista
-quantas vezes quiser. Um GERADOR (seção 3), por outro lado, é ao mesmo
-tempo iterável e iterador — e por isso só serve para UMA única passada.
+Iterável: tem __iter__. Iterador: tem __iter__ E __next__, e se esgota.
+Uma lista é iterável mas não iterador — por isso pode ser percorrida várias
+vezes; um gerador só serve uma vez.
 
-2. Escrevendo um iterador manualmente, à moda antiga
-------------------------------------------------------------
+2. Iterador escrito à mão
+-------------------------
     class Contador:
         def __init__(self, fim):
             self.atual, self.fim = 0, fim
         def __iter__(self):
-            return self                    # o próprio objeto é seu iterador
+            return self
         def __next__(self):
             if self.atual >= self.fim:
-                raise StopIteration         # sinaliza o fim da iteração
+                raise StopIteration
             self.atual += 1
             return self.atual - 1
 
-Esse padrão — implementar `__iter__` (devolvendo `self`) e `__next__`
-(devolvendo o próximo valor ou levantando `StopIteration`) — é o jeito
-"manual", explícito, de criar algo que funciona com `for`. Funciona, mas
-exige gerenciar o estado (`self.atual`) manualmente, com um risco real de
-bugs se essa lógica ficar mais complexa.
-
-3. Gerador: o mesmo resultado, com três linhas
---------------------------------------------------
+3. Gerador: o mesmo, com 3 linhas
+---------------------------------
     def contador(fim):
         atual = 0
         while atual < fim:
-            yield atual          # PAUSA a execução aqui e devolve o valor
+            yield atual          # PAUSA aqui e devolve o valor
             atual += 1
 
-A palavra-chave `yield` é o que transforma uma função comum em uma
-FUNÇÃO GERADORA: ao encontrar `yield`, a execução da função CONGELA
-naquele exato ponto (preservando todas as variáveis locais, como `atual`
-aqui) e devolve o valor para quem chamou `next()`. Na PRÓXIMA chamada de
-`next()`, a execução RETOMA exatamente de onde parou, como se nada tivesse
-acontecido no meio.
+`yield` congela o estado da função. Na próxima chamada de next(), a execução
+retoma exatamente de onde parou. Chamar a função NÃO executa o corpo: devolve
+um objeto gerador.
 
-Um detalhe que surpreende iniciantes: CHAMAR a função geradora
-(`contador(5)`) NÃO executa nada do corpo ainda — apenas cria e devolve o
-objeto gerador. O corpo só começa a rodar de fato quando algo pede o
-primeiro valor (via `next()` ou um `for`).
-
-4. Por que isso importa na prática: memória constante
-------------------------------------------------------------
+4. Por que isso importa
+-----------------------
     def ler_linhas(caminho):
         with open(caminho, encoding="utf-8") as f:
             for linha in f:
                 yield linha.rstrip("\\n")
 
-Um arquivo de 10 GB pode ser processado linha a linha com este gerador
-usando uma quantidade de memória praticamente CONSTANTE — nunca mais que
-algumas linhas por vez estão na memória simultaneamente, independente do
-tamanho total do arquivo. Geradores também permitem representar SEQUÊNCIAS
-INFINITAS (que jamais caberiam numa lista) e encadear PIPELINES de
-transformação, onde nada é de fato calculado até que alguém, no final da
-cadeia, efetivamente consuma o resultado:
+Um arquivo de 10 GB é processado com memória constante. Geradores permitem
+sequências infinitas e pipelines encadeados:
 
     numeros = (n for n in contador_infinito())
     pares = (n for n in numeros if n % 2 == 0)
-    primeiros = itertools.islice(pares, 5)     # só agora, ao materializar, algo é calculado
+    primeiros = itertools.islice(pares, 5)
 
-5. yield from e o valor de retorno de um gerador
-------------------------------------------------------------
+Nada é calculado até alguém consumir.
+
+5. yield from e retorno
+-----------------------
     def achatar(dados):
         for item in dados:
             if isinstance(item, list):
-                yield from achatar(item)    # delega TODOS os valores do subgerador
+                yield from achatar(item)    # delega ao subgerador
             else:
                 yield item
 
-`yield from` é um atalho para "produza cada valor deste outro iterável,
-um por um", evitando escrever um `for` interno explícito com `yield` a
-cada item — muito usado em geradores recursivos, como este exemplo que
-achata uma lista aninhada (compare com a versão recursiva não-geradora do
-Dia 12).
+    def contar():
+        yield 1
+        return "fim"        # vira o valor de StopIteration
 
-Um gerador também pode ter um `return` com valor (diferente de uma função
-comum, esse valor não é "perdido" — ele se torna o atributo `.value` da
-exceção `StopIteration` levantada ao final, algo usado principalmente por
-bibliotecas avançadas de coroutines, mas raro no dia a dia).
-
-6. itertools: as ferramentas prontas antes de reinventar a roda
-------------------------------------------------------------------------
-    count(10, 2)                 infinito: 10, 12, 14, 16...
-    cycle("ab")                  infinito: a, b, a, b, a, b...
+6. itertools — as ferramentas
+-----------------------------
+    count(10, 2)                 infinito: 10, 12, 14...
+    cycle("ab")                  infinito: a, b, a, b...
     repeat(0, 3)                 0, 0, 0
-    chain([1,2], [3])            encadeia vários iteráveis em sequência, como se fossem um só
-    islice(iteravel, 2, 5)       fatia um iterável sem precisar materializá-lo em lista antes
-    pairwise([1,2,3])            produz (1,2), (2,3)                      [Python 3.10+]
-    groupby(dados, key=...)      agrupa elementos CONSECUTIVOS (é preciso ordenar antes!)
+    chain([1,2], [3])            encadeia iteráveis
+    islice(iteravel, 2, 5)       fatia sem materializar
+    pairwise([1,2,3])            (1,2), (2,3)          [3.10+]
+    groupby(dados, key=...)      agrupa CONSECUTIVOS (ordene antes!)
     product("ab", repeat=2)      produto cartesiano
-    permutations([1,2,3], 2)     arranjos (ordem importa)
-    combinations([1,2,3], 2)     combinações (ordem não importa)
-    accumulate([1,2,3])          somas parciais, produzindo 1, 3, 6
-    tee(iteravel, 2)             duplica um iterador em dois independentes
+    permutations([1,2,3], 2)     arranjos
+    combinations([1,2,3], 2)     combinações
+    accumulate([1,2,3])          somas parciais: 1, 3, 6
+    tee(iteravel, 2)             duplica um iterador
 
-7. Cuidados ao trabalhar com geradores
-------------------------------------------
-- um gerador ESGOTADO não reinicia sozinho: se você precisar percorrer os
-  mesmos valores de novo, é preciso chamar a função geradora NOVAMENTE,
-  criando um objeto gerador novo;
-- `len()` não funciona em um gerador — ele não sabe, de antemão, quantos
-  valores ainda vai produzir (em alguns casos, nem existe um limite);
-- imprimir um gerador diretamente não mostra os valores dentro dele (mostra
-  algo como `<generator object ... at 0x...>`) — para ver os valores,
-  `list(gerador)` funciona, mas isso CONSOME o gerador por completo, então
-  ele não pode mais ser usado depois disso.
+7. Cuidados
+-----------
+- gerador esgotado não reinicia: chame a função de novo;
+- len() não funciona em geradores;
+- imprimir um gerador não mostra os valores: use list(g) — mas isso o consome.
 """,
     exemplos=[
         Exemplo(
@@ -1366,41 +964,18 @@ quadrados = (n * n for n in numeros())
 pares = (q for q in quadrados if q % 2 == 0)
 print(list(itertools.islice(pares, 5)))   # [4, 16, 36, 64, 100]
 ''',
-            explicacao="Uma sequência INFINITA (numeros()) é consumida sob "
-                       "demanda através de duas transformações encadeadas, "
-                       "usando memória constante o tempo todo.",
+            explicacao="Sequência infinita consumida sob demanda, memória constante.",
         ),
         Exemplo(
             titulo="Agrupando com groupby",
             codigo='''from itertools import groupby
 
 dados = [("TI", "Ana"), ("RH", "Bruno"), ("TI", "Cris")]
-dados.sort(key=lambda p: p[0])              # groupby EXIGE que os dados ja estejam ordenados
+dados.sort(key=lambda p: p[0])              # groupby exige ordenado
 for setor, grupo in groupby(dados, key=lambda p: p[0]):
     print(setor, [nome for _, nome in grupo])
 ''',
-            explicacao="Sem o sort explícito antes, grupos com o mesmo "
-                       "setor mas não-consecutivos apareceriam separados, "
-                       "porque groupby só agrupa elementos vizinhos.",
-        ),
-        Exemplo(
-            titulo="Um gerador se esgota; uma lista, não",
-            codigo='''def gerar_tres():
-    yield 1
-    yield 2
-    yield 3
-
-g = gerar_tres()
-print(list(g))     # [1, 2, 3]
-print(list(g))     # [] -- o gerador ja foi consumido inteiramente!
-
-lista = [1, 2, 3]
-print(list(lista)) # [1, 2, 3]
-print(list(lista)) # [1, 2, 3] -- listas podem ser percorridas quantas vezes quiser
-''',
-            explicacao="Se você precisar percorrer os mesmos valores mais "
-                       "de uma vez, chame gerar_tres() novamente para obter "
-                       "um gerador novo, ou materialize em lista desde o início.",
+            explicacao="Sem o sort, grupos repetidos apareceriam separados.",
         ),
     ],
     exercicios=[
@@ -1451,27 +1026,19 @@ print(list(lista)) # [1, 2, 3] -- listas podem ser percorridas quantas vezes qui
     ],
     quiz=[
         Quiz("O que acontece ao chamar uma função que contém yield?",
-             ["Executa o corpo inteiro imediatamente", "Devolve um objeto gerador, sem executar o corpo ainda",
-              "Levanta um erro", "Devolve uma lista já pronta"], 1,
-             "O corpo só começa a rodar quando algo pede o primeiro valor via next() ou for."),
-        Quiz("Qual a principal vantagem de um gerador sobre uma lista já construída?",
-             ["O código fica mais curto para escrever", "Usa memória praticamente constante e permite sequências infinitas",
-              "Permite acesso por índice, como lista[3]", "Gera sempre valores ordenados"], 1,
-             "Ele produz um item por vez, sob demanda, sem guardar tudo na memória de uma só vez."),
-        Quiz("O que acontece se você tentar percorrer um gerador já esgotado pela segunda vez?",
-             ["Ele reinicia do começo automaticamente", "Devolve uma sequência vazia, sem erro",
-              "Levanta uma exceção obrigatoriamente", "Devolve os mesmos valores de antes"], 1,
-             "Um gerador esgotado simplesmente não produz mais nada; para repetir, é preciso criar um gerador novo chamando a função de novo."),
-        Quiz("Por que itertools.groupby exige que os dados estejam ordenados pela chave antes de usá-lo?",
-             ["Não exige nada disso, é só uma recomendação estética", "Ele só agrupa elementos CONSECUTIVOS; sem ordenação, grupos iguais não-vizinhos aparecem separados",
-              "groupby ordena os dados sozinho por padrão", "Só funciona com números, nunca com strings"], 1,
-             "groupby percorre a sequência uma vez e fecha um grupo assim que o valor da chave muda — por isso precisa vir pré-ordenada."),
+             ["Executa tudo", "Devolve um gerador sem executar o corpo",
+              "Erro", "Devolve uma lista"], 1,
+             "O corpo só roda quando você consome o gerador."),
+        Quiz("Qual a principal vantagem de um gerador sobre uma lista?",
+             ["É mais curto", "Usa memória constante e permite sequências infinitas",
+              "Permite índices", "É ordenado"], 1,
+             "Ele produz um item por vez, sob demanda."),
     ],
     projeto=(
         "Escreva um processador de log em streaming: gerador que lê o arquivo linha a linha, "
         "outro que filtra ERRO, outro que extrai a data, e um resumo por dia — tudo sem carregar o arquivo na memória."
     ),
-    leitura=["docs.python.org/pt-br/3/library/itertools.html", "docs.python.org/pt-br/3/tutorial/classes.html#generators"],
+    leitura=["docs.python.org/pt-br/3/library/itertools.html"],
 ))
 
 # ---------------------------------------------------------------- DIA 21
@@ -1479,38 +1046,32 @@ DIAS.append(Dia(
     numero=21,
     titulo="Decoradores e functools",
     nivel="Avançado",
-    duracao="100 min",
+    duracao="90 min",
     objetivos=[
-        "Entender decoradores como açúcar sintático de funções de alta ordem, sem mistério",
-        "Escrever decoradores simples e decoradores que aceitam argumentos próprios",
-        "Explicar por que functools.wraps é essencial, e o que quebra sem ele",
-        "Adicionar estado a um decorador (contadores, cache manual)",
-        "Usar lru_cache, partial e reduce da biblioteca padrão em vez de reimplementá-los",
-        "Reconhecer decoradores já usados em dias anteriores do curso, agora entendendo como funcionam por dentro",
+        "Entender decoradores como açúcar sintático de funções de alta ordem",
+        "Escrever decoradores com e sem argumentos",
+        "Preservar metadados com functools.wraps",
+        "Usar lru_cache, partial e reduce",
     ],
     teoria="""
-1. A ideia central: decorador é só uma função de alta ordem
-------------------------------------------------------------------
+1. A ideia
+----------
     @meu_decorador
     def f(): ...
 
-é EXATAMENTE equivalente, sem mágica nenhuma escondida, a:
+é exatamente o mesmo que:
 
     def f(): ...
     f = meu_decorador(f)
 
-Um decorador é simplesmente uma função que RECEBE uma função e DEVOLVE
-outra função (geralmente uma versão "envelopada" da original, com
-comportamento extra antes e/ou depois). O `@` é apenas uma forma mais
-legível de escrever essa reatribuição, colocada logo acima da definição em
-vez de logo abaixo dela.
+Decorador é uma função que recebe uma função e devolve outra função.
 
-2. O modelo básico de um decorador
-----------------------------------------
+2. Modelo básico
+----------------
     import functools
 
     def registrar(func):
-        @functools.wraps(func)               # preserva nome e docstring da funcao original
+        @functools.wraps(func)               # preserva nome e docstring
         def envelope(*args, **kwargs):
             print(f"chamando {func.__name__}")
             resultado = func(*args, **kwargs)
@@ -1522,24 +1083,13 @@ vez de logo abaixo dela.
     def somar(a, b):
         return a + b
 
-O uso de `*args, **kwargs` na assinatura de `envelope` garante que o
-decorador funcione com QUALQUER função decorada, não importa quantos
-parâmetros ela receba — o envelope simplesmente repassa tudo adiante, sem
-precisar conhecer a assinatura específica da função original.
+`*args, **kwargs` no envelope garante que o decorador funcione com qualquer
+assinatura. Sem `functools.wraps`, `somar.__name__` viraria 'envelope' e a
+docstring sumiria — o que quebra help(), debuggers e frameworks.
 
-Sem `functools.wraps(func)`, algo sutil e prejudicial acontece:
-`somar.__name__` passaria a valer `'envelope'` (o nome da função interna do
-decorador), e a docstring original de `somar` desapareceria completamente
-— o que quebra `help(somar)`, ferramentas de depuração, e frameworks que
-dependem de introspecção (como geradores automáticos de documentação de
-API). `functools.wraps` copia esses metadados da função original para o
-envelope, corrigindo esse efeito colateral.
-
-3. Decorador que recebe argumentos próprios: mais um nível
-------------------------------------------------------------------
-Quando o PRÓPRIO decorador precisa de parâmetros (não a função decorada),
-é necessário um nível a mais de aninhamento: uma FÁBRICA de decoradores, que
-recebe os argumentos do decorador e devolve o decorador de verdade:
+3. Decorador com argumentos
+---------------------------
+Precisa de mais um nível: uma FÁBRICA de decoradores.
 
     def repetir(vezes):
         def decorador(func):
@@ -1554,79 +1104,46 @@ recebe os argumentos do decorador e devolve o decorador de verdade:
         return "oi"
     ola()      # ['oi', 'oi', 'oi']
 
-Repare na cadeia de chamadas: `repetir(3)` executa primeiro e devolve
-`decorador`; `@decorador` então é aplicado sobre `ola`, exatamente como um
-decorador comum de um nível só. `repetir(3)` é o que introduz o parâmetro
-extra (`vezes`) que um decorador "simples" não teria como receber.
-
-4. Guardando estado dentro de um decorador
-------------------------------------------------
+4. Estado no decorador
+----------------------
     def contar_chamadas(func):
         @functools.wraps(func)
         def envelope(*a, **k):
             envelope.chamadas += 1
             return func(*a, **k)
-        envelope.chamadas = 0        # atributo criado NA PRÓPRIA FUNÇÃO envelope
+        envelope.chamadas = 0        # atributo na própria função
         return envelope
 
-Funções em Python são objetos (Dia 12) e, como todo objeto, podem receber
-atributos arbitrários — aqui, `envelope.chamadas` guarda um contador que
-persiste entre chamadas sucessivas da função decorada, sem precisar de uma
-variável global nem de uma classe.
-
-5. Empilhando vários decoradores na mesma função
-------------------------------------------------------------
+5. Empilhamento
+---------------
     @a
     @b
     def f(): ...
-    # equivale a: f = a(b(f))  --  aplicados de BAIXO para CIMA
+    # equivale a f = a(b(f)) — de baixo para cima
 
-A ordem importa: o decorador mais PRÓXIMO da função (`@b`, escrito por
-último antes do `def`) é aplicado PRIMEIRO, e o resultado dessa aplicação
-é que passa pelo decorador de cima (`@a`) em seguida. Inverter a ordem dos
-decoradores pode mudar o comportamento final, então vale prestar atenção
-quando mais de um decorador está empilhado sobre a mesma função.
-
-6. Ferramentas essenciais de functools
----------------------------------------------
-    @lru_cache(maxsize=None)     memoização automática (funciona só com argumentos hasháveis)
-    @cache                       atalho equivalente a lru_cache(maxsize=None)  [Python 3.9+]
-    partial(func, arg_fixo)      cria uma nova função com um ou mais argumentos já pré-preenchidos
-    reduce(func, iteravel, ini)  reduz um iterável inteiro a um único valor acumulado
-    @total_ordering              a partir de __eq__ e um dos operadores (__lt__, por exemplo), gera os demais
-    @singledispatch              permite "sobrecarregar" uma função com base no tipo do primeiro argumento
+6. functools essencial
+----------------------
+    @lru_cache(maxsize=None)     memoização automática (argumentos hasháveis)
+    @cache                       atalho para lru_cache(None)  [3.9+]
+    partial(func, arg_fixo)      pré-preenche argumentos
+    reduce(func, iteravel, ini)  reduz a um único valor
+    @total_ordering              gera os operadores de comparação a partir de __eq__ e __lt__
+    @singledispatch              sobrecarga por tipo do primeiro argumento
 
     @lru_cache
     def fib(n):
         return n if n < 2 else fib(n-1) + fib(n-2)
-    fib(100)          # praticamente instantâneo; sem cache, seria computacionalmente inviável
+    fib(100)          # instantâneo; sem cache seria inviável
 
-`lru_cache` (least recently used cache) guarda os resultados já
-calculados para cada combinação de argumentos vista antes, e devolve o
-valor guardado em vez de recalcular quando os mesmos argumentos aparecem
-de novo — transformando, no caso do Fibonacci recursivo, um algoritmo de
-complexidade exponencial em um de complexidade linear, com uma única linha
-de código adicionada.
+7. Onde você já viu decoradores
+-------------------------------
+@property, @classmethod, @staticmethod, @dataclass, @abstractmethod, e nos
+frameworks: @app.route (Flask), @pytest.fixture, @task (Celery).
 
-7. Você já usou decoradores antes, mesmo sem saber como funcionavam por dentro
-------------------------------------------------------------------------------------
-`@property`, `@classmethod`, `@staticmethod` (Dia 17), `@dataclass` e
-`@abstractmethod` (Dia 19) são todos decoradores — agora que você entende
-o mecanismo geral (uma função recebendo e devolvendo outra função, ou uma
-classe recebendo e devolvendo outra classe), o comportamento deles deixa de
-parecer sintaxe especial arbitrária e passa a ser apenas uma aplicação
-concreta do mesmo padrão. Frameworks populares seguem exatamente essa
-mesma ideia: `@app.route(...)` no Flask, `@pytest.fixture` no pytest.
-
-8. Decoradores também podem decorar classes
-------------------------------------------------------
-`@dataclass` é o exemplo mais visto até aqui — ele recebe uma CLASSE
-inteira e devolve uma versão dela com métodos adicionais gerados. Quando o
-estado interno de um decorador fica complexo o suficiente para justificar,
-é possível também escrever o decorador como uma CLASSE com `__call__`
-(Dia 18) implementado, em vez de uma função — uma técnica mais avançada,
-útil quando o decorador precisa manter configuração ou estado elaborado
-entre usos.
+8. Decoradores de classe
+------------------------
+Também é possível decorar classes (@dataclass é um exemplo) ou usar uma classe
+com __call__ como decorador quando o estado fica complexo.
 """,
     exemplos=[
         Exemplo(
@@ -1650,9 +1167,7 @@ def soma_lenta(n):
 
 soma_lenta(1_000_000)
 ''',
-            explicacao="finally garante que a medição de tempo seja "
-                       "impressa mesmo que a função decorada levante uma "
-                       "exceção — a medição não depende do caminho feliz.",
+            explicacao="finally garante a medição mesmo se a função levantar erro.",
         ),
         Exemplo(
             titulo="Memoização com lru_cache",
@@ -1671,38 +1186,7 @@ print("sem cache:", round(time.perf_counter()-t, 3))
 t = time.perf_counter(); fib_rapido(200)
 print("com cache:", round(time.perf_counter()-t, 6), fib_rapido.cache_info())
 ''',
-            explicacao="Uma única linha de decorador transforma um "
-                       "algoritmo exponencial em um linear, reaproveitando "
-                       "cálculos já feitos em chamadas anteriores.",
-        ),
-        Exemplo(
-            titulo="A ordem de empilhamento de decoradores importa",
-            codigo='''def gritar(func):
-    def envelope(*a, **k):
-        return func(*a, **k).upper()
-    return envelope
-
-def exclamar(func):
-    def envelope(*a, **k):
-        return func(*a, **k) + "!"
-    return envelope
-
-@gritar
-@exclamar
-def saudacao():
-    return "ola"
-
-@exclamar
-@gritar
-def saudacao_invertida():
-    return "ola"
-
-print(saudacao())              # OLA!   (exclamar roda primeiro, gritar por cima)
-print(saudacao_invertida())    # OLA!   (aqui tambem, mas MAIUSCULA! nao seria igual em outros casos)
-''',
-            explicacao="Embora o resultado final coincida neste exemplo, "
-                       "em decoradores que alteram estrutura (não só texto) "
-                       "a ordem de empilhamento pode mudar o resultado de fato.",
+            explicacao="Uma linha transforma exponencial em linear.",
         ),
     ],
     exercicios=[
@@ -1756,19 +1240,11 @@ print(saudacao_invertida())    # OLA!   (aqui tambem, mas MAIUSCULA! nao seria i
     quiz=[
         Quiz("@dec sobre def f() equivale a:",
              ["f = dec", "f = dec(f)", "dec = f", "f()"], 1,
-             "O decorador recebe a função original e o resultado dessa chamada substitui f."),
-        Quiz("Para que serve functools.wraps dentro de um decorador?",
-             ["Acelerar a execução da função", "Preservar __name__ e __doc__ da função original no envelope",
-              "Criar um cache automaticamente", "Validar os tipos dos argumentos"], 1,
-             "Sem ele, ferramentas de introspecção (help, debuggers) enxergariam apenas o envelope genérico, não a função real."),
-        Quiz("Em '@a\\n@b\\ndef f(): ...', qual decorador é aplicado primeiro?",
-             ["a, porque está mais acima", "b, o mais próximo da definição da função",
-              "Os dois ao mesmo tempo", "Depende da ordem alfabética"], 1,
-             "A aplicação ocorre de baixo para cima: f = a(b(f)) — b atua primeiro sobre f original."),
-        Quiz("Por que lru_cache transforma o Fibonacci recursivo de exponencial para linear?",
-             ["Porque ele reescreve o algoritmo para ser iterativo", "Porque ele evita recalcular fib(n) para o mesmo n mais de uma vez, guardando o resultado",
-              "Porque ele aumenta o limite de recursão automaticamente", "lru_cache só funciona com listas, não com números"], 1,
-             "Sem cache, fib(n-1) e fib(n-2) recalculam subproblemas idênticos repetidamente; o cache elimina esse desperdício."),
+             "O decorador substitui a função pelo retorno da chamada."),
+        Quiz("Para que serve functools.wraps?",
+             ["Acelerar a função", "Preservar __name__ e __doc__ da função original",
+              "Criar cache", "Validar argumentos"], 1,
+             "Sem ele, a introspecção enxerga o envelope."),
     ],
     projeto=(
         "Crie um módulo de decoradores utilitários: @cronometrar, @tentar_novamente(n) com espera, "
@@ -1776,27 +1252,26 @@ print(saudacao_invertida())    # OLA!   (aqui tambem, mas MAIUSCULA! nao seria i
     ),
     leitura=["docs.python.org/pt-br/3/library/functools.html", "PEP 318"],
 ))
+
 # ---------------------------------------------------------------- DIA 22
 DIAS.append(Dia(
     numero=22,
     titulo="Context managers e gerenciamento de recursos",
     nivel="Avançado",
-    duracao="90 min",
+    duracao="70 min",
     objetivos=[
-        "Entender exatamente o que o bloco with faz por baixo, via __enter__/__exit__",
-        "Criar context managers com uma classe própria",
-        "Criar context managers mais simples com @contextlib.contextmanager",
-        "Suprimir e tratar exceções deliberadamente na saída de um bloco with",
-        "Usar as ferramentas prontas de contextlib em vez de reimplementar padrões comuns",
-        "Combinar múltiplos gerenciadores de contexto num único bloco with",
+        "Entender o protocolo __enter__/__exit__",
+        "Criar context managers com contextlib",
+        "Suprimir e tratar exceções na saída",
+        "Usar ExitStack para recursos dinâmicos",
     ],
     teoria="""
-1. O que o `with` realmente faz
-------------------------------------
+1. O que o `with` faz
+---------------------
     with EXPR as var:
         corpo
 
-é equivalente, de forma simplificada, a:
+vira, aproximadamente:
 
     gerenciador = EXPR
     var = gerenciador.__enter__()
@@ -1805,124 +1280,71 @@ DIAS.append(Dia(
     finally:
         gerenciador.__exit__(tipo, valor, traceback)
 
-Em outras palavras: `with` GARANTE que a "limpeza" (`__exit__`) aconteça,
-não importa se o bloco terminou normalmente ou foi interrompido por uma
-exceção no meio do caminho — exatamente o mesmo papel que um `finally`
-manual cumpriria, mas empacotado de forma reutilizável dentro de um
-objeto. Esse padrão serve para qualquer recurso que precise ser
-"liberado" ao final: arquivos (Dia 14), conexões de rede, locks de
-concorrência (Dia 27), transações de banco de dados, cronômetros,
-diretórios temporários, e até redirecionamento temporário da saída padrão.
+Ou seja: garante a limpeza. Serve para arquivos, sockets, locks, transações de
+banco, cronômetros, diretórios temporários, redirecionamento de saída.
 
-2. Implementando um context manager com uma classe
-------------------------------------------------------------
+2. Implementando com classe
+---------------------------
     class Cronometro:
         def __enter__(self):
             self.inicio = time.perf_counter()
-            return self                 # o valor que vai para a variável do `as`
+            return self                 # o que vai para o `as`
 
         def __exit__(self, exc_tipo, exc_valor, tb):
             self.duracao = time.perf_counter() - self.inicio
-            return False                # False = propaga a exceção adiante (não suprime)
+            return False                # False = propaga a exceção
 
-`__enter__` é chamado ao ENTRAR no bloco `with`, e seu valor de retorno é
-o que fica disponível através do `as var` (se houver). `__exit__` é
-chamado ao SAIR do bloco, recebendo três informações sobre uma eventual
-exceção (o tipo, o valor, e o traceback) — se nenhuma exceção ocorreu,
-todos os três parâmetros chegam como `None`.
+Se __exit__ devolver True, a exceção é SUPRIMIDA. Devolver True sem querer é
+um bug clássico: erros somem silenciosamente.
 
-O valor de retorno de `__exit__` tem um significado especial e importante:
-se ele devolver um valor "verdadeiro" (`True`, por exemplo), a exceção que
-ocorreu dentro do bloco é SUPRIMIDA — como se ela nunca tivesse
-acontecido, o programa simplesmente continua depois do `with` sem
-propagar o erro. Isso é útil em casos deliberados e raros, mas é também um
-bug clássico quando acontece por engano: um `__exit__` que devolve `True`
-sem essa intenção faz erros reais desaparecerem silenciosamente, sem
-nenhum aviso — um problema tão sério quanto o `except: pass` do Dia 15.
-
-3. Implementando um context manager de forma mais simples com @contextmanager
---------------------------------------------------------------------------------------
-Escrever uma classe inteira com `__enter__`/`__exit__` é verboso para casos
-simples. `contextlib.contextmanager` permite escrever a mesma ideia como
-uma função geradora (Dia 20), usando `yield` para separar visualmente a
-parte de "entrada" da parte de "saída":
-
+3. Implementando com @contextmanager
+------------------------------------
     from contextlib import contextmanager
 
     @contextmanager
     def transacao(conexao):
         try:
-            yield conexao          # tudo ANTES do yield é o que __enter__ faria
-            conexao.commit()       # tudo DEPOIS do yield (no caminho normal) é o __exit__
+            yield conexao          # tudo antes do yield = __enter__
+            conexao.commit()       # tudo depois = __exit__
         except Exception:
             conexao.rollback()
             raise
         finally:
             conexao.close()
 
-A função decorada deve ter EXATAMENTE UM `yield` — ele é o ponto onde a
-execução do bloco `with` "acontece" de fato, entre o código antes e o
-código depois do `yield`. O `try/finally` ao redor do `yield` é essencial
-sempre que a limpeza precisa acontecer MESMO que uma exceção seja
-levantada dentro do bloco `with` — sem o `try`, uma exceção no meio do
-`with` faria a função geradora simplesmente parar ali, pulando qualquer
-código de limpeza que viria depois do `yield`.
+Deve haver exatamente UM yield. O try/finally é obrigatório se você precisa
+garantir a limpeza mesmo com exceção.
 
-4. Ferramentas prontas do módulo contextlib
---------------------------------------------------
-    suppress(FileNotFoundError)      ignora silenciosamente exceções específicas listadas
-    redirect_stdout(buffer)          captura tudo que seria impresso com print()
-    closing(objeto)                  garante a chamada de objeto.close() ao sair do bloco
-    nullcontext(valor)               um context manager que "não faz nada" — útil como valor padrão
-    ExitStack()                      uma pilha DINÂMICA de gerenciadores de contexto
+4. Ferramentas do contextlib
+----------------------------
+    suppress(FileNotFoundError)      ignora exceções específicas
+    redirect_stdout(buffer)          captura prints
+    closing(objeto)                  chama .close() na saída
+    nullcontext(valor)               "não faz nada" (útil como padrão)
+    ExitStack()                      pilha dinâmica de gerenciadores
 
     from contextlib import suppress
     with suppress(FileNotFoundError):
-        Path("talvez.txt").unlink()      # se o arquivo não existir, simplesmente ignora
+        Path("talvez.txt").unlink()
 
     with ExitStack() as pilha:
-        arquivos = [pilha.enter_context(open(n)) for n in nomes]   # quantidade variável, decidida em tempo de execução
+        arquivos = [pilha.enter_context(open(n)) for n in nomes]
 
-`suppress` é preferível a um `try/except: pass` manual justamente porque
-comunica a INTENÇÃO explicitamente: "sei que este erro específico pode
-acontecer aqui, e é seguro ignorá-lo" — diferente do `except: pass` genérico
-do Dia 15, que engole qualquer coisa sem distinção. `ExitStack` resolve um
-problema que uma sequência fixa de `with`s não resolve: quando o NÚMERO de
-recursos a gerenciar só é conhecido em tempo de execução (por exemplo, uma
-lista de nomes de arquivo vinda de uma variável), não há como escrever um
-`with a, b, c:` fixo — `ExitStack` permite adicionar gerenciadores
-dinamicamente, um por um, garantindo que todos sejam fechados corretamente
-ao final, na ordem inversa em que foram abertos.
-
-5. Vários gerenciadores de contexto em um único bloco
-------------------------------------------------------------
+5. Vários gerenciadores de uma vez
+----------------------------------
     with open("a") as fa, open("b", "w") as fb:
         fb.write(fa.read())
 
-Separar por vírgula abre e (ao sair) fecha ambos os recursos, na ordem
-correta — o segundo é fechado antes do primeiro, seguindo a mesma lógica
-de "o que abriu por último, fecha primeiro" que vimos em pilhas (Dia 8).
-Desde o Python 3.10, é possível envolver a lista inteira em parênteses
-para quebrar em várias linhas, o que ajuda a legibilidade quando há muitos
-recursos:
-
-    with (
-        open("a") as fa,
-        open("b") as fb,
-    ):
+Parênteses para quebrar em linhas (3.10+):
+    with (open("a") as fa, open("b") as fb):
         ...
 
-6. Casos práticos que você provavelmente vai usar em breve
-------------------------------------------------------------------
-    tempfile.TemporaryDirectory()    cria uma pasta temporária que se apaga sozinha ao sair do with
-    threading.Lock()                 protege uma seção crítica em código concorrente (Dia 27)
-    unittest.mock.patch()            substitui temporariamente algo durante um teste automatizado (Dia 24)
-    decimal.localcontext()           ajusta a precisão de cálculos com Decimal apenas dentro do bloco
-
-Esses exemplos ilustram o padrão geral: qualquer situação onde algo
-precisa ser "montado" no início e "desmontado" garantidamente no final —
-mesmo que algo dê errado no meio — é candidata natural a um context
-manager, seja escrito por você ou já pronto na biblioteca padrão.
+6. Casos práticos
+-----------------
+    tempfile.TemporaryDirectory()    pasta que se apaga sozinha
+    threading.Lock()                 região crítica
+    unittest.mock.patch()            substituição temporária em testes
+    decimal.localcontext()           precisão local
 """,
     exemplos=[
         Exemplo(
@@ -1946,9 +1368,7 @@ with Cronometro("soma") as c:
     total = sum(range(2_000_000))
 print(total, round(c.duracao, 3))
 ''',
-            explicacao="Devolver self em __enter__ permite consultar dados "
-                       "do cronômetro (como c.duracao) depois que o bloco "
-                       "with já terminou, através da variável do 'as'.",
+            explicacao="Devolver self permite consultar dados depois do bloco.",
         ),
         Exemplo(
             titulo="Escrita atômica com @contextmanager",
@@ -1963,7 +1383,7 @@ def escrita_atomica(caminho):
     try:
         yield arquivo
         arquivo.close()
-        temporario.replace(destino)     # só troca se tudo correu bem ate aqui
+        temporario.replace(destino)     # só troca se deu tudo certo
     except BaseException:
         arquivo.close()
         temporario.unlink(missing_ok=True)
@@ -1973,30 +1393,7 @@ with escrita_atomica("/tmp/config.txt") as f:
     f.write("tema=escuro\\n")
 print(Path("/tmp/config.txt").read_text())
 ''',
-            explicacao="Retoma a técnica de escrita segura do Dia 14, "
-                       "agora encapsulada num context manager reutilizável "
-                       "— o arquivo final nunca fica corrompido pela metade.",
-        ),
-        Exemplo(
-            titulo="__exit__ devolvendo True suprime a exceção (com cuidado!)",
-            codigo='''class IgnorarDivisaoPorZero:
-    def __enter__(self):
-        return self
-    def __exit__(self, tipo, valor, tb):
-        if tipo is ZeroDivisionError:
-            print("dividir por zero, seguindo em frente")
-            return True     # suprime SOMENTE esta excecao especifica
-        return False        # qualquer outra excecao continua propagando normalmente
-
-with IgnorarDivisaoPorZero():
-    resultado = 10 / 0
-    print("esta linha nunca roda")
-
-print("o programa continua normalmente aqui")
-''',
-            explicacao="Suprimir só o tipo específico esperado (aqui, "
-                       "ZeroDivisionError) e devolver False para qualquer "
-                       "outro caso evita esconder erros inesperados.",
+            explicacao="O arquivo final nunca fica pela metade.",
         ),
     ],
     exercicios=[
@@ -2057,19 +1454,11 @@ print("o programa continua normalmente aqui")
     ],
     quiz=[
         Quiz("O que acontece se __exit__ devolver True?",
-             ["Nada muda", "A exceção que ocorreu dentro do with é suprimida", "O bloco with reinicia do começo", "Sempre gera um erro"], 1,
-             "Devolver True engole a exceção — só faça isso deliberadamente, filtrando o tipo específico esperado."),
-        Quiz("Quantos yields uma função decorada com @contextmanager deve ter?",
-             ["Zero", "Exatamente um", "Dois, um para entrada e outro para saída", "Quantos quiser"], 1,
-             "O código antes do yield equivale a __enter__; o código depois equivale a __exit__."),
-        Quiz("Por que contextlib.suppress é preferível a um try/except: pass manual?",
-             ["Não há diferença nenhuma entre os dois", "suppress comunica explicitamente qual exceção específica é esperada e segura de ignorar",
-              "suppress é mais rápido de executar", "except: pass não é sintaxe válida em Python"], 1,
-             "suppress(TipoEspecifico) documenta a intenção; except: pass genérico esconde qualquer erro, mesmo os inesperados."),
-        Quiz("Quando ExitStack é mais apropriado que uma sequência fixa de with a, b, c?",
-             ["Sempre, ExitStack deveria substituir todo with comum", "Quando o número de recursos a gerenciar só é conhecido em tempo de execução",
-              "Nunca, é um recurso obsoleto", "Apenas para arquivos, não para outros recursos"], 1,
-             "ExitStack permite adicionar gerenciadores de contexto dinamicamente, um a um, quando a quantidade não é fixa no código."),
+             ["Nada", "A exceção é suprimida", "O bloco reinicia", "Erro"], 1,
+             "Devolver True engole a exceção — use com cuidado."),
+        Quiz("Quantos yields deve ter uma função com @contextmanager?",
+             ["Zero", "Exatamente um", "Dois", "Quantos quiser"], 1,
+             "Antes do yield é a entrada; depois, a saída."),
     ],
     projeto=(
         "Implemente um gerenciador de conexão simulado com commit/rollback automático, "
@@ -2083,78 +1472,51 @@ DIAS.append(Dia(
     numero=23,
     titulo="Type hints e código auto-documentado",
     nivel="Avançado",
-    duracao="90 min",
+    duracao="80 min",
     objetivos=[
-        "Anotar funções, variáveis e classes, entendendo que isso não muda a execução",
-        "Usar a sintaxe moderna de tipos (list[str], X | None) em vez da antiga do módulo typing",
-        "Anotar parâmetros e retornos com Callable, e criar aliases de tipo",
-        "Escrever funções e classes genéricas com TypeVar/Generic",
-        "Usar Protocol para expressar duck typing de forma verificável por ferramentas",
-        "Verificar tipos estaticamente com mypy e entender o que ele pega que o Python não pega sozinho",
+        "Anotar funções, variáveis e classes",
+        "Usar Optional, Union, tipos genéricos e Callable",
+        "Verificar tipos estaticamente com mypy",
+        "Conhecer Protocol e TypedDict",
     ],
     teoria="""
-1. Anotações de tipo não mudam absolutamente nada na execução
-------------------------------------------------------------------------
+1. Anotações não mudam a execução
+---------------------------------
     def somar(a: int, b: int) -> int:
         return a + b
 
-    somar("x", "y")     # roda NORMALMENTE! Python NÃO valida tipos em tempo de execução
+    somar("x", "y")     # roda normalmente! Python NÃO valida em tempo de execução
 
-Este é o ponto mais importante e mais mal compreendido sobre type hints em
-Python: eles são puramente INFORMATIVOS para quem lê o código e para
-ferramentas externas — o interpretador Python, ao rodar o programa,
-simplesmente IGNORA as anotações de tipo, exatamente como ignora
-comentários. `somar("x", "y")` de fato concatena as duas strings (`"xy"`),
-sem erro nenhum, apesar da anotação dizer `int`.
+O ganho está em: leitura, autocompletar da IDE, detecção de erros antes de
+rodar (mypy, pyright) e documentação que não desatualiza.
 
-O ganho real de anotar tipos está em outro lugar: legibilidade (a
-assinatura já documenta o contrato esperado, sem precisar de comentário
-separado), autocompletar mais preciso em editores e IDEs, e — o mais
-valioso — a possibilidade de rodar uma ferramenta de análise ESTÁTICA
-(como `mypy` ou `pyright`) que detecta incompatibilidades de tipo ANTES de
-o programa rodar, sem executar uma linha sequer.
-
-2. Sintaxe moderna (Python 3.9+ e 3.10+)
---------------------------------------------
+2. Sintaxe moderna (3.9+/3.10+)
+-------------------------------
     nomes: list[str] = []
     notas: dict[str, float] = {}
     par: tuple[int, str] = (1, "a")
-    varios: tuple[int, ...] = (1, 2, 3)         # tupla de tamanho variável, todos int
-    talvez: str | None = None            # substitui o antigo Optional[str]
-    numero: int | float = 0              # substitui o antigo Union[int, float]
+    varios: tuple[int, ...] = (1, 2, 3)
+    talvez: str | None = None            # antes: Optional[str]
+    numero: int | float = 0              # antes: Union[int, float]
 
-Antes do Python 3.9, era necessário importar `List`, `Dict`, `Tuple` do
-módulo `typing` para anotar coleções (`List[str]` em vez de `list[str]`).
-Hoje, com Python 3.9 ou mais recente, os próprios tipos embutidos
-(`list`, `dict`, `tuple`) já aceitam a sintaxe de colchetes diretamente,
-tornando essas importações desnecessárias na maioria dos casos. O operador
-`|` (Python 3.10+) para "ou" também substitui `Optional`/`Union` na
-maioria dos usos cotidianos, sendo mais curto e mais legível.
+Antes do 3.9 era preciso importar List, Dict, Tuple de `typing`. Hoje use os
+tipos nativos.
 
-3. Callable, Any e aliases de tipo
-----------------------------------------
+3. Callable, Any, TypeAlias
+---------------------------
     from typing import Callable, Any, Iterable, Iterator, Sequence
 
     def aplicar(f: Callable[[int, int], int], a: int, b: int) -> int:
         return f(a, b)
 
-    Matriz = list[list[float]]                # um ALIAS: um nome mais legível para um tipo composto
+    Matriz = list[list[float]]                # alias
     def processar(dados: Iterable[str]) -> Iterator[str]: ...
 
-`Callable[[int, int], int]` descreve "uma função que recebe dois `int` e
-devolve um `int`" — útil para anotar parâmetros que são, eles próprios,
-funções (retomando as funções de alta ordem do Dia 12).
+Prefira o tipo mais ABSTRATO possível nos parâmetros (Iterable, Sequence,
+Mapping) e o mais CONCRETO no retorno.
 
-Uma boa prática de anotação, seguida por bibliotecas profissionais, é
-preferir o tipo mais ABSTRATO possível nos PARÂMETROS de uma função
-(`Iterable`, `Sequence`, `Mapping` — que aceitam qualquer implementação
-compatível) e o tipo mais CONCRETO possível no RETORNO (`list`, `dict` — que
-dizem exatamente o que quem recebe o valor pode esperar). Isso maximiza a
-flexibilidade de quem chama a função, sem sacrificar clareza sobre o que
-ela devolve.
-
-4. Genéricos: funções e classes que funcionam com qualquer tipo
-------------------------------------------------------------------------
+4. Genéricos
+------------
     from typing import TypeVar, Generic
     T = TypeVar("T")
 
@@ -2167,21 +1529,10 @@ ela devolve.
     def primeiro(seq: Sequence[T]) -> T | None:
         return seq[0] if seq else None
 
-`TypeVar` declara uma "variável de tipo" — um espaço reservado que
-representa "qualquer tipo, mas SEMPRE o mesmo tipo dentro desta mesma
-chamada". Isso permite que uma ferramenta como mypy verifique, por
-exemplo, que `primeiro([1, 2, 3])` devolve um `int | None`, mas
-`primeiro(["a", "b"])` devolve um `str | None` — o tipo de retorno
-"acompanha" o tipo de entrada, sem precisar escrever uma função separada
-para cada tipo possível.
+Em 3.12+ há a sintaxe enxuta: `def primeiro[T](seq: Sequence[T]) -> T | None:`
 
-A partir do Python 3.12, existe uma sintaxe mais enxuta e nativa para
-isso, dispensando a declaração explícita de `TypeVar`:
-`def primeiro[T](seq: Sequence[T]) -> T | None:` — o `[T]` logo após o
-nome da função já declara a variável de tipo inline.
-
-5. Protocol: duck typing que ferramentas conseguem verificar
-------------------------------------------------------------------
+5. Protocol — duck typing tipado
+--------------------------------
     from typing import Protocol
 
     class TemArea(Protocol):
@@ -2190,56 +1541,29 @@ nome da função já declara a variável de tipo inline.
     def maior(formas: list[TemArea]) -> TemArea:
         return max(formas, key=lambda f: f.area())
 
-Retomando o duck typing do Dia 18 ("o que importa é o objeto TER o
-método, não herdar de uma classe específica"), `Protocol` formaliza essa
-ideia de um jeito que ferramentas de checagem estática também conseguem
-entender: qualquer classe que tenha um método `area() -> float`,
-INDEPENDENTE de herdar de `TemArea` ou não, é considerada compatível com o
-protocolo. Isso combina a flexibilidade do duck typing dinâmico de Python
-com a segurança de checagem estática — o melhor dos dois mundos, sem
-forçar uma hierarquia de herança artificial só para satisfazer o
-verificador de tipos.
+Qualquer classe com o método area() é compatível — sem herdar nada.
 
-6. TypedDict e Literal: tipando dicionários e valores fixos
-------------------------------------------------------------------
+6. TypedDict e Literal
+----------------------
     from typing import TypedDict, Literal, Final
 
     class Usuario(TypedDict):
         nome: str
         idade: int
 
-    Nivel = Literal["debug", "info", "erro"]     # só aceita EXATAMENTE uma dessas três strings
-    VERSAO: Final = "1.0"                          # sinaliza que este valor não deve ser reatribuído
+    Nivel = Literal["debug", "info", "erro"]
+    VERSAO: Final = "1.0"
 
-`TypedDict` permite anotar a FORMA esperada de um dicionário comum (quais
-chaves existem e o tipo de cada uma), útil quando você trabalha com dados
-vindos de JSON ou APIs externas, mas ainda quer os benefícios de checagem
-estática sem converter tudo para uma classe de verdade. `Literal` restringe
-um valor a um conjunto fixo e específico de opções literais (mais
-granular que apenas dizer "é uma string qualquer").
-
-7. mypy na prática: checagem estática de tipos
-----------------------------------------------------
+7. mypy na prática
+------------------
     pip install mypy
     mypy meu_arquivo.py
     mypy --strict pacote/
 
-`mypy` lê seu código anotado e aponta incompatibilidades de tipo SEM
-executar o programa — por exemplo, ele acusaria a chamada
-`somar("x", "y")` do início desta lição como um erro, mesmo que o Python
-em si a execute sem problema nenhum. A recomendação prática para adotar
-mypy num projeto existente é começar SEM a flag `--strict` (que exige
-anotação em absolutamente tudo), anotar primeiro as funções públicas mais
-importantes, e ir apertando o rigor aos poucos. Quando um caso pontual
-precisa ser ignorado deliberadamente, `# type: ignore[codigo_do_erro]` na
-linha específica silencia aquele aviso sem desativar a checagem do resto
-do arquivo.
-
-Em tempo de EXECUÇÃO (não apenas estático), a função
-`typing.get_type_hints(func)` devolve as anotações já resolvidas de uma
-função — é exatamente esse mecanismo de introspecção que bibliotecas como
-Pydantic e FastAPI usam por baixo dos panos para gerar validação de dados
-e documentação de API automaticamente a partir das suas anotações de tipo.
+Comece sem --strict, anote as funções públicas primeiro e vá apertando.
+`# type: ignore[codigo]` silencia um caso pontual.
+Em tempo de execução, `typing.get_type_hints(func)` devolve as anotações
+resolvidas — é assim que Pydantic e FastAPI funcionam.
 """,
     exemplos=[
         Exemplo(
@@ -2260,12 +1584,10 @@ def aprovados(alunos: Iterable[Aluno], corte: float = 6.0) -> list[str]:
 
 print(aprovados([Aluno("Ana", [9, 8]), Aluno("Bo", [4, 5])]))
 ''',
-            explicacao="A assinatura de aprovados já explica sozinha o "
-                       "contrato esperado (uma coleção de Aluno, um corte "
-                       "numérico opcional, devolve nomes) sem exigir comentário.",
+            explicacao="A assinatura já explica o contrato sem precisar de comentário.",
         ),
         Exemplo(
-            titulo="Protocol em ação: duck typing verificável",
+            titulo="Protocol em ação",
             codigo='''from typing import Protocol
 
 class Serializavel(Protocol):
@@ -2282,25 +1604,7 @@ def exportar(itens: list[Serializavel]) -> list[dict]:
 
 print(exportar([Pedido(1), Pedido(2)]))
 ''',
-            explicacao="Pedido não herda de Serializavel em nenhum momento, "
-                       "mas satisfaz o protocolo por ter o método esperado "
-                       "com a assinatura certa — mypy aceitaria isso normalmente.",
-        ),
-        Exemplo(
-            titulo="O que mypy pegaria, e o Python não pega sozinho",
-            codigo='''def dobrar(x: int) -> int:
-    return x * 2
-
-resultado_bom = dobrar(21)          # ok, 42
-resultado_ruim = dobrar("21")       # Python roda isso! devolve '2121', nao um erro
-
-print(resultado_bom, resultado_ruim)
-# rodando "mypy este_arquivo.py", a segunda chamada seria sinalizada como
-# incompativel: Argument 1 to "dobrar" has incompatible type "str"; expected "int"
-''',
-            explicacao="Sem mypy, o erro de tipo só apareceria (talvez) "
-                       "muito depois, quando algo tentasse tratar "
-                       "resultado_ruim como um número de verdade.",
+            explicacao="Pedido não herda de Serializavel, mas satisfaz o protocolo.",
         ),
     ],
     exercicios=[
@@ -2353,21 +1657,13 @@ print(resultado_bom, resultado_ruim)
         ),
     ],
     quiz=[
-        Quiz("O que acontece se você passar o tipo errado numa função anotada, ao rodar o programa normalmente?",
-             ["TypeError é levantado na hora", "Nada acontece em tempo de execução; só ferramentas estáticas (mypy, pyright) acusam o problema",
-              "O valor é convertido automaticamente para o tipo certo", "O programa se recusa a iniciar"], 1,
-             "Anotações são metadados: o Python não valida tipos sozinho ao executar o código."),
-        Quiz("Como escrever 'string ou None' usando a sintaxe moderna do Python 3.10+?",
+        Quiz("O que acontece se você passar o tipo errado numa função anotada?",
+             ["TypeError na hora", "Nada em tempo de execução; só ferramentas estáticas acusam",
+              "O valor é convertido", "O programa não inicia"], 1,
+             "Anotações são metadados; a checagem é feita por mypy/pyright."),
+        Quiz("Como escrever 'string ou None' em Python 3.10+?",
              ["str|None", "Optional(str)", "str?", "Maybe[str]"], 0,
-             "O operador | substitui Optional/Union na maioria dos usos cotidianos."),
-        Quiz("Qual a vantagem de Protocol sobre exigir herança de uma classe base comum?",
-             ["Protocol é mais rápido em tempo de execução", "Permite checagem estática de duck typing sem forçar uma hierarquia de herança artificial",
-              "Protocol impede qualquer tipo de erro", "Não há vantagem real, é só sintaxe alternativa"], 1,
-             "Uma classe satisfaz o Protocol só por ter os métodos certos, sem precisar herdar dele explicitamente."),
-        Quiz("Por que é uma boa prática usar tipos mais abstratos (Iterable, Sequence) nos parâmetros e mais concretos (list, dict) no retorno?",
-             ["É apenas uma convenção estética sem efeito prático", "Maximiza a flexibilidade de quem chama a função, sem sacrificar clareza sobre o que ela devolve",
-              "Tipos abstratos são mais rápidos de processar", "É uma exigência obrigatória do mypy"], 1,
-             "Aceitar qualquer Iterable dá mais liberdade a quem chama; devolver um list concreto deixa claro o que o chamador recebe de volta."),
+             "O operador | substituiu Optional/Union."),
     ],
     projeto=(
         "Pegue um dos seus projetos anteriores, anote todas as funções e classes, "
