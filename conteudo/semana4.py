@@ -9,275 +9,517 @@ DIAS.append(Dia(
     numero=24,
     titulo="Testes automatizados: unittest, pytest e TDD",
     nivel="Avançado",
-    duracao="110 min",
+    duracao="120 min",
     objetivos=[
-        "Explicar por que testes automatizados são o que permite mudar código sem medo",
-        "Escrever testes com unittest (biblioteca padrão) e com pytest (padrão de mercado)",
-        "Praticar o ciclo vermelho-verde-refatorar (TDD) num exemplo real",
-        "Usar fixtures, parametrização e mocks para isolar o que está sendo testado",
-        "Medir cobertura de testes e entender por que ela não é um objetivo em si mesma",
-        "Conhecer doctest como forma de manter exemplos de documentação sempre corretos",
+        "Entender por que testes automatizados existem e o custo real de não tê-los",
+        "Escrever testes com unittest usando TestCase, métodos de asserção e fixtures",
+        "Usar subTest para testar múltiplos casos sem parar no primeiro erro",
+        "Conhecer pytest e por que ele é preferido ao unittest em projetos modernos",
+        "Aplicar o ciclo TDD: Red -> Green -> Refactor com um exemplo real",
+        "Usar mocks para isolar dependências externas nos testes",
     ],
     teoria="""
-1. Por que testar: o problema que os testes resolvem
-------------------------------------------------------------
-Teste automatizado não é burocracia nem "coisa de empresa grande" — é a
-ferramenta que permite MUDAR código com confiança. Sem uma suíte de
-testes, toda refatoração (melhorar a estrutura interna do código sem
-mudar seu comportamento externo) é uma aposta: você só descobre se
-quebrou algo quando um usuário (ou você mesmo, mais tarde) tropeça no bug.
-Com testes, você roda a suíte depois de cada mudança e sabe, em segundos,
-se o comportamento esperado continua de pé.
+Você já sabe escrever código que funciona. Mas como você TEM CERTEZA
+de que ele funciona? E como sabe que continua funcionando depois de
+uma mudança? A resposta são os testes automatizados.
 
-A "pirâmide de testes" é um modelo clássico para pensar no equilíbrio
-certo: MUITOS testes de UNIDADE (rápidos, isolados, testando uma função
-ou classe por vez), ALGUNS testes de INTEGRAÇÃO (verificando que peças
-diferentes funcionam juntas), e POUCOS testes de PONTA A PONTA (simulando
-o sistema inteiro, mais lentos e mais caros de manter). A ideia é que a
-maior parte da sua confiança venha dos testes rápidos e baratos, com os
-mais caros reservados para os fluxos mais críticos.
+---------------------------------------------------------------------------
+1. Por que testar? O custo real de não testar
+---------------------------------------------------------------------------
+Sem testes automatizados, verificar que o código funciona exige rodar
+o programa manualmente e checar os resultados visualmente. Isso significa:
 
-2. unittest: a biblioteca padrão para testes
---------------------------------------------------
+    - Cada mudança exige verificação manual (lenta e propensa a erro)
+    - Bugs em partes "não tocadas" são descobertos tarde ou pelo usuário
+    - Refatorar código se torna arriscado: "e se eu quebrar algo?"
+    - Integrar código de outra pessoa vira uma aposta
+
+COM TESTES AUTOMATIZADOS:
+    - Bugs são detectados em segundos, não em horas
+    - Refatoração é segura: se os testes passam, o comportamento não mudou
+    - Testes são documentação viva: mostram COMO o código deve se comportar
+    - Integração contínua (CI) executa testes automaticamente a cada commit
+
+A PIRÂMIDE DE TESTES:
+
+    Topo (poucos):    Testes E2E — testam o sistema inteiro do início ao fim
+    Meio:             Testes de integração — testam componentes juntos
+    Base (muitos):    Testes unitários — testam uma função ou classe isolada
+
+Testes unitários são a base: rápidos, baratos, isolados, fáceis de
+escrever. O foco deste dia é neles.
+
+---------------------------------------------------------------------------
+2. unittest: o framework padrão da biblioteca
+---------------------------------------------------------------------------
+unittest é o framework de testes que vem com Python (inspirado no JUnit
+do Java). Você cria classes que herdam de unittest.TestCase:
+
     import unittest
-    from calculadora import somar
+
+    def somar(a, b):
+        return a + b
 
     class TestSomar(unittest.TestCase):
-        def setUp(self):                 # roda automaticamente ANTES de CADA método de teste
-            self.dados = [1, 2, 3]
 
         def test_positivos(self):
             self.assertEqual(somar(2, 3), 5)
 
-        def test_erro(self):
-            with self.assertRaises(TypeError):
-                somar("a", 1)
+        def test_negativos(self):
+            self.assertEqual(somar(-1, -2), -3)
+
+        def test_zero(self):
+            self.assertEqual(somar(0, 5), 5)
 
     if __name__ == "__main__":
         unittest.main()
 
-    python3 -m unittest discover -v
+CONVENCOES DO UNITTEST:
+    - A classe deve herdar de unittest.TestCase
+    - Metodos de teste DEVEM comecar com test_
+    - Metodos que nao comecam com test_ nao sao executados como testes
+    - Cada metodo deve testar UMA coisa (uma asserção principal)
 
-`setUp` roda antes de CADA método `test_*`, garantindo que cada teste
-comece com um estado limpo e previsível, sem depender da ordem em que os
-testes são executados (que, aliás, não é garantida). As asserções mais
-usadas: `assertEqual`, `assertTrue`/`assertFalse`, `assertIn`,
-`assertIsNone`, `assertAlmostEqual` (essencial para comparar `float`,
-retomando a imprecisão de ponto flutuante do Dia 2), `assertRaises`
-(verifica que uma exceção específica é levantada) e `assertCountEqual`
-(compara duas coleções ignorando a ordem).
+EXECUTANDO:
 
-3. pytest: o padrão de facto da comunidade
-------------------------------------------------
+    python -m unittest arquivo.py
+    python -m unittest discover tests/
+
+---------------------------------------------------------------------------
+3. Métodos de asserção: mais informativos que assert simples
+---------------------------------------------------------------------------
+TestCase oferece métodos que produzem mensagens de erro muito mais
+detalhadas do que um assert simples:
+
+    Metodo                          O que verifica
+    ----------------------------    ----------------------------------------
+    assertEqual(a, b)               a == b
+    assertNotEqual(a, b)            a != b
+    assertTrue(expr)                bool(expr) e True
+    assertFalse(expr)               bool(expr) e False
+    assertIsNone(x)                 x is None
+    assertIsNotNone(x)              x is not None
+    assertIn(item, container)       item in container
+    assertRaises(Exc, func, *args)  func(*args) levanta Exc
+    assertAlmostEqual(a, b)         abs(a-b) <= 7 casas decimais
+    assertGreater(a, b)             a > b
+    assertIsInstance(obj, cls)      isinstance(obj, cls)
+
+Por que usar assertEqual em vez de assert a == b?
+
+    assert a == b            # falha: AssertionError (sem detalhes)
+    self.assertEqual(a, b)   # falha: AssertionError: 5 != 3  <- mostra valores!
+
+A mensagem informativa acelera muito a depuração.
+
+---------------------------------------------------------------------------
+4. Fixtures: setUp e tearDown
+---------------------------------------------------------------------------
+Fixtures são código que prepara o ambiente antes de cada teste e limpa
+depois. Sem fixtures, você repetiria a inicialização em cada test_:
+
+    class TestConta(unittest.TestCase):
+
+        def setUp(self):
+            \"\"\"Executado ANTES de cada metodo test_.\"\"\"
+            self.conta = ContaBancaria("Ana", 1000.0)
+
+        def tearDown(self):
+            \"\"\"Executado DEPOIS de cada test_, mesmo se falhou.\"\"\"
+            pass   # limpar arquivos, fechar conexoes...
+
+        @classmethod
+        def setUpClass(cls):
+            \"\"\"Executado UMA VEZ antes de TODOS os testes da classe.\"\"\"
+            cls.conexao = conectar_banco()
+
+        @classmethod
+        def tearDownClass(cls):
+            \"\"\"Executado UMA VEZ depois de TODOS os testes da classe.\"\"\"
+            cls.conexao.fechar()
+
+        def test_deposito(self):
+            self.conta.depositar(500)
+            self.assertEqual(self.conta.saldo, 1500)
+
+        def test_saque(self):
+            self.conta.sacar(200)
+            self.assertEqual(self.conta.saldo, 800)
+
+setUp garante que cada teste começa com estado limpo e INDEPENDENTE.
+Sem setUp, um teste poderia influenciar o resultado de outro (bug de
+ordem de execução — muito difícil de depurar).
+
+---------------------------------------------------------------------------
+5. subTest: testando múltiplos casos sem parar no primeiro erro
+---------------------------------------------------------------------------
+Quando você tem vários casos de teste para a mesma função, usar um loop
+com subTest é muito melhor do que múltiplos métodos iguais:
+
+    class TestEhPrimo(unittest.TestCase):
+
+        def test_numeros_primos(self):
+            primos = [2, 3, 5, 7, 11, 13, 17, 19]
+            for n in primos:
+                with self.subTest(n=n):      # identifica qual falhou!
+                    self.assertTrue(eh_primo(n))
+
+        def test_nao_primos(self):
+            nao_primos = [0, 1, 4, 6, 8, 9, 15]
+            for n in nao_primos:
+                with self.subTest(n=n):
+                    self.assertFalse(eh_primo(n))
+
+Sem subTest, um loop de asserções para no PRIMEIRO que falha e você
+não sabe se os outros também falhariam. Com subTest, Python continua
+e mostra TODOS os casos que falharam de uma vez.
+
+---------------------------------------------------------------------------
+6. Testando exceções
+---------------------------------------------------------------------------
+Duas formas de verificar que uma função levanta a exceção correta:
+
+    # Forma preferida: assertRaises como context manager
+    def test_divisao_por_zero(self):
+        with self.assertRaises(ZeroDivisionError):
+            dividir(10, 0)
+
+    # Verificando também a mensagem da exceção
+    def test_mensagem_de_erro(self):
+        with self.assertRaises(ValueError) as ctx:
+            sacar(-100)
+        self.assertIn("negativo", str(ctx.exception))
+
+    # Forma alternativa (menos comum)
+    def test_forma_alternativa(self):
+        self.assertRaises(ZeroDivisionError, dividir, 10, 0)
+
+---------------------------------------------------------------------------
+7. pytest: o framework moderno
+---------------------------------------------------------------------------
+pytest é o framework mais popular para Python moderno. Mais simples que
+unittest e com recursos muito mais poderosos.
+
+INSTALACAO:
+
     pip install pytest
 
-    # test_calculadora.py
+VANTAGEM PRINCIPAL: use assert normal, pytest mostra erro detalhado:
+
+    # unittest (verboso)
+    self.assertEqual(resultado, 42)
+
+    # pytest (simples e igualmente informativo)
+    assert resultado == 42
+    # Falha mostra: assert 5 == 42 (valores reais!)
+
+ESTRUTURA DE UM ARQUIVO PYTEST:
+
+    # test_calculos.py
     import pytest
-    from calculadora import somar, dividir
 
-    def test_soma():
-        assert somar(2, 3) == 5          # assert puro da linguagem, sem métodos especiais
+    def test_somar():
+        assert somar(2, 3) == 5
 
-    def test_divisao_por_zero():
+    def test_divisao_zero():
         with pytest.raises(ZeroDivisionError):
-            dividir(1, 0)
+            1 / 0
 
-    @pytest.mark.parametrize("a,b,esperado", [(1, 1, 2), (0, 0, 0), (-1, 1, 0)])
-    def test_varios(a, b, esperado):
-        assert somar(a, b) == esperado
+EXECUTANDO:
+
+    pytest                    # descobre e roda todos os test_*.py
+    pytest -v                 # verbose: nome de cada teste
+    pytest -k "primo"         # so testes com "primo" no nome
+    pytest --tb=short         # traceback resumido
+
+FIXTURES DO PYTEST:
+
+    import pytest
 
     @pytest.fixture
-    def usuario():
-        return {"nome": "Ana", "ativo": True}
+    def conta():
+        return ContaBancaria("Ana", 1000.0)   # nova para cada teste
 
-    def test_usa_fixture(usuario):
-        assert usuario["ativo"]
+    def test_deposito(conta):     # pytest injeta automaticamente!
+        conta.depositar(500)
+        assert conta.saldo == 1500
 
-Embora não venha na biblioteca padrão, `pytest` se tornou o padrão de
-mercado por uma razão prática: usa o `assert` NATIVO da linguagem (sem
-precisar decorar métodos como `assertEqual`), e ainda assim produz
-mensagens de erro detalhadas ao falhar, mostrando os valores reais
-envolvidos na comparação. `@pytest.mark.parametrize` elimina a
-necessidade de copiar e colar o mesmo teste várias vezes só trocando os
-valores de entrada — uma única função de teste roda várias vezes, uma
-para cada tupla de parâmetros fornecida. `@pytest.fixture` fornece dados
-ou recursos prontos para os testes que os pedirem como parâmetro (aqui,
-`usuario`), evitando repetir a mesma preparação em cada teste.
+PARAMETRIZE: o equivalente ao subTest, mas mais elegante:
 
-Comandos úteis na linha de comando: `pytest -v` (saída detalhada),
-`pytest -k soma` (roda só testes cujo nome contém "soma"), `pytest --lf`
-(roda só os que falharam na última execução — ótimo ao corrigir um bug
-específico) e `pytest -x` (para na primeira falha, útil quando você só
-quer o primeiro erro por vez).
+    @pytest.mark.parametrize("entrada, esperado", [
+        (2,   True),
+        (3,   True),
+        (4,   False),
+        (7,   True),
+        (100, False),
+    ])
+    def test_eh_primo(entrada, esperado):
+        assert eh_primo(entrada) == esperado
 
-4. Convenções de descoberta automática de testes
-------------------------------------------------------
-Tanto `unittest` quanto `pytest` seguem (por padrão) a convenção de
-procurar arquivos chamados `test_*.py`, funções chamadas `test_*` e
-classes chamadas `Test*`. A prática recomendada é colocar todos os
-arquivos de teste numa pasta `tests/` na raiz do projeto, separada do
-código de produção — isso deixa claro o que é teste e o que é
-implementação, e evita que os testes acabem sendo empacotados junto com o
-código de produção por engano.
+---------------------------------------------------------------------------
+8. TDD: Test-Driven Development
+---------------------------------------------------------------------------
+TDD é uma metodologia onde você escreve o TESTE ANTES do código:
 
-5. TDD (Test-Driven Development) em três passos
-------------------------------------------------------
-    1. RED       escreva um teste que FALHA — ele define o comportamento desejado, antes mesmo do código existir
-    2. GREEN     escreva o código MAIS SIMPLES possível que faz esse teste passar, sem se preocupar com elegância ainda
-    3. REFACTOR  melhore o desenho do código, mantendo os testes verdes o tempo todo
+    CICLO RED -> GREEN -> REFACTOR:
 
-O ganho de TDD não é apenas "ter mais cobertura de testes" — o efeito
-mais valioso, na prática, é que escrever o teste PRIMEIRO obriga você a
-pensar em como a função será USADA (sua API) antes de pensar em como ela
-será IMPLEMENTADA por dentro. Isso tende a produzir interfaces mais
-simples e mais fáceis de usar, porque você experimenta a perspectiva de
-quem vai chamar a função antes de se comprometer com os detalhes internos.
+    1. RED:      Escreva um teste que FALHA (o codigo nao existe ainda)
+    2. GREEN:    Escreva o MINIMO de codigo para o teste passar
+    3. REFACTOR: Melhore o codigo mantendo os testes passando
+    4. Repita para o proximo comportamento
 
-6. Mocks: substituindo o que é lento, externo ou imprevisível
-------------------------------------------------------------------
-    from unittest.mock import patch, MagicMock
+EXEMPLO PRATICO — desenvolvendo slug():
 
-    @patch("meu_modulo.requests.get")
-    def test_api(mock_get):
-        mock_get.return_value.status_code = 200
-        assert buscar_dados() == {...}
+    # PASSO 1 (RED): teste escrito, slug nao existe
+    def test_slug_basico():
+        assert slug("Ola Mundo") == "ola-mundo"
+    # Falha: NameError: slug nao definido
 
-Um "mock" (objeto simulado) substitui temporariamente uma dependência real
-por uma versão controlada, durante o teste. Isso é essencial para testar
-código que depende de algo LENTO (uma chamada de rede real), EXTERNO (um
-serviço de terceiros que pode estar fora do ar) ou NÃO DETERMINÍSTICO (a
-hora atual, um número aleatório) — sem mock, esses testes ficariam lentos,
-instáveis (passando às vezes, falhando outras) ou dependentes de recursos
-fora do seu controle.
+    # PASSO 2 (GREEN): codigo minimo para passar
+    def slug(texto):
+        return "-".join(texto.lower().split())
+    # Passa!
 
-Um princípio importante: faça mock das DEPENDÊNCIAS externas da função sob
-teste, nunca do próprio código que você está testando — se você "mockar"
-a lógica que deveria estar sendo verificada, o teste passa a validar o
-mock, não o comportamento real do seu programa.
+    # PASSO 3 (REFACTOR/EXPANDIR): novo caso de teste
+    def test_slug_espacos_extras():
+        assert slug("  Python   Puro  ") == "python-puro"
+    # split() sem args ja lida com multiplos espacos -> passa!
 
-7. Cobertura: uma bússola, não uma meta
---------------------------------------------
-    pip install pytest-cov
-    pytest --cov=meu_pacote --cov-report=term-missing
+BENEFICIOS DO TDD:
+    - Voce pensa na INTERFACE antes da implementacao
+    - O codigo tem alta cobertura desde o inicio
+    - Design emergente: codigo testavel tende a ser bem estruturado
+    - Os testes sao a documentacao mais atualizada do comportamento
 
-Cobertura mede qual PORCENTAGEM das linhas do seu código foi efetivamente
-EXECUTADA durante a suíte de testes. É uma métrica útil para encontrar
-áreas completamente esquecidas, mas tem uma limitação importante: 100% de
-cobertura não garante qualidade nenhuma — uma linha pode ter sido
-"executada" por um teste com uma asserção fraca ou ausente, sem realmente
-VERIFICAR o comportamento esperado daquela linha. Trate a cobertura como
-uma bússola que aponta o que ainda não foi tocado, não como um objetivo a
-ser maximizado por si só.
+---------------------------------------------------------------------------
+9. Mocks: isolando dependências externas
+---------------------------------------------------------------------------
+Testes unitários devem ser ISOLADOS: sem banco de dados, rede, relógio
+ou sistema de arquivos. Mocks simulam essas dependências:
 
-8. doctest: exemplos de documentação que nunca ficam desatualizados
-------------------------------------------------------------------------
-    def dobrar(x):
-        \"\"\"Dobra um número.
+    from unittest.mock import Mock, patch
 
-        >>> dobrar(4)
-        8
-        \"\"\"
-        return x * 2
+    # Mock basico
+    servico = Mock()
+    servico.buscar.return_value = {"nome": "Ana"}
+    resultado = servico.buscar(42)
+    print(resultado)              # {'nome': 'Ana'}
+    servico.buscar.assert_called_once_with(42)   # verifica a chamada!
 
-    python3 -m doctest -v modulo.py
+    # patch: substitui objeto real por mock durante o teste
+    def test_enviar_email():
+        with patch("modulo.enviar_email") as mock_email:
+            processar_pedido(pedido)
+            mock_email.assert_called_once_with("cliente@email.com", "OK")
 
-`doctest` extrai trechos que parecem uma sessão de REPL (com `>>>`)
-diretamente das docstrings e os EXECUTA como testes de verdade,
-verificando se a saída documentada continua batendo com a saída real. É
-uma ferramenta excelente especificamente para manter exemplos de
-documentação honestos: se alguém mudar o comportamento de `dobrar` sem
-atualizar a docstring, o doctest acusa a divergência automaticamente.
+    # patch como decorador
+    @patch("modulo.requests.get")
+    def test_buscar_usuario(mock_get):
+        mock_get.return_value.json.return_value = {"nome": "Ana"}
+        usuario = buscar_usuario(1)
+        assert usuario["nome"] == "Ana"
 """,
     exemplos=[
         Exemplo(
-            titulo="Suite unittest executada em memória",
+            titulo="Suite completa com unittest e subTest",
             codigo='''import unittest
 
 def eh_primo(n):
+    """Verifica se n e um numero primo."""
     if n < 2:
         return False
-    d = 2
-    while d * d <= n:
-        if n % d == 0:
+    if n == 2:
+        return True
+    if n % 2 == 0:
+        return False
+    for i in range(3, int(n**0.5) + 1, 2):
+        if n % i == 0:
             return False
-        d += 1
     return True
 
-class TestPrimo(unittest.TestCase):
-    def test_pequenos(self):
-        self.assertTrue(eh_primo(2))
-        self.assertFalse(eh_primo(1))
-
-    def test_grandes(self):
-        self.assertTrue(eh_primo(7919))
-        self.assertFalse(eh_primo(7917))
-
-resultado = unittest.TextTestRunner(verbosity=0).run(
-    unittest.TestLoader().loadTestsFromTestCase(TestPrimo))
-print("testes:", resultado.testsRun, "falhas:", len(resultado.failures))
-''',
-            explicacao="Dá para rodar a suite programaticamente e inspecionar "
-                       "o objeto resultado, o que é útil para integrar testes "
-                       "em ferramentas próprias, além do uso comum via terminal.",
-        ),
-        Exemplo(
-            titulo="Ciclo TDD na prática, passo a passo",
-            codigo='''# 1. RED - o teste existe ANTES da funcao (e falharia com NameError se rodado agora)
-def test_slug():
-    assert slug("Ola Mundo Python") == "ola-mundo-python"
-
-# 2. GREEN - implementacao minima que faz o teste acima passar
 def slug(texto):
-    return texto.lower().replace(" ", "-")
-
-# 3. REFACTOR - um novo teste revela um caso que a implementacao minima nao cobre
-def test_slug_com_espacos_extras():
-    assert slug("  Ola   Mundo  ") == "ola-mundo"
-
-# a implementacao precisa evoluir para lidar com espacos multiplos e nas pontas
-def slug(texto):
+    """Converte texto para formato URL-amigavel."""
     return "-".join(texto.lower().split())
+
+class TestEhPrimo(unittest.TestCase):
+
+    def test_primos_conhecidos(self):
+        primos = [2, 3, 5, 7, 11, 13, 17, 19, 23]
+        for p in primos:
+            with self.subTest(n=p):     # identifica qual falhou!
+                self.assertTrue(eh_primo(p))
+
+    def test_nao_primos(self):
+        nao_primos = [0, 1, 4, 6, 8, 9, 10, 15, 25]
+        for n in nao_primos:
+            with self.subTest(n=n):
+                self.assertFalse(eh_primo(n))
+
+    def test_primo_grande(self):
+        self.assertTrue(eh_primo(7919))    # o 1000o primo
+
+class TestSlug(unittest.TestCase):
+
+    def setUp(self):
+        self.casos = [
+            ("Ola Mundo",          "ola-mundo"),
+            ("  Python   Puro  ",  "python-puro"),
+            ("UM",                 "um"),
+        ]
+
+    def test_conversao(self):
+        for entrada, esperado in self.casos:
+            with self.subTest(entrada=entrada):
+                self.assertEqual(slug(entrada), esperado)
+
+    def test_string_vazia(self):
+        self.assertEqual(slug(""), "")
+
+# Rodando a suite
+suite = unittest.TestLoader().loadTestsFromModule(__import__("__main__"))
+runner = unittest.TextTestRunner(verbosity=2)
+resultado = runner.run(suite)
 ''',
-            explicacao="Cada novo requisito entra primeiro como um teste que "
-                       "falha, e só depois vira código — a ordem é o que "
-                       "caracteriza TDD, não apenas 'ter testes'.",
+            explicacao="subTest() permite rodar o mesmo teste com múltiplos "
+                       "valores e mostrar QUAL valor falhou, em vez de parar "
+                       "no primeiro. Sem subTest, um loop de asserções para no "
+                       "primeiro falso e você não descobre os outros problemas. "
+                       "setUp garante que self.casos é recriado para cada teste — "
+                       "independência entre testes é fundamental.",
         ),
         Exemplo(
-            titulo="Parametrização evitando repetição no pytest",
-            codigo='''# Sem parametrizacao, seria preciso repetir a funcao de teste tres vezes.
-# Com @pytest.mark.parametrize, uma unica funcao cobre os tres casos:
+            titulo="TDD na pratica: desenvolvendo soma_digitos",
+            codigo='''import unittest
 
-# import pytest
-#
-# @pytest.mark.parametrize("entrada,esperado", [
-#     (0, False),
-#     (1, False),
-#     (2, True),
-#     (17, True),
-# ])
-# def test_eh_primo(entrada, esperado):
-#     assert eh_primo(entrada) == esperado
+# TDD: os testes vem ANTES do codigo
 
-def eh_primo(n):
-    if n < 2:
-        return False
-    return all(n % d != 0 for d in range(2, int(n ** 0.5) + 1))
+class TestSomaDigitos(unittest.TestCase):
+    """Desenvolvemos soma_digitos usando o ciclo RED->GREEN->REFACTOR."""
 
-for entrada, esperado in [(0, False), (1, False), (2, True), (17, True)]:
-    assert eh_primo(entrada) == esperado
-print("todos os casos bateram")
+    # PASSO 1 (RED): testes escritos — todos falham porque a funcao nao existe
+
+    def test_digito_unico(self):
+        self.assertEqual(soma_digitos(5), 5)
+
+    def test_numero_positivo(self):
+        self.assertEqual(soma_digitos(123), 6)    # 1+2+3
+
+    def test_zero(self):
+        self.assertEqual(soma_digitos(0), 0)
+
+    def test_numero_grande(self):
+        self.assertEqual(soma_digitos(9999), 36)  # 9+9+9+9
+
+    def test_retorna_inteiro(self):
+        self.assertIsInstance(soma_digitos(42), int)
+
+
+# PASSO 2 (GREEN): implementacao minima para todos os testes passarem
+def soma_digitos(n):
+    """Soma os digitos de um numero inteiro nao negativo."""
+    return sum(int(d) for d in str(n))
+
+
+# PASSO 3 (REFACTOR): testes ainda passam? Podemos melhorar o codigo?
+# A implementacao com str() e simples e clara.
+# Alternativa matematica: while n > 0: soma += n % 10; n //= 10
+# Os testes garantem que qualquer alternativa e equivalente.
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestSomaDigitos)
+resultado = unittest.TextTestRunner(verbosity=0).run(suite)
+print(f"Testes: {resultado.testsRun} | Falhas: {len(resultado.failures)}")
 ''',
-            explicacao="O bloco comentado mostra a sintaxe real do pytest; "
-                       "a parte executável simula a mesma verificação com um "
-                       "for simples, já que este curso não depende do pytest instalado.",
+            explicacao="O TDD força você a pensar nos casos de teste ANTES "
+                       "de escrever o código. Resultado: cobertura completa "
+                       "desde o início, e a implementação emerge para "
+                       "satisfazer os testes — não o contrário. "
+                       "Note que test_retorna_inteiro verifica o TIPO, "
+                       "não apenas o valor — útil quando a função poderia "
+                       "retornar float acidentalmente.",
+        ),
+        Exemplo(
+            titulo="Testando excecoes e usando mocks",
+            codigo='''import unittest
+from unittest.mock import Mock
+
+def dividir(a, b):
+    if b == 0:
+        raise ValueError("divisao por zero nao permitida")
+    return a / b
+
+def buscar_preco(produto_id, servico):
+    """Busca preco usando um servico externo."""
+    resposta = servico.buscar(produto_id)
+    if resposta is None:
+        raise ValueError(f"Produto {produto_id} nao encontrado")
+    return float(resposta["preco"])
+
+class TestDividir(unittest.TestCase):
+
+    def test_divisao_normal(self):
+        self.assertEqual(dividir(10, 2), 5.0)
+
+    def test_divisao_por_zero(self):
+        with self.assertRaises(ValueError) as ctx:
+            dividir(10, 0)
+        self.assertIn("zero", str(ctx.exception).lower())
+
+    def test_divisao_negativa(self):
+        self.assertAlmostEqual(dividir(-6, 4), -1.5)
+
+class TestBuscarPreco(unittest.TestCase):
+
+    def test_produto_encontrado(self):
+        # Mock do servico externo: nao faz requisicao real!
+        servico_mock = Mock()
+        servico_mock.buscar.return_value = {"preco": "29.90"}
+
+        preco = buscar_preco(42, servico_mock)
+
+        self.assertEqual(preco, 29.90)
+        servico_mock.buscar.assert_called_once_with(42)   # verificou a chamada!
+
+    def test_produto_nao_encontrado(self):
+        servico_mock = Mock()
+        servico_mock.buscar.return_value = None
+
+        with self.assertRaises(ValueError):
+            buscar_preco(999, servico_mock)
+
+suite = unittest.TestLoader().loadTestsFromModule(__import__("__main__"))
+resultado = unittest.TextTestRunner(verbosity=0).run(suite)
+print(f"OK: {resultado.wasSuccessful()}")
+''',
+            explicacao="assertRaises como context manager captura a exceção "
+                       "e permite verificar a mensagem com ctx.exception. "
+                       "Mock() cria um objeto que registra todas as chamadas. "
+                       "assert_called_once_with verifica não só SE foi chamado, "
+                       "mas COM QUAIS ARGUMENTOS — essencial para garantir "
+                       "que a integração com o serviço externo está correta "
+                       "sem fazer chamadas reais.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d24e1",
             enunciado=(
-                "TDD: implemente slug(texto) que devolve minúsculas, sem espaços nas\n"
-                "pontas e com espaços internos (mesmo múltiplos) trocados por '-'."
+                "Escreva a funcao slug(texto) que converte texto para\n"
+                "formato URL-amigavel:\n"
+                "   - Converte para minusculas\n"
+                "   - Remove espacos das pontas e extras entre palavras\n"
+                "   - Junta palavras com hifens\n\n"
+                "Exemplos:\n"
+                "   slug('Ola Mundo')         -> 'ola-mundo'\n"
+                "   slug('  Python   Puro  ') -> 'python-puro'\n"
+                "   slug('')                  -> ''\n"
+                "   slug('UM')               -> 'um'\n\n"
+                "Dica: .split() sem argumentos ja faz tudo:\n"
+                "   - Remove espacos das pontas automaticamente\n"
+                "   - Divide por qualquer quantidade de espacos\n"
+                "   - Retorna lista vazia para string vazia\n\n"
+                "Entao: '-'.join('  Python   Puro  '.lower().split())\n"
+                "   = '-'.join(['python', 'puro'])\n"
+                "   = 'python-puro'"
             ),
             funcao="slug",
             assinatura="def slug(texto):",
@@ -287,14 +529,35 @@ print("todos os casos bateram")
                 ("slug('')", "''"),
                 ("slug('UM')", "'um'"),
             ],
-            dica="'-'.join(texto.lower().split()) resolve todos os casos.",
+            dica="return '-'.join(texto.lower().split())",
         ),
         Exercicio(
             id="d24e2",
             enunciado=(
-                "Escreva eh_primo(n) e rodar_testes() que monta uma TestCase com pelo\n"
-                "menos 3 asserções e devolve o número de testes executados com sucesso\n"
-                "(testsRun - falhas - erros)."
+                "Os imports e a estrutura ja estao na assinatura.\n"
+                "Complete duas funcoes:\n\n"
+                "1. eh_primo(n) -> bool:\n"
+                "   - False se n < 2\n"
+                "   - True se n == 2\n"
+                "   - False se n par (n % 2 == 0)\n"
+                "   - Verifica divisores impares de 3 ate sqrt(n)\n\n"
+                "2. rodar_testes() -> int:\n"
+                "   Cria e executa uma suite unittest que testa eh_primo.\n"
+                "   Deve conter PELO MENOS 1 teste.\n"
+                "   Retorna o numero de testes executados.\n\n"
+                "Exemplos:\n"
+                "   eh_primo(7919) -> True   (7919 e o 1000o primo)\n"
+                "   eh_primo(1)    -> False\n"
+                "   eh_primo(9)    -> False  (9 = 3 x 3)\n"
+                "   rodar_testes() >= 1 -> True\n\n"
+                "Estrutura de rodar_testes:\n"
+                "   class MeusTestes(unittest.TestCase):\n"
+                "       def test_primo(self):\n"
+                "           self.assertTrue(eh_primo(7))\n"
+                "   suite = unittest.TestLoader().loadTestsFromTestCase(MeusTestes)\n"
+                "   resultado = unittest.TextTestRunner(verbosity=0).run(suite)\n"
+                "   return resultado.testsRun\n\n"
+                "verbosity=0 suprime a saida para nao poluir o corretor."
             ),
             funcao="rodar_testes",
             assinatura="import unittest\n\n\ndef eh_primo(n):\n    ...\n\n\ndef rodar_testes():",
@@ -305,13 +568,26 @@ print("todos os casos bateram")
                 ("rodar_testes() >= 1", "True"),
             ],
             nivel="dificil",
-            dica="unittest.TextTestRunner(verbosity=0).run(suite) devolve um objeto com .testsRun.",
+            dica="eh_primo: if n<2: False; if n==2: True; if n%2==0: False; for i in range(3,int(n**0.5)+1,2): if n%i==0: False; True. rodar_testes: crie TestCase com test_, carregue suite, TextTestRunner(verbosity=0).run(suite), return .testsRun",
         ),
         Exercicio(
             id="d24e3",
             enunciado=(
-                "Escreva dividir(a, b) que levanta ValueError com a mensagem\n"
-                "'divisao por zero' quando b == 0 (e devolve a/b caso contrário)."
+                "Escreva dividir(a, b) que divide a por b.\n"
+                "Se b for zero, levanta ValueError.\n\n"
+                "Exemplos:\n"
+                "   dividir(10, 4)  -> 2.5\n"
+                "   dividir(1, 0)   -> raise ValueError\n"
+                "   dividir(-6, 3)  -> -2.0\n\n"
+                "Use clausula de guarda:\n"
+                "   if b == 0:\n"
+                "       raise ValueError('divisao por zero')\n"
+                "   return a / b\n\n"
+                "O operador / sempre retorna float:\n"
+                "   10 / 4 = 2.5   (nao 2)\n"
+                "   -6 / 3 = -2.0  (nao -2)\n\n"
+                "O teste '!raise ValueError' verifica que a excecao\n"
+                "e levantada — a mensagem pode ser qualquer texto."
             ),
             funcao="dividir",
             assinatura="def dividir(a, b):",
@@ -321,34 +597,91 @@ print("todos os casos bateram")
                 ("dividir(-6, 3)", "-2.0"),
             ],
             nivel="medio",
-            dica="Cláusula de guarda no início: if b == 0: raise ValueError(...)",
+            dica="if b == 0: raise ValueError('divisao por zero'). return a / b",
         ),
     ],
     quiz=[
-        Quiz("Qual a ordem correta do ciclo TDD?",
-             ["Código, teste, refatoração", "Teste que falha, código mínimo, refatoração",
-              "Refatoração, teste, código", "Teste, deploy, código"], 1,
-             "Red (falha), green (passa com o mínimo), refactor (melhora mantendo verde)."),
-        Quiz("O que significa cobertura de testes de 100%?",
-             ["O código não tem bugs", "Todas as linhas foram executadas pelos testes, mas não necessariamente bem verificadas",
-              "Todos os casos possíveis foram testados", "Os testes sempre passam"], 1,
-             "Linha executada não é o mesmo que comportamento verificado com asserções fortes."),
-        Quiz("Por que usar mock ao testar uma função que faz uma chamada de rede?",
-             ["Para deixar o teste mais bonito", "Para evitar dependência de rede real, tornando o teste rápido, confiável e determinístico",
-              "Porque testes nunca podem usar rede", "Mock só serve para bancos de dados"], 1,
-             "Sem mock, o teste ficaria lento, instável (dependendo da rede estar disponível) e fora do controle do próprio teste."),
-        Quiz("Qual a vantagem de @pytest.mark.parametrize sobre copiar e colar a mesma função de teste várias vezes?",
-             ["Não há vantagem real, é só sintaxe", "Uma única função cobre vários casos, evitando duplicação e facilitando adicionar novos casos",
-              "Só funciona com números", "Torna os testes mais lentos"], 1,
-             "Cada tupla de parâmetros gera uma execução separada da mesma função de teste, sem repetir o corpo do teste."),
+        Quiz(
+            "Por que os metodos de TestCase (assertEqual, assertRaises) sao preferidos ao assert simples?",
+            ["Sao mais rapidos de executar",
+             "Produzem mensagens de erro muito mais informativas, mostrando os valores reais que falharam",
+             "assert simples nao funciona dentro de classes TestCase",
+             "Os metodos de TestCase checam o tipo alem do valor"],
+            1,
+            "assert a == b falha com 'AssertionError' sem detalhes. "
+            "self.assertEqual(a, b) falha com 'AssertionError: 5 != 3' "
+            "mostrando os valores reais — muito mais facil de depurar. "
+            "A informatividade e a principal razao para usar os metodos do TestCase.",
+        ),
+        Quiz(
+            "Qual a vantagem de subTest sobre um loop simples de asserções?",
+            ["subTest e mais rapido que um loop",
+             "Com subTest, todos os casos sao testados mesmo que um falhe — voce ve TODOS os problemas de uma vez",
+             "subTest so funciona com numeros",
+             "subTest substitui o setUp e o tearDown"],
+            1,
+            "Sem subTest: um loop de assertEqual para no primeiro que falha. "
+            "Voce corrige, roda de novo, descobre o proximo falho, e assim por diante. "
+            "Com subTest: Python continua o loop mesmo apos falhas e mostra "
+            "todos os casos que falharam, identificados pelo parametro passado.",
+        ),
+        Quiz(
+            "No ciclo TDD Red->Green->Refactor, o que 'Red' significa?",
+            ["O codigo tem um erro de runtime",
+             "Voce escreve um teste que FALHA porque o codigo que implementa o comportamento ainda nao existe",
+             "O teste e deletado e reescrito do zero",
+             "O terminal exibe erros em vermelho por configuracao"],
+            1,
+            "Red = teste escrito mas falhando (o codigo nao existe). "
+            "Green = codigo minimo para o teste passar. "
+            "Refactor = melhorar o codigo mantendo os testes verdes. "
+            "A ideia central: so escreva codigo de producao quando "
+            "ha um teste falhando que justifica aquele codigo.",
+        ),
+        Quiz(
+            "Qual a principal vantagem de usar Mock() em vez de uma dependencia real?",
+            ["Mocks sao mais rapidos de escrever",
+             "Mocks isolam o teste da dependencia externa: sem rede, banco ou sistema de arquivos — o teste e rapido, deterministico e sem efeitos colaterais",
+             "Mocks verificam automaticamente que o codigo esta correto",
+             "Mocks so funcionam com pytest"],
+            1,
+            "Testes com dependencias reais sao lentos (rede, banco), frageis "
+            "(falham se a API estiver fora) e tem efeitos colaterais. "
+            "Mock() cria um objeto que registra chamadas e retorna valores configurados. "
+            "assert_called_once_with() verifica nao so se foi chamado, "
+            "mas com quais argumentos exatos.",
+        ),
     ],
     projeto=(
-        "Escolha um projeto anterior, crie a pasta tests/ e escreva uma suíte pytest "
-        "com pelo menos 15 testes, incluindo parametrização, fixture e um caso de erro. Meça a cobertura."
+        "Crie test_calculadora.py com testes para uma Calculadora usando TDD:\n\n"
+        "   PASSO 1 (RED): escreva todos os testes primeiro\n"
+        "   class Calculadora:\n"
+        "       def somar(self, a, b): ...\n"
+        "       def subtrair(self, a, b): ...\n"
+        "       def multiplicar(self, a, b): ...\n"
+        "       def dividir(self, a, b): ...\n"
+        "       def historico(self): -> list[str]\n"
+        "       def limpar(self): ...\n\n"
+        "   TESTES QUE DEVEM EXISTIR:\n"
+        "   - Operacoes basicas com valores normais\n"
+        "   - Valores negativos e zero\n"
+        "   - Divisao por zero (deve levantar ValueError)\n"
+        "   - Historico: cada operacao e registrada como string\n"
+        "   - Limpar: historico fica vazio apos limpar()\n"
+        "   - setUp: cada teste recebe uma Calculadora nova\n\n"
+        "   PASSO 2 (GREEN): implemente a Calculadora para passar\n"
+        "   PASSO 3 (REFACTOR): melhore o codigo mantendo testes verdes\n\n"
+        "Use subTest para testar multiplos pares de entrada em somar\n"
+        "e subtrair sem duplicar metodos.\n\n"
+        "BONUS: adicione um Mock para simular um servico de historico\n"
+        "externo e verifique que ele e chamado corretamente."
     ),
-    leitura=["docs.pytest.org", "docs.python.org/pt-br/3/library/unittest.html"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/unittest.html — unittest oficial",
+        "docs.pytest.org — documentacao do pytest",
+        "docs.python.org/pt-br/3/library/unittest.mock.html — mocks",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 25
 DIAS.append(Dia(
     numero=25,
@@ -356,244 +689,525 @@ DIAS.append(Dia(
     nivel="Avançado",
     duracao="110 min",
     objetivos=[
-        "Interagir com o sistema operacional através de os e sys",
-        "Ler dados de um pipe do shell, tornando o script um cidadão de primeira classe no terminal",
-        "Executar comandos externos com subprocess de forma segura, sem abrir brechas de injeção",
-        "Criar interfaces de linha de comando profissionais com argparse",
-        "Registrar eventos com logging em vez de print, e entender por que isso importa em produção",
-        "Deixar um script executável e instalável no PATH do sistema",
+        "Navegar e manipular o sistema de arquivos com os e pathlib de forma segura",
+        "Ler variáveis de ambiente, argumentos de linha de comando e informações do processo com os e sys",
+        "Executar comandos externos com subprocess e capturar sua saída corretamente",
+        "Construir interfaces de linha de comando profissionais com argparse",
+        "Configurar o módulo logging para registrar eventos em diferentes níveis e destinos",
+        "Reconhecer quando usar cada módulo: os, sys, subprocess, shutil ou pathlib",
     ],
     teoria="""
-1. os e sys: a ponte com o sistema operacional
-------------------------------------------------------
-    import os, sys
-    os.getcwd()                     diretório de trabalho atual
-    os.listdir("."), os.walk(".")   navegação pelo sistema de arquivos
-    os.environ.get("HOME")          lê uma variável de ambiente (None se não existir)
-    os.environ["API_KEY"]           levanta KeyError se a variável não existir
-    os.cpu_count()                   número de núcleos de CPU disponíveis
-    os.getpid()                      identificador do processo atual
+Python é uma das linguagens mais usadas para automação e scripts de
+sistema no Linux. Os módulos os, sys, subprocess, argparse e logging
+são os cinco pilares dessa integração — e aparecem em praticamente
+todo script Python de produção.
 
-    sys.argv                        lista de argumentos de linha de comando (argv[0] é o próprio script)
-    sys.exit(1)                     encerra o programa com o código de saída informado (0 = sucesso, no Linux)
-    sys.stdin / sys.stdout / sys.stderr    os três fluxos padrão do processo
-    sys.platform                    identifica o sistema operacional ('linux', 'darwin', 'win32')
-    sys.version_info                 a versão do Python em execução, como uma tupla
+---------------------------------------------------------------------------
+1. os: interagindo com o sistema operacional
+---------------------------------------------------------------------------
+O módulo os oferece uma interface para funcionalidades do sistema
+operacional que funcionam em qualquer plataforma (Linux, macOS, Windows):
 
-Uma convenção importante no Linux (e em Unix em geral): mensagens de ERRO
-devem ir para `stderr`, não para `stdout` — `print("falhou", file=sys.stderr)`.
-Isso permite que o usuário redirecione a saída normal do programa para um
-arquivo (`./script.py > saida.txt`) sem misturar mensagens de erro no meio
-do resultado esperado, já que `stderr` continua aparecendo no terminal
-mesmo quando `stdout` foi redirecionado.
+INFORMAÇÕES DO PROCESSO:
 
-2. Lendo de um pipe: integrando-se ao shell
---------------------------------------------------
-    for linha in sys.stdin:
-        print(linha.upper(), end="")
+    import os
 
-    cat arquivo.txt | python3 maiusculo.py
+    os.getpid()           # ID do processo atual
+    os.getppid()          # ID do processo pai
+    os.getcwd()           # diretório de trabalho atual (como pwd)
+    os.getlogin()         # nome do usuário logado
+    os.cpu_count()        # número de CPUs disponíveis
 
-Escrever programas Python que leem de `stdin` e escrevem em `stdout` os
-torna capazes de participar de PIPELINES do shell, encadeados com o
-operador `|` junto de outros comandos Unix — exatamente como `grep`,
-`sort` ou `wc` fazem. Essa é uma diferença de filosofia de design: em vez
-de um script que só sabe processar UM arquivo específico, um programa que
-lê de `stdin` funciona com qualquer fonte de dados que o shell consiga
-canalizar até ele.
+VARIÁVEIS DE AMBIENTE:
 
-3. subprocess: executando outros programas com segurança
-------------------------------------------------------------------
+    os.environ            # dict-like com todas as variáveis de ambiente
+    os.environ["HOME"]    # /home/usuario
+    os.environ["PATH"]    # caminho de busca de executáveis
+    os.getenv("PORTA", "8080")  # com valor padrão se não existir
+
+    # Definindo variáveis (só para o processo atual e filhos)
+    os.environ["MINHA_VAR"] = "valor"
+
+SISTEMA DE ARQUIVOS (operações básicas):
+
+    os.listdir(".")           # lista arquivos e diretórios (como ls)
+    os.mkdir("novo_dir")      # cria um diretório
+    os.makedirs("a/b/c", exist_ok=True)  # cria toda a hierarquia
+    os.remove("arquivo.txt")  # apaga um arquivo
+    os.rmdir("dir_vazio")     # apaga diretório vazio
+    os.rename("velho", "novo")  # renomeia
+    os.stat("arquivo.txt")    # metadados (tamanho, datas, permissões)
+
+CAMINHOS COM os.path:
+
+    os.path.join("pasta", "sub", "arquivo.txt")  # monta caminho
+    os.path.exists("/etc/hosts")    # True se existe
+    os.path.isfile("arq.txt")       # True se é arquivo
+    os.path.isdir("/tmp")           # True se é diretório
+    os.path.getsize("arquivo.txt")  # tamanho em bytes
+    os.path.abspath("relativo")     # caminho absoluto
+    os.path.basename("/a/b/arq.txt")  # 'arq.txt'
+    os.path.dirname("/a/b/arq.txt")   # '/a/b'
+
+PREFERÊNCIA MODERNA: use pathlib (Dia 14) para operações de caminho.
+os.path ainda é muito comum em código legado — vale conhecer os dois.
+
+PERCORRENDO DIRETÓRIOS RECURSIVAMENTE:
+
+    for raiz, dirs, arquivos in os.walk("/home/usuario"):
+        for arquivo in arquivos:
+            caminho = os.path.join(raiz, arquivo)
+            print(caminho)
+
+    # Com pathlib (mais moderno):
+    from pathlib import Path
+    for caminho in Path("/home/usuario").rglob("*.py"):
+        print(caminho)
+
+---------------------------------------------------------------------------
+2. sys: informações do interpretador e do processo
+---------------------------------------------------------------------------
+O módulo sys expõe informações sobre o interpretador Python e permite
+controlar o comportamento do processo:
+
+    import sys
+
+    sys.argv              # lista de argumentos da linha de comando
+                          # sys.argv[0] é o nome do script
+                          # sys.argv[1:] são os argumentos passados
+
+    sys.version           # versão do Python como string
+    sys.platform          # 'linux', 'darwin', 'win32'
+    sys.path              # lista de diretórios onde Python busca módulos
+
+    sys.stdin             # entrada padrão (para leitura)
+    sys.stdout            # saída padrão (para escrita)
+    sys.stderr            # saída de erro
+
+    sys.exit(0)           # encerra o processo (0 = sucesso, != 0 = erro)
+    sys.exit("mensagem")  # encerra com mensagem de erro no stderr
+
+    sys.getrecursionlimit()   # limite atual da pilha de recursão
+    sys.getsizeof(objeto)     # tamanho do objeto em bytes
+
+SAÍDA PARA STDERR:
+
+    print("Erro crítico!", file=sys.stderr)   # aparece em vermelho no terminal
+    # Scripts bem escritos enviam erros para stderr, não stdout
+
+VERIFICANDO A PLATAFORMA:
+
+    if sys.platform == "linux":
+        caminho_config = Path.home() / ".config" / "app"
+    elif sys.platform == "darwin":
+        caminho_config = Path.home() / "Library" / "Application Support" / "app"
+
+---------------------------------------------------------------------------
+3. subprocess: executando comandos externos
+---------------------------------------------------------------------------
+subprocess permite executar programas externos (comandos do shell,
+outros scripts, ferramentas de linha de comando) de dentro do Python:
+
+A FUNÇÃO PRINCIPAL: subprocess.run()
+
     import subprocess
 
-    r = subprocess.run(["ls", "-la", "/tmp"],
-                       capture_output=True, text=True, timeout=10, check=False)
-    r.returncode, r.stdout, r.stderr
+    # Forma segura: lista de argumentos (NUNCA string com shell=True em produção)
+    resultado = subprocess.run(
+        ["ls", "-la", "/tmp"],
+        capture_output=True,    # captura stdout e stderr
+        text=True,              # decodifica como texto (UTF-8)
+        timeout=30,             # mata o processo após 30s se não terminar
+    )
 
-Regras de segurança e robustez que valem a pena internalizar:
+    resultado.returncode    # 0 = sucesso, != 0 = erro
+    resultado.stdout        # saída padrão como string
+    resultado.stderr        # saída de erro como string
 
-- SEMPRE passe uma LISTA de argumentos separados (`["ls", "-la", "/tmp"]`),
-  nunca uma string única montada por concatenação com dados vindos do
-  usuário e `shell=True` — essa combinação abre uma brecha clássica de
-  INJEÇÃO DE COMANDO, onde um usuário mal-intencionado poderia incluir
-  `; rm -rf /` ou similar dentro do que parecia ser apenas um nome de
-  arquivo;
-- `check=True` faz `subprocess.run` levantar `CalledProcessError`
-  automaticamente se o comando terminar com um código de saída diferente
-  de zero — útil quando uma falha do comando externo deveria interromper
-  seu script também;
-- `text=True` decodifica a saída (que originalmente vem como bytes) para
-  `str`, poupando uma conversão manual;
-- sempre defina um `timeout` — sem ele, um comando externo que trave
-  (aguardando entrada, por exemplo) prende seu programa indefinidamente.
+VERIFICANDO SUCESSO:
 
+    resultado = subprocess.run(["ls", "/caminho_invalido"],
+                               capture_output=True, text=True)
+
+    # Forma manual
+    if resultado.returncode != 0:
+        raise RuntimeError(resultado.stderr)
+
+    # Forma automática: levanta CalledProcessError se returncode != 0
+    resultado = subprocess.run([...], check=True)
+
+POR QUE LISTA E NÃO STRING?
+
+    # PERIGOSO: injeção de comandos
+    nome = "arquivo.txt; rm -rf /"
+    subprocess.run(f"ls {nome}", shell=True)   # executa rm -rf /!
+
+    # SEGURO: lista — cada elemento é um argumento literal
+    subprocess.run(["ls", nome])   # ls trata o nome inteiro como argumento
+
+VARIANTES:
+
+    subprocess.check_output(["cmd"])          # retorna só o stdout, levanta erro
+    subprocess.call(["cmd"])                  # retorna só o returncode
+    subprocess.Popen(["cmd"])                 # controle total (stdin/stdout/pipes)
+
+OBTENDO SAÍDA:
+
+    saida = subprocess.run(
+        ["python3", "--version"],
+        capture_output=True,
+        text=True
+    ).stdout.strip()
+    print(saida)    # Python 3.12.3
+
+---------------------------------------------------------------------------
 4. argparse: interfaces de linha de comando profissionais
-------------------------------------------------------------------
+---------------------------------------------------------------------------
+argparse transforma sys.argv numa interface de linha de comando com
+ajuda automática, validação e tipos:
+
     import argparse
 
-    p = argparse.ArgumentParser(description="Processa arquivos de log.")
-    p.add_argument("arquivo", help="caminho do log")
-    p.add_argument("-n", "--linhas", type=int, default=10)
-    p.add_argument("-v", "--verboso", action="store_true")
-    p.add_argument("--formato", choices=["json", "csv"], default="json")
-    args = p.parse_args()          # ou parse_args(["a", "-n", "5"]) explicitamente, o que facilita TESTAR a CLI
+    def criar_parser():
+        parser = argparse.ArgumentParser(
+            description="Processa um arquivo de log"
+        )
 
-Usar `argparse` em vez de analisar `sys.argv` manualmente traz uma série
-de benefícios "de graça", sem código adicional: uma tela de `--help`
-formatada automaticamente, validação do TIPO de cada argumento (o `type=int`
-já rejeita um valor não numérico com uma mensagem clara), mensagens de
-erro consistentes para argumentos ausentes ou inválidos, e o código de
-saída apropriado quando a análise falha. Passar `argv` explicitamente para
-`parse_args()` (em vez de deixá-lo ler `sys.argv` implicitamente) é o que
-torna possível TESTAR a lógica de análise de argumentos com valores
-fixos, sem depender do ambiente real de execução.
+        # Argumento posicional (obrigatório)
+        parser.add_argument("arquivo", help="arquivo de log para processar")
 
-5. logging: a alternativa profissional ao print
---------------------------------------------------
+        # Opção com valor (--linhas 20)
+        parser.add_argument(
+            "-n", "--linhas",
+            type=int,
+            default=10,
+            help="número de linhas a exibir (padrão: 10)"
+        )
+
+        # Flag booleana (--verbose ou -v)
+        parser.add_argument(
+            "-v", "--verbose",
+            action="store_true",
+            help="exibe informações detalhadas"
+        )
+
+        # Opção com escolhas limitadas
+        parser.add_argument(
+            "--formato",
+            choices=["json", "csv", "texto"],
+            default="texto"
+        )
+
+        return parser
+
+    # Usando
+    parser = criar_parser()
+    args = parser.parse_args()        # lê sys.argv automaticamente
+    args = parser.parse_args(argv)    # ou uma lista de strings (para testes!)
+
+    print(args.arquivo)    # string
+    print(args.linhas)     # int (argparse converteu automaticamente)
+    print(args.verbose)    # bool
+
+    # Ajuda gerada automaticamente ao rodar com --help:
+    # usage: script.py [-h] [-n LINHAS] [-v] arquivo
+    # Processa um arquivo de log
+    # ...
+
+ARGPARSE EM FUNÇÕES TESTÁVEIS:
+
+    def analisar(argv=None):
+        parser = criar_parser()
+        args = parser.parse_args(argv)   # None = usa sys.argv
+        return args.arquivo, args.linhas, args.verbose
+
+    # Testável sem tocar sys.argv:
+    analisar(["log.txt", "-n", "5", "--verbose"])
+
+---------------------------------------------------------------------------
+5. logging: registros estruturados e configuráveis
+---------------------------------------------------------------------------
+print() para depuração não escala. logging oferece níveis, formatação,
+múltiplos destinos e controle fino do que aparece onde:
+
+NÍVEIS DE LOG (do menos ao mais grave):
+
+    Nível       Valor    Uso típico
+    ---------   -----    ------------------------------------------
+    DEBUG       10       Detalhes técnicos, apenas em desenvolvimento
+    INFO        20       Eventos normais de operação
+    WARNING     30       Algo inesperado mas não grave
+    ERROR       40       Erro que impede uma operação específica
+    CRITICAL    50       Erro grave que pode parar o sistema
+
+CONFIGURAÇÃO BÁSICA:
+
     import logging
 
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[logging.StreamHandler(), logging.FileHandler("app.log")],
+        level=logging.DEBUG,
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        filename="app.log",    # omita para escrever no terminal
+        filemode="a",          # 'a' = append, 'w' = sobrescreve
     )
-    log = logging.getLogger(__name__)
 
-    log.debug("detalhe para depuracao")
-    log.info("operacao concluida")
-    log.warning("algo suspeito")
-    log.error("falhou", exc_info=True)     # inclui o traceback completo automaticamente
-    log.critical("desligando")
+    logger = logging.getLogger(__name__)   # logger com nome do módulo
 
-Os níveis de severidade, em ordem crescente, são: DEBUG < INFO < WARNING <
-ERROR < CRITICAL. Configurar `level=logging.INFO` faz mensagens DEBUG
-serem silenciadas automaticamente, sem precisar remover ou comentar
-chamadas de log espalhadas pelo código — basta mudar essa única linha de
-configuração para ajustar quanto detalhe aparece.
+    logger.debug("variavel x = %s", x)    # formato printf — mais eficiente
+    logger.info("processando arquivo: %s", nome)
+    logger.warning("disco com %d%% de uso", uso)
+    logger.error("falha ao conectar: %s", str(e))
+    logger.critical("banco de dados inacessível!")
 
-As vantagens de `logging` sobre `print` espalhado pelo código são
-concretas, não apenas estéticas: níveis de severidade que podem ser
-filtrados centralizadamente; múltiplos DESTINOS simultâneos (tela E
-arquivo, por exemplo, como no `handlers=` acima); timestamp e nome do
-módulo automáticos em cada linha; e a capacidade de silenciar TODO o
-log de depuração em produção mudando uma única configuração, sem tocar
-no restante do código.
+POR QUE USAR LOGGER E NÃO LOGGING DIRETO?
 
-6. Lidando com sinais e garantindo uma saída limpa
-------------------------------------------------------------
-    try:
-        principal()
-    except KeyboardInterrupt:
-        print("\\ninterrompido", file=sys.stderr)
-        sys.exit(130)
+    logging.info("mensagem")   # usa o logger raiz — evite em módulos
+    logger = logging.getLogger(__name__)  # logger com nome do arquivo
+    logger.info("mensagem")    # permite filtrar por módulo
 
-Capturar `KeyboardInterrupt` (disparado por Ctrl+C) permite que o
-programa encerre de forma organizada — talvez salvando progresso parcial
-ou exibindo uma mensagem clara — em vez de despejar um traceback completo
-na tela do usuário. O código de saída `130` é a convenção Unix para
-"processo interrompido pelo sinal SIGINT" (128 + o número do sinal, que é
-2 para SIGINT).
+MÚLTIPLOS HANDLERS (terminal + arquivo ao mesmo tempo):
 
-7. Outras ferramentas úteis: shutil, tempfile, getpass
-------------------------------------------------------------
-    shutil.copy2, shutil.move, shutil.rmtree     operações de arquivo de alto nível
-    shutil.which("git")                           encontra o caminho de um executável no PATH
-    shutil.disk_usage(caminho)                    espaço em disco disponível
-    tempfile.TemporaryDirectory(), NamedTemporaryFile()    arquivos e pastas temporários que se limpam sozinhos
-    getpass.getpass("senha: ")                     lê uma entrada do terminal SEM ecoar na tela
+    logger = logging.getLogger("meu_app")
+    logger.setLevel(logging.DEBUG)
 
-8. Deixando um script executável e instalável
---------------------------------------------------
-    #!/usr/bin/env python3
-    chmod +x script.py
-    sudo cp script.py /usr/local/bin/meucomando
+    # Handler para o terminal
+    console = logging.StreamHandler()
+    console.setLevel(logging.WARNING)   # só WARNING+ no terminal
 
-Retomando o shebang do Dia 1, essas três linhas transformam um script
-Python comum em um "comando" do sistema, executável de qualquer lugar
-digitando apenas `meucomando`. Para distribuição mais séria (versionamento,
-dependências, atualização), a forma recomendada é empacotar o projeto e
-declarar um "entry point" através do `pyproject.toml`, tema do Dia 30.
+    # Handler para arquivo
+    arquivo = logging.FileHandler("debug.log")
+    arquivo.setLevel(logging.DEBUG)     # tudo no arquivo
+
+    formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+    console.setFormatter(formatter)
+    arquivo.setFormatter(formatter)
+
+    logger.addHandler(console)
+    logger.addHandler(arquivo)
+
+---------------------------------------------------------------------------
+6. shutil: operações de alto nível em arquivos
+---------------------------------------------------------------------------
+shutil complementa os com operações que envolvem múltiplos arquivos:
+
+    import shutil
+
+    shutil.copy("origem.txt", "destino.txt")      # copia arquivo
+    shutil.copy2("origem.txt", "destino/")        # copia preservando metadados
+    shutil.copytree("dir_orig", "dir_dest")       # copia diretório inteiro
+    shutil.move("origem", "destino")              # move (como mv)
+    shutil.rmtree("dir_com_conteudo")             # apaga diretório e conteúdo
+    shutil.make_archive("backup", "zip", "pasta") # cria arquivo zip
+    shutil.disk_usage("/")                        # espaço em disco
+    shutil.which("python3")                       # onde está o executável
+
+GUIA DE DECISÃO:
+
+    Preciso de:                    Use:
+    --------------------------     ------------------
+    Caminho como objeto            pathlib.Path
+    Info de ambiente/processo      os / sys
+    Executar comando externo       subprocess
+    Copiar/mover/zipar arquivos    shutil
+    Argumentos CLI                 argparse
+    Logs estruturados              logging
 """,
     exemplos=[
         Exemplo(
-            titulo="CLI completa com argparse e logging",
-            codigo='''#!/usr/bin/env python3
-import argparse, logging, sys
+            titulo="os e sys: inspecionando o ambiente",
+            codigo='''import os
+import sys
 from pathlib import Path
 
-def montar_parser():
-    p = argparse.ArgumentParser(prog="contar", description="Conta linhas de arquivos.")
-    p.add_argument("arquivos", nargs="+", type=Path)
-    p.add_argument("-v", "--verboso", action="store_true")
+# Informacoes do processo
+print(f"PID: {os.getpid()}")
+print(f"Diretorio atual: {os.getcwd()}")
+print(f"Python: {sys.version.split()[0]}")
+print(f"Plataforma: {sys.platform}")
+
+# Variaveis de ambiente
+home = os.environ.get("HOME", "desconhecido")
+path = os.environ.get("PATH", "")
+print(f"HOME: {home}")
+print(f"PATH tem {len(path.split(':'))} entradas")
+
+# Percorrendo arquivos por extensao
+def listar_por_extensao(diretorio, extensao):
+    """Lista arquivos de uma extensao em um diretorio."""
+    return sorted(
+        p for p in Path(diretorio).rglob(f"*.{extensao}")
+        if p.is_file()
+    )
+
+# Inspecionando tamanho total de .py no diretorio atual
+arquivos_py = listar_por_extensao(".", "py")
+total = sum(f.stat().st_size for f in arquivos_py)
+print(f"Arquivos .py encontrados: {len(arquivos_py)}")
+print(f"Tamanho total: {total:,} bytes")
+
+# Verificando argumentos da linha de comando
+print(f"Script chamado como: {sys.argv[0]}")
+print(f"Argumentos extras: {sys.argv[1:]}")
+''',
+            explicacao="os.environ.get() com valor padrão é mais seguro que "
+                       "os.environ[] pois não levanta KeyError se a variável "
+                       "não existir. "
+                       "Path.rglob('*.py') percorre recursivamente todos os "
+                       "subdiretórios sem precisar de os.walk. "
+                       "stat().st_size retorna o tamanho em bytes — útil para "
+                       "relatórios de uso de disco.",
+        ),
+        Exemplo(
+            titulo="subprocess: executando comandos com segurança",
+            codigo='''import subprocess
+import sys
+
+def rodar_comando(cmd, entrada=None):
+    """Executa um comando e retorna (returncode, stdout, stderr)."""
+    resultado = subprocess.run(
+        cmd,
+        input=entrada,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return resultado.returncode, resultado.stdout.strip(), resultado.stderr.strip()
+
+# Exemplos de uso seguro
+codigo, saida, erro = rodar_comando(["python3", "--version"])
+print(f"Python versao: {saida}")
+
+codigo, saida, erro = rodar_comando(["echo", "Ola do subprocess!"])
+print(f"echo retornou: {repr(saida)}")
+
+# Passando entrada para o processo
+codigo, saida, erro = rodar_comando(
+    ["python3", "-c", "import sys; print(sys.stdin.read().upper())"],
+    entrada="hello world\n"
+)
+print(f"Maiusculas: {saida}")
+
+# Verificando erro
+codigo, saida, erro = rodar_comando(["ls", "/caminho_que_nao_existe"])
+if codigo != 0:
+    print(f"Falhou (codigo {codigo}): {erro}")
+
+# Forma com check=True: levanta excecao automaticamente
+try:
+    subprocess.run(
+        ["ls", "/caminho_invalido"],
+        check=True,
+        capture_output=True,
+        text=True
+    )
+except subprocess.CalledProcessError as e:
+    print(f"CalledProcessError: codigo={e.returncode}")
+    print(f"stderr: {e.stderr.strip()}")
+''',
+            explicacao="capture_output=True captura stdout e stderr separadamente. "
+                       "text=True decodifica os bytes como texto UTF-8. "
+                       "input= permite passar dados para o stdin do processo. "
+                       "check=True é a forma mais concisa de verificar sucesso — "
+                       "levanta CalledProcessError com toda a informação do processo. "
+                       "NUNCA use shell=True com dados do usuário.",
+        ),
+        Exemplo(
+            titulo="argparse + logging: script profissional completo",
+            codigo='''import argparse
+import logging
+import sys
+from pathlib import Path
+
+# Configuracao do logging
+def configurar_log(verbose: bool, arquivo_log: str | None = None):
+    nivel = logging.DEBUG if verbose else logging.INFO
+    handlers = [logging.StreamHandler(sys.stdout)]
+    if arquivo_log:
+        handlers.append(logging.FileHandler(arquivo_log))
+    logging.basicConfig(
+        level=nivel,
+        format="%(asctime)s | %(levelname)-8s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=handlers,
+    )
+    return logging.getLogger(__name__)
+
+# Parser da CLI
+def criar_parser():
+    p = argparse.ArgumentParser(
+        description="Analisa um arquivo e exibe estatisticas."
+    )
+    p.add_argument("arquivo", help="arquivo a analisar")
+    p.add_argument("-n", "--linhas", type=int, default=10,
+                   help="numero de linhas (padrao: 10)")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="modo detalhado")
+    p.add_argument("--log", metavar="ARQUIVO",
+                   help="grava log neste arquivo")
     return p
 
-def principal(argv=None):
-    args = montar_parser().parse_args(argv)
-    logging.basicConfig(level=logging.DEBUG if args.verboso else logging.WARNING,
-                        format="%(levelname)s: %(message)s")
-    total = 0
-    for arquivo in args.arquivos:
-        if not arquivo.exists():
-            logging.error("nao encontrado: %s", arquivo)
-            continue
-        n = len(arquivo.read_text(encoding="utf-8").splitlines())
-        logging.debug("%s tem %d linhas", arquivo, n)
-        total += n
-    print(total)
-    return 0
+def main(argv=None):
+    args = criar_parser().parse_args(argv)
+    log = configurar_log(args.verbose, args.log)
 
-if __name__ == "__main__":
-    sys.exit(principal())
+    caminho = Path(args.arquivo)
+    log.debug("Verificando arquivo: %s", caminho)
+
+    if not caminho.exists():
+        log.error("Arquivo nao encontrado: %s", caminho)
+        sys.exit(1)
+
+    log.info("Processando %s (%d bytes)", caminho.name, caminho.stat().st_size)
+    linhas = caminho.read_text().splitlines()
+
+    log.debug("Total de linhas: %d", len(linhas))
+    print(f"Arquivo: {caminho.name}")
+    print(f"Linhas:  {len(linhas)}")
+    print(f"Primeiras {args.linhas}:")
+    for i, l in enumerate(linhas[:args.linhas], 1):
+        print(f"  {i:3}: {l}")
+
+# Simula chamada com argumentos (sem tocar sys.argv)
+import tempfile, os
+tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+tmp.write("linha 1\nlinha 2\nlinha 3\nlinha 4\nlinha 5\n")
+tmp.close()
+main([tmp.name, "-n", "3", "-v"])
+os.unlink(tmp.name)
 ''',
-            explicacao="parse_args(argv) com o parâmetro explícito, em vez "
-                       "de deixar argparse ler sys.argv sozinho, é o que "
-                       "torna esta CLI testável com listas fixas de argumentos.",
-        ),
-        Exemplo(
-            titulo="Chamando comandos do sistema com segurança",
-            codigo='''import subprocess
-
-r = subprocess.run(["uname", "-sr"], capture_output=True, text=True, timeout=5)
-print("kernel:", r.stdout.strip(), "codigo:", r.returncode)
-
-r2 = subprocess.run(["ls", "/nao_existe"], capture_output=True, text=True)
-print("erro:", r2.returncode, r2.stderr.strip()[:40])
-''',
-            explicacao="Lista de argumentos, timeout definido e captura de "
-                       "stdout/stderr separados: o padrão seguro e previsível "
-                       "para chamar qualquer comando externo.",
-        ),
-        Exemplo(
-            titulo="logging com múltiplos destinos e níveis",
-            codigo='''import logging
-import io
-
-buffer = io.StringIO()
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(levelname)s: %(message)s",
-    handlers=[logging.StreamHandler(buffer)],
-    force=True,
-)
-log = logging.getLogger("demo")
-
-log.debug("detalhe interno, so aparece com nivel DEBUG")
-log.info("operacao concluida com sucesso")
-log.warning("espaco em disco baixo")
-
-print(buffer.getvalue())
-''',
-            explicacao="Trocar o destino de StreamHandler (aqui, um buffer "
-                       "de memória em vez do terminal) é o mesmo mecanismo "
-                       "usado para gravar logs em arquivo simultaneamente.",
+            explicacao="configurar_log aceita múltiplos handlers dinamicamente — "
+                       "o logger pode escrever no terminal e em arquivo ao mesmo tempo. "
+                       "log.debug('%s', valor) é mais eficiente que "
+                       "log.debug(f'{valor}') porque a string só é formatada "
+                       "se o nível DEBUG estiver ativo. "
+                       "main(argv=None) torna o script testável sem modificar sys.argv.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d25e1",
             enunciado=(
-                "Escreva rodar(comando) que executa uma lista de argumentos com\n"
-                "subprocess e devolve o stdout sem espaços nas pontas."
+                "O import subprocess ja esta na assinatura.\n"
+                "Escreva a funcao rodar(comando) que recebe uma LISTA\n"
+                "de strings representando um comando e seus argumentos,\n"
+                "executa o comando e retorna a saida como string (sem\n"
+                "espacos/quebras nas pontas).\n\n"
+                "Exemplos:\n"
+                "   rodar(['echo', 'ola'])    -> 'ola'\n"
+                "   rodar(['printf', 'a b'])  -> 'a b'\n\n"
+                "Use subprocess.run() com:\n"
+                "   capture_output=True  <- captura stdout e stderr\n"
+                "   text=True            <- decodifica como texto UTF-8\n\n"
+                "Depois acesse .stdout e aplique .strip() para remover\n"
+                "a quebra de linha que echo adiciona no final.\n\n"
+                "Estrutura:\n"
+                "   resultado = subprocess.run(\n"
+                "       comando,\n"
+                "       capture_output=True,\n"
+                "       text=True\n"
+                "   )\n"
+                "   return resultado.stdout.strip()"
             ),
             funcao="rodar",
             assinatura="import subprocess\n\n\ndef rodar(comando):",
@@ -601,14 +1215,31 @@ print(buffer.getvalue())
                 ("rodar(['echo', 'ola'])", "'ola'"),
                 ("rodar(['printf', 'a b'])", "'a b'"),
             ],
-            dica="subprocess.run(..., capture_output=True, text=True).stdout.strip()",
+            dica="return subprocess.run(comando, capture_output=True, text=True).stdout.strip()",
         ),
         Exercicio(
             id="d25e2",
             enunciado=(
-                "Monte um parser com argparse e escreva analisar(argv) que devolve a\n"
-                "tupla (arquivo, linhas, verboso). Opções: posicional 'arquivo',\n"
-                "-n/--linhas (int, padrão 10) e -v/--verboso (flag)."
+                "O import argparse ja esta na assinatura.\n"
+                "Escreva analisar(argv) que configura um ArgumentParser\n"
+                "e retorna uma TUPLA (arquivo, linhas, verbose).\n\n"
+                "O parser deve aceitar:\n"
+                "   arquivo        argumento posicional obrigatorio (str)\n"
+                "   -n/--linhas    numero inteiro, padrao 10\n"
+                "   -v/--verbose   flag booleana (store_true)\n\n"
+                "Exemplos:\n"
+                "   analisar(['log.txt'])              -> ('log.txt', 10, False)\n"
+                "   analisar(['a.txt', '-n', '5', '-v']) -> ('a.txt', 5, True)\n"
+                "   analisar(['b.txt', '--linhas', '3']) -> ('b.txt', 3, False)\n\n"
+                "Estrutura:\n"
+                "   parser = argparse.ArgumentParser()\n"
+                "   parser.add_argument('arquivo')\n"
+                "   parser.add_argument('-n', '--linhas', type=int, default=10)\n"
+                "   parser.add_argument('-v', '--verbose', action='store_true')\n"
+                "   args = parser.parse_args(argv)  <- recebe a lista diretamente\n"
+                "   return args.arquivo, args.linhas, args.verbose\n\n"
+                "parse_args(argv) com a lista explícita permite testar\n"
+                "sem modificar sys.argv — essencial para o corretor."
             ),
             funcao="analisar",
             assinatura="import argparse\n\n\ndef analisar(argv):",
@@ -618,13 +1249,31 @@ print(buffer.getvalue())
                 ("analisar(['b.txt', '--linhas', '3'])", "('b.txt', 3, False)"),
             ],
             nivel="dificil",
-            dica="action='store_true' para a flag; parse_args(argv) recebe a lista.",
+            dica="parser.add_argument('-n','--linhas', type=int, default=10); parser.add_argument('-v','--verbose', action='store_true'); args = parser.parse_args(argv); return args.arquivo, args.linhas, args.verbose",
         ),
         Exercicio(
             id="d25e3",
             enunciado=(
-                "Escreva tamanho_legivel(bytes_) convertendo para B, KB, MB, GB ou TB\n"
-                "com 1 casa decimal (base 1024). Ex.: 1536 -> '1.5 KB'."
+                "Escreva tamanho_legivel(bytes_) que converte um numero\n"
+                "de bytes para uma string legivel com a unidade correta.\n\n"
+                "Exemplos:\n"
+                "   tamanho_legivel(0)          -> '0.0 B'\n"
+                "   tamanho_legivel(1536)        -> '1.5 KB'\n"
+                "   tamanho_legivel(1048576)     -> '1.0 MB'\n"
+                "   tamanho_legivel(5368709120)  -> '5.0 GB'\n\n"
+                "Unidades: B, KB, MB, GB, TB (cada uma e 1024 da anterior)\n\n"
+                "Estrategia:\n"
+                "   unidades = ['B', 'KB', 'MB', 'GB', 'TB']\n"
+                "   valor = float(bytes_)\n"
+                "   for unidade in unidades:\n"
+                "       if valor < 1024:            <- cabe nesta unidade?\n"
+                "           return f'{valor:.1f} {unidade}'\n"
+                "       valor /= 1024               <- passa para a proxima\n"
+                "   return f'{valor:.1f} TB'         <- maior que tudo\n\n"
+                "Verificacao:\n"
+                "   0 B:   0.0 / 1024 = 0.0 < 1024 -> '0.0 B'\n"
+                "   1536 B: 1536 >= 1024 -> divide -> 1.5 < 1024 -> '1.5 KB'\n"
+                "   1048576: / 1024 = 1024.0 >= 1024 -> / 1024 = 1.0 -> '1.0 MB'"
             ),
             funcao="tamanho_legivel",
             assinatura="def tamanho_legivel(bytes_):",
@@ -635,250 +1284,513 @@ print(buffer.getvalue())
                 ("tamanho_legivel(5368709120)", "'5.0 GB'"),
             ],
             nivel="medio",
-            dica="Percorra as unidades dividindo por 1024 enquanto o valor for >= 1024.",
+            dica="unidades = ['B','KB','MB','GB','TB']; valor = float(bytes_); for u in unidades: if valor < 1024: return f'{valor:.1f} {u}'; valor /= 1024; return f'{valor:.1f} TB'",
         ),
     ],
     quiz=[
-        Quiz("Por que evitar shell=True no subprocess quando há entrada de usuário envolvida?",
-             ["É mais lento assim", "Permite injeção de comandos maliciosos se a entrada não for sanitizada",
-              "Não funciona no Linux", "Impede a captura da saída"], 1,
-             "Passar uma lista de argumentos evita que o shell interprete caracteres especiais inseridos pelo usuário."),
-        Quiz("Qual a vantagem prática de logging sobre print espalhado pelo código?",
-             ["logging produz um código mais curto", "Níveis de severidade, múltiplos destinos, timestamp automático e desligamento centralizado",
-              "logging colore automaticamente a saída do terminal", "logging é mais rápido de executar que print"], 1,
-             "logging separa o diagnóstico interno da saída principal do programa, com controle fino sobre o que é registrado e onde."),
-        Quiz("Por que passar argv explicitamente para parse_args(argv) em vez de deixar argparse ler sys.argv sozinho?",
-             ["Não faz diferença nenhuma", "Torna a lógica de análise de argumentos testável com listas fixas, sem depender do ambiente real",
-              "É a única forma de usar flags como -v", "argparse não funciona sem esse parâmetro"], 1,
-             "Testes automatizados (Dia 24) podem chamar a função de análise com argumentos simulados, sem precisar rodar o script de verdade."),
-        Quiz("Para onde mensagens de erro deveriam ir, seguindo a convenção Unix?",
-             ["sempre para stdout", "para stderr, para não se misturar com a saída normal redirecionada", "para um arquivo de log obrigatoriamente", "não há convenção sobre isso"], 1,
-             "Isso permite redirecionar stdout para um arquivo sem perder as mensagens de erro, que continuam visíveis no terminal."),
+        Quiz(
+            "Por que passar uma LISTA para subprocess.run em vez de uma string com shell=True?",
+            ["Listas sao mais rapidas de processar",
+             "Com lista, cada elemento e um argumento literal — impossivel injecao de comandos; com shell=True e string, um usuario malicioso pode injetar comandos arbitrarios",
+             "shell=True nao funciona no Linux",
+             "Nao ha diferenca de seguranca entre os dois"],
+            1,
+            "Se nome = 'arquivo.txt; rm -rf /', entao:\n"
+            "subprocess.run(f'ls {nome}', shell=True) executa 'rm -rf /'!\n"
+            "subprocess.run(['ls', nome]) trata o nome inteiro como argumento — "
+            "o shell nunca ve o ponto-e-virgula. "
+            "Use shell=True apenas com strings que voce mesmo construiu, "
+            "nunca com dados vindos do usuario.",
+        ),
+        Quiz(
+            "Qual a diferenca entre os.environ['VAR'] e os.getenv('VAR', 'padrao')?",
+            ["Nao ha diferenca — sao identicos",
+             "os.environ['VAR'] levanta KeyError se VAR nao existir; os.getenv retorna None (ou o padrao) sem erro",
+             "os.getenv e mais lento que os.environ",
+             "os.environ so funciona para variaveis do sistema; getenv para variaveis do usuario"],
+            1,
+            "os.environ['VAR'] funciona como dict: KeyError se a chave nao existe. "
+            "os.getenv('VAR') retorna None se nao existe. "
+            "os.getenv('VAR', 'padrao') retorna 'padrao' se nao existe. "
+            "Para variaveis que podem nao estar definidas, getenv com padrao e mais robusto.",
+        ),
+        Quiz(
+            "Por que usar log.debug('%s', valor) em vez de log.debug(f'{valor}')?",
+            ["Nao ha diferenca pratica — e so estilo",
+             "Com %s, a string so e formatada se o nivel DEBUG estiver ativo — economiza processamento quando o log esta desabilitado",
+             "f-strings nao funcionam dentro de chamadas de log",
+             "log.debug so aceita strings simples, nao f-strings"],
+            1,
+            "log.debug(f'valor={valor}') SEMPRE formata a string, mesmo que DEBUG "
+            "esteja desabilitado (o que e comum em producao). "
+            "log.debug('valor=%s', valor) so formata se o logger for emitir a mensagem. "
+            "Em loops com milhoes de iteracoes, isso faz diferenca real de desempenho.",
+        ),
+        Quiz(
+            "O que action='store_true' faz num argumento do argparse?",
+            ["Armazena a string 'true' como valor do argumento",
+             "Cria uma flag booleana: False por padrao, True se o argumento estiver presente na linha de comando",
+             "Torna o argumento obrigatorio",
+             "Converte automaticamente o valor para booleano"],
+            1,
+            "store_true cria um argumento opcional que nao recebe valor. "
+            "Se '--verbose' aparecer: args.verbose = True. "
+            "Se '--verbose' nao aparecer: args.verbose = False. "
+            "E o padrao para flags on/off como --debug, --quiet, --force.",
+        ),
     ],
     projeto=(
-        "Crie organizador.py: uma CLI que varre um diretório e move arquivos para subpastas "
-        "por extensão, com --dry-run, --verboso, logging em arquivo e código de saída correto."
+        "Crie analisador_log.py — um script de linha de comando completo:\n\n"
+        "   INTERFACE CLI (argparse):\n"
+        "   analisador_log.py <arquivo> [opcoes]\n"
+        "   -n/--linhas N      exibe as N primeiras linhas (padrao: 20)\n"
+        "   -l/--nivel NIVEL   filtra por nivel de log (DEBUG/INFO/WARNING/ERROR)\n"
+        "   -v/--verbose       modo detalhado\n"
+        "   --stats            exibe contagem por nivel\n"
+        "   --saida ARQUIVO    salva resultado num arquivo\n\n"
+        "   FUNCIONALIDADES:\n"
+        "   1. Le o arquivo de log linha a linha (uma linha por vez, nao tudo)\n"
+        "   2. Filtra por nivel se --nivel for especificado\n"
+        "   3. Exibe as N primeiras linhas que passaram no filtro\n"
+        "   4. Com --stats: conta quantas linhas de cada nivel existem\n"
+        "   5. Com --saida: escreve o resultado no arquivo indicado\n\n"
+        "   LOGGING INTERNO:\n"
+        "   O proprio script deve usar logging para registrar:\n"
+        "   - INFO: arquivo aberto, linhas processadas\n"
+        "   - DEBUG: cada linha lida (so com -v)\n"
+        "   - ERROR: arquivo nao encontrado, formato invalido\n\n"
+        "   BONUS: use subprocess para chamar 'wc -l arquivo' e\n"
+        "   exibir o total de linhas antes de processar."
     ),
-    leitura=["docs.python.org/pt-br/3/library/argparse.html", "docs.python.org/pt-br/3/howto/logging.html"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/os.html — modulo os",
+        "docs.python.org/pt-br/3/library/subprocess.html — subprocess",
+        "docs.python.org/pt-br/3/library/argparse.html — argparse",
+        "docs.python.org/pt-br/3/library/logging.html — logging",
+    ],
 ))
 # ---------------------------------------------------------------- DIA 26
 DIAS.append(Dia(
     numero=26,
-    titulo="Expressões regulares e processamento de texto",
-    nivel="Avançado",
-    duracao="100 min",
+    titulo="Expressoes regulares e processamento de texto",
+    nivel="Avancado",
+    duracao="110 min",
     objetivos=[
-        "Escrever padrões com metacaracteres e quantificadores, gulosos e preguiçosos",
-        "Usar grupos, grupos nomeados e alternativas para extrair dados estruturados",
-        "Aplicar search, findall, finditer e sub com função de substituição",
-        "Usar flags para tornar padrões mais legíveis e mais flexíveis",
-        "Reconhecer lookahead e lookbehind para casar contexto sem consumi-lo",
-        "Saber quando NÃO usar regex, e o que usar no lugar",
+        "Entender o que sao expressoes regulares e quando elas resolvem o que strings nao resolvem",
+        "Escrever padroes com os metacaracteres essenciais: . * + ? [] {} ^ $ | () \\",
+        "Usar re.search, re.match, re.findall, re.sub e re.compile corretamente",
+        "Extrair grupos de captura e grupos nomeados de um match",
+        "Usar flags como re.IGNORECASE e re.MULTILINE para ajustar o comportamento",
+        "Saber quando NAO usar regex: casos onde split, strip ou replace sao suficientes",
     ],
-    teoria=r"""
-1. O módulo re: as funções essenciais
-------------------------------------------
+    teoria="""
+Strings tem metodos poderosos: find(), replace(), split(), strip().
+Mas esses metodos so encontram padroes FIXOS. Como encontrar qualquer
+endereco de email? Qualquer data no formato DD/MM/AAAA? Qualquer numero
+de telefone independente da formatacao? Para padroes variaveis, a
+ferramenta certa sao as expressoes regulares.
+
+---------------------------------------------------------------------------
+1. O que e uma expressao regular
+---------------------------------------------------------------------------
+Uma expressao regular (ou regex) e um padrao de texto que descreve um
+conjunto de strings possiveis. Em vez de buscar "ana@email.com" (fixo),
+voce descreve o padrao "[qualquer coisa]@[qualquer coisa].[qualquer coisa]".
+
     import re
-    re.search(padrao, texto)      encontra a PRIMEIRA ocorrência em qualquer posição -> Match ou None
-    re.match(padrao, texto)       como search, mas ANCORADO no início da string
-    re.fullmatch(padrao, texto)   exige que a string INTEIRA case com o padrão
-    re.findall(padrao, texto)     lista de strings (ou de tuplas, se o padrão tem grupos)
-    re.finditer(padrao, texto)    iterador de objetos Match, preservando as posições de cada ocorrência
-    re.sub(padrao, troca, texto)  substituição de todas as ocorrências
-    re.split(padrao, texto)       divide a string usando o padrão como separador
-    re.compile(padrao)            pré-compila o padrão, útil para reutilizar em laços sem recompilar toda vez
 
-Use SEMPRE uma string CRUA (raw string, Dia 4) para o padrão: `r"\d+"`.
-Sem o prefixo `r`, o Python processaria `\d` como um escape de string
-ANTES mesmo do módulo `re` ver o padrão — e como `\d` não é um escape
-reconhecido pela linguagem, o resultado seria inconsistente entre versões
-e ambientes. `r"\d+"` garante que a barra invertida chegue intacta ao
-motor de regex, que tem seu próprio significado para ela.
+    # Busca simples: encontrar "python" (case-insensitive)
+    re.search(r"python", "Eu amo Python!", re.IGNORECASE)
+    # Match object -- encontrou!
 
-2. Metacaracteres: o vocabulário básico de um padrão
-------------------------------------------------------------
-    .        qualquer caractere, exceto quebra de linha
-    \d \D    um dígito / um caractere que NÃO é dígito
-    \w \W    letra, número ou underscore ([a-zA-Z0-9_]) / o oposto disso
-    \s \S    espaço em branco (espaço, tab, quebra de linha) / o oposto
-    \b       fronteira de palavra (posição entre um \w e um não-\w)
-    ^ $      início / fim da string (ou de cada linha, com a flag re.M)
-    [abc]    classe de caracteres: casa QUALQUER UM destes três
-    [^abc]   negação da classe: casa qualquer caractere QUE NÃO seja estes
-    [a-z]    faixa de caracteres
-    a|b      alternativa: casa "a" OU "b"
-    \.       ponto literal (escapado, porque . sozinho é um metacaractere)
+    re.search(r"python", "Eu amo Java!")
+    # None -- nao encontrou
 
-3. Quantificadores: quantas vezes o anterior se repete
-------------------------------------------------------------
-    *        0 ou mais repetições          +      1 ou mais repetições
-    ?        0 ou 1 repetição               {3}    exatamente 3 repetições
-    {2,5}    de 2 a 5 repetições             {2,}   2 ou mais repetições
+SEMPRE USE RAW STRINGS (r"...") para padroes regex:
+Backslash (\) tem significado especial tanto em strings Python quanto em
+regex. r"\d" sao dois caracteres: barra e d. Sem o r, "\d" precisaria
+ser "\\d" -- confuso e propenso a erros.
 
-Por padrão, quantificadores são GULOSOS (greedy): tentam casar o MÁXIMO
-possível antes de recuar se necessário. Acrescentar `?` logo depois de um
-quantificador o torna PREGUIÇOSO (lazy), casando o MÍNIMO possível:
+---------------------------------------------------------------------------
+2. Metacaracteres: os blocos de construcao do regex
+---------------------------------------------------------------------------
+CORRESPONDENDO CARACTERES:
 
-    re.findall(r"<.+>", "<a><b>")     -> ['<a><b>']    (guloso: engoliu tudo até o último '>')
-    re.findall(r"<.+?>", "<a><b>")    -> ['<a>', '<b>']  (preguiçoso: parou no primeiro '>' de cada vez)
+    Padrao    Corresponde a
+    -------   -------------------------------------------------------
+    .         qualquer caractere, exceto newline
+    \d        digito: [0-9]
+    \D        nao-digito: [^0-9]
+    \w        caractere de palavra: [a-zA-Z0-9_]
+    \W        nao-palavra
+    \s        espaco em branco: [ \t\n\r\f\v]
+    \S        nao-espaco
+    [abc]     a, b ou c (classe de caracteres)
+    [a-z]     qualquer letra minuscula
+    [^abc]    qualquer coisa EXCETO a, b ou c
 
-Esse é um dos erros mais comuns ao escrever regex pela primeira vez:
-esperar comportamento preguiçoso e receber o guloso por padrão, capturando
-mais texto do que se pretendia.
+QUANTIFICADORES (quantas vezes o anterior pode aparecer):
 
-4. Grupos: capturando partes específicas do padrão
-------------------------------------------------------------
-    m = re.search(r"(\d{2})/(\d{2})/(\d{4})", "hoje: 28/07/2026")
-    m.group(0)     '28/07/2026'   (o casamento INTEIRO, sempre no índice 0)
-    m.group(1)     '28'           (o primeiro grupo entre parênteses)
-    m.groups()     ('28', '07', '2026')     (todos os grupos, como tupla)
-    m.span()       as posições (início, fim) do casamento inteiro na string
+    Padrao    Significado
+    -------   -------------------------------------------------------
+    *         0 ou mais vezes (guloso)
+    +         1 ou mais vezes (guloso)
+    ?         0 ou 1 vez (torna opcional)
+    {n}       exatamente n vezes
+    {n,m}     entre n e m vezes
+    *?        0 ou mais vezes (preguicoso/lazy)
+    +?        1 ou mais vezes (preguicoso/lazy)
 
-GRUPOS NOMEADOS deixam o padrão muito mais legível, especialmente em
-padrões complexos, permitindo acessar cada parte pelo NOME em vez de um
-número posicional fácil de confundir:
+ANCORAS (posicao, nao caractere):
+
+    Padrao    Corresponde a posicao
+    -------   -------------------------------------------------------
+    ^         inicio da string (ou linha com re.MULTILINE)
+    $         fim da string (ou linha com re.MULTILINE)
+    \b        fronteira de palavra (entre \w e \W)
+    \B        nao e fronteira de palavra
+
+GRUPOS E ALTERNANCIA:
+
+    Padrao       Significado
+    ----------   -------------------------------------------------------
+    (abc)        grupo de captura: captura o que casou
+    (?:abc)      grupo sem captura: agrupa mas nao captura
+    (?P<nome>)   grupo nomeado: captura com nome acessivel
+    a|b          a ou b (alternancia)
+
+GULOSO VERSUS PREGUICOSO:
+Por padrao, quantificadores sao GULOSOS: tentam corresponder o maximo
+possivel.
+
+    texto = "<b>negrito</b> e <i>italico</i>"
+    re.findall(r"<.+>",  texto)   # ['<b>negrito</b> e <i>italico</i>'] -- guloso!
+    re.findall(r"<.+?>", texto)   # ['<b>', '</b>', '<i>', '</i>'] -- preguicoso
+
+---------------------------------------------------------------------------
+3. As funcoes do modulo re
+---------------------------------------------------------------------------
+SEARCH vs MATCH:
+
+    re.search(padrao, texto)  -- procura em QUALQUER posicao da string
+    re.match(padrao, texto)   -- procura SOMENTE no inicio da string
+
+    re.search(r"\d+", "abc 123")   # Match: encontrou '123'
+    re.match(r"\d+",  "abc 123")   # None: '123' nao esta no inicio
+    re.match(r"\d+",  "123 abc")   # Match: '123' esta no inicio
+
+FINDALL e FINDITER:
+
+    re.findall(padrao, texto)   -- retorna LISTA de todas as ocorrencias
+    re.finditer(padrao, texto)  -- retorna ITERADOR de Match objects (lazy)
+
+    re.findall(r"\d+", "a1b23c456")   # ['1', '23', '456']
+
+    for m in re.finditer(r"\d+", "a1b23c456"):
+        print(m.group(), m.start(), m.end())
+
+SUB e SUBN:
+
+    re.sub(padrao, substituto, texto)   -- substitui todas as ocorrencias
+    re.subn(padrao, substituto, texto)  -- retorna (resultado, num_subs)
+
+    re.sub(r"\d", "X", "a1b2c3")        # 'aXbXcX'
+    re.sub(r"(\d+)", r"[\1]", "1 2 3")  # '[1] [2] [3]'  (\1 = primeiro grupo)
+
+SPLIT:
+
+    re.split(padrao, texto)   -- divide por qualquer padrao
+
+    re.split(r"\s+",    "  a  b    c  ")   # ['', 'a', 'b', 'c', '']
+    re.split(r"[,;]\s*", "a, b;c,d")       # ['a', 'b', 'c', 'd']
+
+COMPILE -- reutilizando padroes compilados:
+
+    EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+
+    emails = EMAIL.findall(texto1)
+    if EMAIL.search(texto2):
+        print("tem email")
+
+---------------------------------------------------------------------------
+4. Grupos de captura
+---------------------------------------------------------------------------
+Grupos () capturam partes do padrao que voce pode extrair separadamente:
+
+    texto = "Data: 28/07/2026"
+    m = re.search(r"(\d{2})/(\d{2})/(\d{4})", texto)
+
+    if m:
+        m.group(0)   # '28/07/2026'  -- match completo
+        m.group(1)   # '28'          -- primeiro grupo (dia)
+        m.group(2)   # '07'          -- segundo grupo (mes)
+        m.group(3)   # '2026'        -- terceiro grupo (ano)
+        m.groups()   # ('28', '07', '2026') -- todos os grupos
+
+GRUPOS NOMEADOS -- mais legiveis:
 
     m = re.search(r"(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<ano>\d{4})", texto)
-    m.group("ano")
-    m.groupdict()      # {'dia': '28', 'mes': '07', 'ano': '2026'}
+    m.group("dia")   # '28'
+    m.group("mes")   # '07'
+    m.group("ano")   # '2026'
+    m.groupdict()    # {'dia': '28', 'mes': '07', 'ano': '2026'}
 
-Um grupo NÃO CAPTURANTE, `(?:...)`, agrupa parte do padrão (por exemplo,
-para aplicar um quantificador a um trecho inteiro) SEM guardar esse trecho
-como um grupo numerado — útil quando você precisa de agrupamento
-estrutural, mas não do valor capturado.
+BACKREFERENCES EM SUB:
+Grupos capturados podem ser referenciados no substituto com \1, \2...:
 
-Na substituição (`re.sub`), grupos capturados podem ser referenciados com
-`\1`, `\2` (posicionais) ou `\g<nome>` (nomeados):
-
+    # Convertendo DD/MM/AAAA -> AAAA-MM-DD
     re.sub(r"(\d{2})/(\d{2})/(\d{4})", r"\3-\2-\1", "28/07/2026")
-    # '2026-07-28'  -- os grupos sao reorganizados na substituicao
+    # '2026-07-28'
 
-5. Flags: ajustando o comportamento do motor de regex
-------------------------------------------------------------
-    re.I   ignora diferença entre maiúsculas e minúsculas
-    re.M   faz ^ e $ casarem o início/fim de CADA LINHA, não só da string inteira
-    re.S   faz . também casar quebras de linha (por padrão, . não casa \n)
-    re.X   (verbose) permite espaços em branco e comentários dentro do próprio padrão, para legibilidade
+    # Com grupos nomeados (mais legivel):
+    re.sub(
+        r"(?P<d>\d{2})/(?P<m>\d{2})/(?P<a>\d{4})",
+        r"\g<a>-\g<m>-\g<d>",
+        "28/07/2026"
+    )
+    # '2026-07-28'
 
-    padrao = re.compile(
-        r'''
-        (?P<usuario>[\w.+-]+)   # parte antes do @
-        @
-        (?P<dominio>[\w-]+\.\w+)
-        ''', re.X)
+---------------------------------------------------------------------------
+5. Flags: modificando o comportamento
+---------------------------------------------------------------------------
 
-A flag `re.X` é particularmente valiosa para padrões longos e complexos:
-ela permite quebrar o padrão em várias linhas, adicionar espaços para
-legibilidade e até comentários explicando cada trecho — sem esses
-recursos, um padrão complexo vira uma sequência ilegível de símbolos numa
-única linha.
+    Flag              Abrev    Efeito
+    ---------------   ------   --------------------------------------------
+    re.IGNORECASE     re.I     case-insensitive: 'a' casa 'A' e 'a'
+    re.MULTILINE      re.M     ^ e $ casam inicio/fim de CADA linha
+    re.DOTALL         re.S     . casa newline tambem
+    re.VERBOSE        re.X     permite comentarios e espacos no padrao
+    re.ASCII          re.A     \w, \d etc. casam apenas ASCII
 
-6. Lookahead e lookbehind: casando contexto sem consumi-lo
-------------------------------------------------------------------
-    (?=...)   lookahead positivo: SEGUIDO de (mas o que vem depois não entra no casamento)
-    (?!...)   lookahead negativo: NÃO seguido de
-    (?<=...)  lookbehind positivo: PRECEDIDO de
-    (?<!...)  lookbehind negativo: NÃO precedido de
+MULTIPLAS FLAGS:
 
-    re.findall(r"\d+(?= reais)", "10 reais e 20 dolares")   -> ['10']
-    # o "(?= reais)" exige que " reais" venha em seguida, mas essa parte
-    # nao aparece no resultado capturado -- so o numero e devolvido
+    re.findall(r"python", texto, re.IGNORECASE | re.MULTILINE)
 
-Um exemplo clássico de uso combinado: validar uma senha com múltiplos
-requisitos, todos verificados a partir do MESMO ponto de início (por isso
-lookaheads, que não avançam a posição de leitura):
-`r"^(?=.*[A-Z])(?=.*\d).{8,}$"` exige pelo menos uma maiúscula, pelo menos
-um dígito, e comprimento mínimo de 8 caracteres — tudo isso sem que os
-lookaheads "consumam" caracteres da string sendo verificada.
+RE.VERBOSE -- padroes documentados com comentarios:
 
-7. Quando NÃO usar regex
-------------------------------
-- para analisar HTML, XML ou JSON: use um PARSER de verdade para esses
-  formatos (`html.parser`, o módulo `json`, bibliotecas como `lxml`) — a
-  estrutura aninhada e as regras de escape desses formatos não se prestam
-  bem a expressões regulares, que não lidam naturalmente com aninhamento
-  arbitrário;
-- para buscas simples: `"x" in texto`, `.startswith()`, `.split()` (Dia 4)
-  são mais claros e mais rápidos que uma regex equivalente, quando o
-  problema não exige de fato um padrão;
-- para validar e-mail de forma "100% correta": a especificação real do
-  formato de e-mail é surpreendentemente complexa e cheia de casos
-  extremos; na prática, é mais produtivo validar apenas o formato básico
-  com uma regex simples e confirmar a validade de fato enviando um e-mail
-  de confirmação.
+    EMAIL = re.compile(r'''
+        [\w.+-]+    # parte local (antes do @)
+        @           # arroba literal
+        [\w-]+      # dominio
+        \.          # ponto literal (escapado)
+        [\w.]+      # TLD (pode ter subdomínios como .com.br)
+    ''', re.VERBOSE)
 
-Regex é poderosa e ilegível quase na mesma proporção: comente padrões
-complexos (usando `re.X`) e, sempre que possível, escreva testes
-automatizados (Dia 24) para eles — é fácil um padrão parecer correto e
-esconder um caso extremo não coberto.
+---------------------------------------------------------------------------
+6. Receitas comuns
+---------------------------------------------------------------------------
 
-8. Uma nota sobre desempenho e segurança
-------------------------------------------------
-Compile o padrão FORA de um laço (com `re.compile`) quando ele for reusado
-muitas vezes, para não pagar o custo de compilação repetidamente. Prefira
-classes de caracteres (`[abc]`) a longas cadeias de alternativas (`a|b|c`)
-quando possível. E evite ANINHAR quantificadores de forma ambígua, como
-`r"(a+)+"` — certos padrões desse tipo podem causar uma EXPLOSÃO
-COMBINATÓRIA de tentativas de casamento em certas entradas, um problema
-conhecido como ReDoS (Regular Expression Denial of Service), capaz de
-travar um programa processando uma entrada aparentemente inofensiva.
+    # Email (versao simplificada)
+    r"[\w.+-]+@[\w-]+\.[\w.]+"
+
+    # Data DD/MM/AAAA
+    r"\d{2}/\d{2}/\d{4}"
+
+    # CPF (com ou sem formatacao)
+    r"\d{3}\.?\d{3}\.?\d{3}-?\d{2}"
+
+    # CEP brasileiro
+    r"\d{5}-?\d{3}"
+
+    # URL simples
+    r"https?://[\w./%-]+"
+
+    # Numero com decimal opcional
+    r"-?\d+(?:\.\d+)?"
+
+    # Palavra inteira (fronteiras de palavra)
+    r"\bpython\b"    # casa 'python' mas nao 'pythonista'
+
+---------------------------------------------------------------------------
+7. Quando NAO usar regex
+---------------------------------------------------------------------------
+Regex e poderosa mas nao e a ferramenta certa para tudo:
+
+    NAO USE regex quando strings simples resolvem:
+    "ana@email.com".split("@")       # mais claro que regex
+    "  texto  ".strip()              # mais claro que regex
+    texto.startswith("http")         # mais claro que regex
+    "python" in texto                # mais claro que regex
+
+    NAO USE regex para parsear estruturas:
+    - HTML/XML:  use BeautifulSoup ou lxml
+    - JSON:      use json.loads()
+    - CSV:       use csv.reader()
+
+A regra: se voce precisa de um comentario para explicar o regex,
+talvez haja uma abordagem mais clara. Regex deve ser usada quando
+o padrao e genuinamente variavel e nao estruturado.
 """,
     exemplos=[
         Exemplo(
-            titulo="Extraindo dados estruturados de um log",
-            codigo=r'''import re
+            titulo="Extraindo informacoes com grupos de captura",
+            codigo='''import re
 
-log = """2026-07-28 10:15:02 ERRO usuario=ana codigo=500
-2026-07-28 10:15:44 INFO usuario=bia codigo=200
-2026-07-28 10:16:01 ERRO usuario=caio codigo=503"""
+# Extraindo emails de texto livre
+texto = """
+Contatos da equipe:
+  - Comercial: vendas@empresa.com.br e suporte@empresa.com
+  - Dev: dev+alerts@github.io
+  - Invalido: nao-e-email, tampouco @isso
+"""
 
-padrao = re.compile(
-    r"(?P<data>\d{4}-\d{2}-\d{2}) (?P<hora>[\d:]+) "
-    r"(?P<nivel>\w+) usuario=(?P<usuario>\w+) codigo=(?P<codigo>\d+)"
-)
-for m in padrao.finditer(log):
-    if m.group("nivel") == "ERRO":
-        print(m.group("hora"), m.group("usuario"), m.group("codigo"))
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+emails = EMAIL.findall(texto)
+print("Emails:", emails)
+
+# Extraindo e reformatando datas
+texto_datas = "Contratos: 01/03/2024, 15/07/2024, 31/12/2024"
+
+# Encontrando todas as datas
+datas = re.findall(r"\d{2}/\d{2}/\d{4}", texto_datas)
+print("Datas:", datas)
+
+# Convertendo DD/MM/AAAA -> AAAA-MM-DD com grupos de captura
+iso = re.sub(r"(\d{2})/(\d{2})/(\d{4})", r"\3-\2-\1", texto_datas)
+print("Formato ISO:", iso)
+
+# Grupos nomeados para maior clareza
+for m in re.finditer(
+    r"(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<ano>\d{4})",
+    texto_datas
+):
+    d = m.groupdict()
+    print(f"  {d['ano']}-{d['mes']}-{d['dia']}")
 ''',
-            explicacao="Grupos nomeados transformam o padrão em documentação: "
-                       "m.group('usuario') é muito mais claro que m.group(4).",
+            explicacao="EMAIL compilado com re.compile fica reutilizavel e legivel. "
+                       "findall sem grupos retorna lista de strings. "
+                       "re.sub com \\1, \\2, \\3 referencia os grupos capturados "
+                       "em ordem -- muito mais limpo do que fazer um loop com finditer. "
+                       "Grupos nomeados tornam \\1 obsoleto para padroes complexos.",
         ),
         Exemplo(
-            titulo="Substituição com função em vez de string fixa",
-            codigo=r'''import re
+            titulo="Padroes gulosos vs preguicosos e flags",
+            codigo='''import re
 
-def mascarar(m):
-    numero = m.group(0)
-    return numero[:4] + "*" * (len(numero) - 8) + numero[-4:]
+# Guloso vs preguicoso
+html = "<b>negrito</b> e texto <i>italico</i> aqui"
 
-texto = "cartao 1234567812345678 aprovado"
-print(re.sub(r"\b\d{16}\b", mascarar, texto))
+guloso      = re.findall(r"<.+>",  html)
+preguicoso  = re.findall(r"<.+?>", html)
+sem_gt      = re.findall(r"<[^>]+>", html)   # alternativa mais precisa
+
+print("Guloso:     ", guloso)
+print("Preguicoso: ", preguicoso)
+print("Sem >:      ", sem_gt)
+
+# re.IGNORECASE
+palavras = ["Python", "PYTHON", "python", "PyThOn", "Java"]
+pythons = [p for p in palavras if re.search(r"^python$", p, re.IGNORECASE)]
+print("Case-insensitive:", pythons)
+
+# re.MULTILINE: ^ e $ casam cada linha
+texto_multi = """inicio da primeira linha
+outra linha no meio
+inicio da ultima linha"""
+
+inicios = re.findall(r"^inicio\w*", texto_multi, re.MULTILINE)
+print("Linhas com 'inicio':", inicios)
+
+# re.VERBOSE: regex documentada com comentarios
+TELEFONE = re.compile(r"""
+    (\(?\d{2}\)?)   # DDD com ou sem parenteses
+    \s?             # espaco opcional
+    (9?\d{4})       # 4 ou 5 digitos (com ou sem 9 inicial)
+    [-\s]?          # separador opcional
+    (\d{4})         # ultimos 4 digitos
+""", re.VERBOSE)
+
+testes = ["(21) 99999-8888", "11 98765-4321", "21999998888"]
+for t in testes:
+    m = TELEFONE.search(t)
+    if m:
+        print(f"'{t}' -> grupos: {m.groups()}")
 ''',
-            explicacao="re.sub aceita uma FUNÇÃO como substituição, chamada "
-                       "para cada ocorrência encontrada — útil quando a "
-                       "substituição depende do próprio texto casado.",
+            explicacao="<.+> captura do primeiro < ate o ULTIMO > da string inteira. "
+                       "<.+?> para no primeiro > disponivel. "
+                       "<[^>]+> e ainda mais preciso: 'um ou mais caracteres que nao sejam >'. "
+                       "re.MULTILINE muda o significado de ^ e $ -- sem a flag, "
+                       "^ so casa o inicio da string inteira. "
+                       "re.VERBOSE permite escrever regex em multiplas linhas "
+                       "com comentarios -- essencial para padroes complexos.",
         ),
         Exemplo(
-            titulo="Guloso versus preguiçoso, lado a lado",
-            codigo=r'''import re
+            titulo="Processamento de texto com regex: pipeline completo",
+            codigo='''import re
+from collections import Counter
 
-html = "<b>negrito</b> e <i>italico</i>"
+def normalizar(texto):
+    """Limpa e normaliza texto para analise."""
+    sem_html    = re.sub(r"<[^>]+>", "", texto)
+    sem_extras  = re.sub(r"\s+", " ", sem_html).strip()
+    limpo       = re.sub(r"[^\w\s-]", "", sem_extras)
+    return limpo.lower()
 
-guloso = re.findall(r"<.+>", html)
-preguicoso = re.findall(r"<.+?>", html)
+def parse_log(linha):
+    """Extrai campos de uma linha de log."""
+    padrao = re.compile(r"""
+        (?P<data>\d{4}-\d{2}-\d{2})   # data AAAA-MM-DD
+        \s
+        (?P<hora>\d{2}:\d{2}:\d{2})   # hora HH:MM:SS
+        \s\|\s
+        (?P<nivel>\w+)                  # nivel (INFO, ERROR...)
+        \s\|\s
+        (?P<msg>.+)                     # mensagem
+    """, re.VERBOSE)
+    m = padrao.match(linha)
+    return m.groupdict() if m else None
 
-print("guloso:    ", guloso)       # ['<b>negrito</b> e <i>italico</i>'] -- tudo de uma vez
-print("preguicoso:", preguicoso)   # ['<b>', '</b>', '<i>', '</i>'] -- cada tag separada
+# Testando normalizacao
+texto_html = "<h1>Titulo</h1><p>Conteudo   com   espacos  extras.</p>"
+print("Normalizado:", normalizar(texto_html))
+
+# Testando parse de log
+logs = [
+    "2024-07-28 10:30:00 | INFO | usuario Ana fez login",
+    "2024-07-28 10:31:15 | ERROR | falha ao conectar banco",
+    "linha mal formatada sem padrao",
+    "2024-07-28 10:32:00 | WARNING | disco com 90% de uso",
+]
+
+niveis = []
+for linha in logs:
+    parsed = parse_log(linha)
+    if parsed:
+        niveis.append(parsed["nivel"])
+        print(f"[{parsed['nivel']}] {parsed['hora']}: {parsed['msg']}")
+
+print("Contagem por nivel:", dict(Counter(niveis)))
 ''',
-            explicacao="O ? depois do quantificador muda drasticamente o "
-                       "resultado — este é o erro mais comum de quem "
-                       "escreve regex pela primeira vez para casar tags.",
+            explicacao="re.sub(r'<[^>]+>', '', texto) remove tags HTML. "
+                       "[^>]+ significa 'um ou mais caracteres que nao sejam >'. "
+                       "Sem isso, .+ seria guloso e comeria tudo entre o "
+                       "primeiro < e o ultimo >. "
+                       "O parser de log usa re.VERBOSE e grupos nomeados -- "
+                       "cada campo e auto-documentado no proprio padrao. "
+                       "groupdict() retorna None se a linha nao casar.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d26e1",
-            enunciado="Escreva extrair_emails(texto) devolvendo a lista de e-mails encontrados.",
+            enunciado=(
+                "O import re ja esta na assinatura.\n"
+                "Escreva extrair_emails(texto) que encontra todos os\n"
+                "enderecos de email em um texto e retorna uma lista.\n\n"
+                "Exemplos:\n"
+                "   extrair_emails('fale com ana@x.com ou bia@y.com.br')\n"
+                "   -> ['ana@x.com', 'bia@y.com.br']\n\n"
+                "   extrair_emails('nenhum aqui') -> []\n\n"
+                "Padrao sugerido: r'[\\w.+-]+@[\\w-]+\\.[\\w.]+'\n\n"
+                "Explicando o padrao:\n"
+                "   [\\w.+-]+   parte local: letras, digitos, pontos, +, -\n"
+                "   @          o @ literal\n"
+                "   [\\w-]+     dominio: letras, digitos, hifens\n"
+                "   \\.         ponto literal (. sem barra = qualquer char)\n"
+                "   [\\w.]+     TLD: letras e pontos (para .com.br etc.)\n\n"
+                "Use re.findall(padrao, texto) que retorna diretamente\n"
+                "a lista de todas as ocorrencias encontradas."
+            ),
             funcao="extrair_emails",
             assinatura="import re\n\n\ndef extrair_emails(texto):",
             testes=[
@@ -887,13 +1799,28 @@ print("preguicoso:", preguicoso)   # ['<b>', '</b>', '<i>', '</i>'] -- cada tag 
                 ("extrair_emails('nenhum aqui')", "[]"),
             ],
             nivel="medio",
-            dica=r"Algo como r'[\w.+-]+@[\w-]+\.[\w.]+' resolve os casos comuns.",
+            dica="return re.findall(r'[\\w.+-]+@[\\w-]+\\.[\\w.]+', texto)",
         ),
         Exercicio(
             id="d26e2",
             enunciado=(
-                "Escreva converter_datas(texto) trocando todas as datas no formato\n"
-                "DD/MM/AAAA por AAAA-MM-DD."
+                "O import re ja esta na assinatura.\n"
+                "Escreva converter_datas(texto) que substitui todas as\n"
+                "datas no formato DD/MM/AAAA pelo formato AAAA-MM-DD.\n\n"
+                "Exemplos:\n"
+                "   converter_datas('venceu em 28/07/2026 e 01/01/2027')\n"
+                "   -> 'venceu em 2026-07-28 e 2027-01-01'\n\n"
+                "   converter_datas('sem data') -> 'sem data'\n\n"
+                "Use re.sub com grupos de captura:\n"
+                "   padrao:    r'(\\d{2})/(\\d{2})/(\\d{4})'\n"
+                "   substituto: r'\\3-\\2-\\1'\n\n"
+                "Como funciona:\n"
+                "   (\\d{2}) = grupo 1 = dia\n"
+                "   (\\d{2}) = grupo 2 = mes\n"
+                "   (\\d{4}) = grupo 3 = ano\n"
+                "   \\3-\\2-\\1 = ano-mes-dia  (ordem invertida)\n\n"
+                "re.sub substitui TODAS as ocorrencias de uma vez --\n"
+                "nao precisa de loop."
             ),
             funcao="converter_datas",
             assinatura="import re\n\n\ndef converter_datas(texto):",
@@ -903,13 +1830,29 @@ print("preguicoso:", preguicoso)   # ['<b>', '</b>', '<i>', '</i>'] -- cada tag 
                 ("converter_datas('sem data')", "'sem data'"),
             ],
             nivel="medio",
-            dica=r"re.sub(r'(\d{2})/(\d{2})/(\d{4})', r'\3-\2-\1', texto)",
+            dica="return re.sub(r'(\\d{2})/(\\d{2})/(\\d{4})', r'\\3-\\2-\\1', texto)",
         ),
         Exercicio(
             id="d26e3",
             enunciado=(
-                "Escreva validar_telefone(numero) aceitando os formatos brasileiros\n"
-                "'(21) 99999-8888' e '21999998888' (11 dígitos com o 9)."
+                "O import re ja esta na assinatura.\n"
+                "Escreva validar_telefone(numero) que retorna True se\n"
+                "o numero for um celular brasileiro valido (11 digitos:\n"
+                "DDD + 9 + 8 digitos), False caso contrario.\n\n"
+                "Formatos validos (sempre 11 digitos numericos):\n"
+                "   '(21) 99999-8888'  -> True\n"
+                "   '21999998888'      -> True\n\n"
+                "Formatos invalidos:\n"
+                "   '123'              -> False  (poucos digitos)\n"
+                "   '(21) 9999-8888'   -> False  (10 digitos = fixo)\n\n"
+                "Estrategia: remova tudo que nao for digito e verifique:\n"
+                "   1. digitos = re.sub(r'\\D', '', numero)\n"
+                "      \\D = qualquer coisa que nao seja digito\n"
+                "   2. len(digitos) == 11  (deve ter exatamente 11)\n"
+                "   3. digitos[2] == '9'   (3o digito e o 9 do celular)\n"
+                "      DDD ocupa os 2 primeiros digitos (indices 0 e 1)\n"
+                "      O 9 do celular fica no indice 2\n\n"
+                "   return len(digitos) == 11 and digitos[2] == '9'"
             ),
             funcao="validar_telefone",
             assinatura="import re\n\n\ndef validar_telefone(numero):",
@@ -920,287 +1863,614 @@ print("preguicoso:", preguicoso)   # ['<b>', '</b>', '<i>', '</i>'] -- cada tag 
                 ("validar_telefone('(21) 9999-8888')", "False"),
             ],
             nivel="dificil",
-            dica="Uma opção robusta: remova tudo que não é dígito e verifique se sobraram 11.",
+            dica="digitos = re.sub(r'\\D', '', numero); return len(digitos) == 11 and digitos[2] == '9'",
         ),
     ],
     quiz=[
-        Quiz("Por que usar string crua r'' nos padrões regex?",
-             ["É mais rápido em tempo de execução", "Evita que o Python processe as barras invertidas como escapes de string antes do re vê-las",
-              "Permite acentos no padrão", "É uma exigência obrigatória da sintaxe do módulo re"], 1,
-             "Sem raw string, '\\d' poderia ser interpretado de forma inconsistente, já que \\d não é um escape reconhecido pela linguagem."),
-        Quiz("Qual a diferença entre .+ e .+? em um padrão regex?",
-             ["Nenhuma diferença prática", "O segundo é preguiçoso e casa o mínimo possível de caracteres",
-              "O segundo é sintaxe inválida", "O primeiro casa apenas letras, nunca números"], 1,
-             "O ? após um quantificador o torna não guloso (lazy), parando assim que a condição mínima é satisfeita."),
-        Quiz("Por que usar (?P<nome>...) em vez de apenas (...) para capturar grupos?",
-             ["Grupos nomeados são mais rápidos de processar", "Tornam o padrão mais legível, acessando cada parte por nome em vez de posição numérica",
-              "Só grupos nomeados podem ser usados em re.sub", "Não há diferença funcional real"], 1,
-             "m.group('ano') é muito mais claro e menos propenso a erro que m.group(3) num padrão complexo."),
-        Quiz("Por que evitar padrões como r'(a+)+' aninhando quantificadores de forma ambígua?",
-             ["Eles nunca funcionam corretamente", "Podem causar uma explosão combinatória de tentativas de casamento (ReDoS) em certas entradas",
-              "São apenas mais lentos, sem risco real", "Só afetam padrões muito curtos"], 1,
-             "Certas entradas podem fazer o motor de regex testar exponencialmente muitas combinações, travando o programa."),
+        Quiz(
+            "Qual a diferenca entre re.search e re.match?",
+            ["search e mais rapido que match",
+             "search procura em qualquer posicao da string; match so procura no INICIO",
+             "match retorna todos os resultados; search retorna apenas o primeiro",
+             "search e case-sensitive; match e case-insensitive por padrao"],
+            1,
+            "re.match(r'\\d+', 'abc 123') retorna None porque '123' nao esta no inicio. "
+            "re.search(r'\\d+', 'abc 123') encontra '123' em qualquer posicao. "
+            "Para garantir correspondencia na string inteira, use ^ e $ no padrao.",
+        ),
+        Quiz(
+            "O que r'<.+>' captura em '<b>texto</b> e <i>mais</i>'?",
+            ["['<b>', '</b>', '<i>', '</i>'] -- cada tag separadamente",
+             "'<b>texto</b> e <i>mais</i>' -- tudo do primeiro < ao ultimo >",
+             "['<b>texto</b>', '<i>mais</i>'] -- cada par de tags",
+             "Nada -- ponto nao casa com letras"],
+            1,
+            "+ e guloso: tenta corresponder o MAXIMO possivel. "
+            "<.+> vai do primeiro < ate o ULTIMO > da string. "
+            "Para capturar cada tag use o preguicoso: r'<.+?>' "
+            "ou mais preciso: r'<[^>]+>' (tudo exceto >).",
+        ),
+        Quiz(
+            "Por que usar raw strings r'...' para padroes regex?",
+            ["Raw strings sao mais rapidas de processar",
+             "Backslash tem significado especial tanto em strings Python quanto em regex -- raw strings evitam a dupla interpretacao",
+             "Raw strings desabilitam os metacaracteres do regex",
+             "Nao e necessario -- e apenas convencao opcional"],
+            1,
+            "\\d em string normal seria interpretado como 'd' (barra descartada). "
+            "Para ter \\d no padrao regex voce precisaria escrever '\\\\d'. "
+            "Com r'\\d' a barra e preservada e o regex a interpreta como 'digito'. "
+            "Sempre use r'...' -- e mais claro e menos propenso a bugs.",
+        ),
+        Quiz(
+            "No re.sub, o que r'\\3-\\2-\\1' faz como substituto?",
+            ["Substitui pelo texto literal '\\3-\\2-\\1'",
+             "Insere o terceiro grupo capturado, um hifem, o segundo e um hifem e o primeiro",
+             "Inverte a string capturada",
+             "Remove os grupos e insere hifens"],
+            1,
+            "No substituto do re.sub, \\1, \\2, \\3 referenciam os grupos de captura. "
+            "Para o padrao r'(\\d{2})/(\\d{2})/(\\d{4})' com '28/07/2026': "
+            "\\1='28' (dia), \\2='07' (mes), \\3='2026' (ano). "
+            "r'\\3-\\2-\\1' = '2026-07-28' -- data reformatada para ISO 8601.",
+        ),
     ],
     projeto=(
-        "Escreva um analisador de logs de servidor: extraia IP, data, método, rota e status "
-        "com grupos nomeados, e gere um relatório com as 10 rotas mais acessadas e a taxa de erros 5xx."
+        "Crie extrator_contatos.py que processa texto livre e extrai\n"
+        "informacoes estruturadas usando regex:\n\n"
+        "   ENTRADA: texto livre com contatos misturados\n"
+        "   ex: 'Ligue para Ana (21) 99999-8888 ou email ana@empresa.com.br\n"
+        "        Bruno: 11987654321, bruno@dev.io'\n\n"
+        "   FUNCOES:\n"
+        "   1. extrair_emails(texto) -> list[str]\n"
+        "   2. extrair_telefones(texto) -> list[str]\n"
+        "      retorna numeros com apenas os digitos (11 digitos)\n"
+        "   3. extrair_ceps(texto) -> list[str]\n"
+        "      padrao: NNNNN-NNN ou NNNNNNNN\n"
+        "   4. extrair_urls(texto) -> list[str]\n"
+        "      padrao: http:// ou https:// seguido de caracteres validos\n"
+        "   5. analisar(texto) -> dict\n"
+        "      retorna {'emails': [...], 'telefones': [...], 'urls': [...]}\n\n"
+        "   LIMPEZA:\n"
+        "   6. normalizar(texto) -> str\n"
+        "      remove HTML, normaliza espacos, converte datas DD/MM para ISO\n\n"
+        "BONUS: adicione um modo CLI (argparse do Dia 25) que:\n"
+        "   - Recebe um arquivo .txt como argumento\n"
+        "   - Exibe os contatos extraidos formatados\n"
+        "   - Com --json exporta como JSON"
     ),
-    leitura=["docs.python.org/pt-br/3/howto/regex.html", "regex101.com"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/re.html -- modulo re completo",
+        "regex101.com -- testador interativo de regex",
+        "docs.python.org/pt-br/3/howto/regex.html -- guia oficial de regex",
+    ],
 ))
-
 # ---------------------------------------------------------------- DIA 27
 DIAS.append(Dia(
     numero=27,
-    titulo="Concorrência: threads, processos e o GIL",
-    nivel="Avançado",
-    duracao="110 min",
+    titulo="Concorrencia: threads, processos e o GIL",
+    nivel="Avancado",
+    duracao="120 min",
     objetivos=[
-        "Entender o que é o GIL e suas consequências práticas para threads em Python",
-        "Escolher entre threads e processos com base no tipo de trabalho (I/O ou CPU)",
-        "Usar ThreadPoolExecutor e ProcessPoolExecutor da API concurrent.futures",
-        "Identificar condições de corrida e protegê-las com Lock",
-        "Usar Queue para comunicação segura entre threads, em vez de compartilhar estado diretamente",
-        "Aplicar a regra de ouro: medir antes de adicionar complexidade de concorrência",
+        "Entender o que e concorrencia versus paralelismo e quando cada um faz sentido",
+        "Compreender o GIL: o que e, por que existe e como ele afeta threads em Python",
+        "Usar threading para tarefas I/O-bound com Thread, Lock e Queue",
+        "Usar multiprocessing para tarefas CPU-bound que escapam do GIL",
+        "Usar concurrent.futures como interface unificada de alto nivel",
+        "Reconhecer condicoes de corrida e protege-las com Lock",
     ],
     teoria="""
-1. O GIL em uma frase, e o que ele realmente significa na prática
-------------------------------------------------------------------------------
-O CPython (a implementação padrão do Python, que você tem instalada) tem
-um bloqueio interno chamado GIL (Global Interpreter Lock) que permite a
-execução de apenas UM bytecode Python por vez, mesmo que seu programa
-tenha várias THREADS rodando "ao mesmo tempo".
+Ate agora, seus programas faziam uma coisa de cada vez: executavam
+linha por linha, esperando cada operacao terminar antes de comecar a
+proxima. Para muitos problemas isso e suficiente. Mas quando voce precisa
+baixar 100 arquivos da internet, processar 1000 imagens ou responder
+multiplos usuarios ao mesmo tempo, fazer uma coisa de cada vez se torna
+um gargalo enorme.
 
-A consequência prática, que organiza toda a decisão deste dia:
+---------------------------------------------------------------------------
+1. Concorrencia versus paralelismo
+---------------------------------------------------------------------------
+Esses dois termos sao frequentemente confundidos, mas significam coisas
+diferentes:
 
-    trabalho de I/O (rede, disco, banco de dados)   -> THREADS ajudam MUITO
-    trabalho de CPU (cálculo pesado, processar imagem) -> THREADS NÃO ajudam; use PROCESSOS
+CONCORRENCIA: lidar com muitas coisas ao mesmo tempo.
+    Multiplas tarefas EXISTEM simultaneamente, mas em qualquer instante
+    apenas uma esta realmente em execucao. O sistema alterna rapidamente
+    entre elas, dando a ilusao de simultaneidade.
+    Analogia: um cozinheiro que coloca macacao para cozinhar, enquanto
+    espera prepara o molho, enquanto molho aquece corta legumes.
 
-O porquê é sutil, mas importante: enquanto uma thread está ESPERANDO por
-uma operação de I/O (uma resposta de rede, uma leitura de disco), ela
-LIBERA o GIL, permitindo que outra thread rode nesse meio tempo. Mas
-durante um CÁLCULO puro em Python, a thread MANTÉM o GIL o tempo todo,
-impedindo qualquer outra thread de avançar — por isso threads não trazem
-ganho real de velocidade para trabalho intensivo de CPU, apenas para
-trabalho que passa a maior parte do tempo esperando por algo externo.
+PARALELISMO: fazer muitas coisas ao mesmo tempo.
+    Multiplas tarefas realmente executam ao mesmo tempo, em nucleos
+    de CPU diferentes.
+    Analogia: dois cozinheiros na mesma cozinha, cada um fazendo uma
+    coisa diferente simultaneamente.
 
-(O Python 3.13 introduziu um modo experimental sem GIL, mas o raciocínio
-acima continua sendo o padrão prático para o código que a grande maioria
-dos programas escreve hoje, incluindo este curso.)
+Em Python:
+    Threads   -> concorrencia (GIL impede paralelismo real para CPU)
+    Processos -> paralelismo real (cada processo tem seu proprio GIL)
+    asyncio   -> concorrencia cooperativa (veremos no Dia 28)
 
-2. concurrent.futures: a API recomendada para a maioria dos casos
-------------------------------------------------------------------------------
-    from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+QUANDO CADA UM AJUDA:
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        resultados = list(executor.map(baixar, urls))       # a ordem dos resultados é preservada
+    Tarefa        Exemplo                        Solucao
+    ----------    --------------------------     -----------------------
+    I/O-bound     download, banco, API           threads ou asyncio
+    CPU-bound     calculos, imagens, ML          processos (multiprocessing)
+    Misto         web scraping com parse         processos + threads
 
-    with ThreadPoolExecutor() as executor:
-        futuros = [executor.submit(baixar, u) for u in urls]
-        for f in as_completed(futuros):                     # processa conforme cada um termina, não na ordem de envio
-            try:
-                print(f.result())
-            except Exception as e:
-                print("falhou:", e)
+I/O-bound: o programa passa a maior parte do tempo ESPERANDO -- a rede
+responder, o disco ler, o banco processar. Durante a espera o CPU fica
+ocioso -- perfil ideal para threads.
 
-O bloco `with` do executor GARANTE que todas as tarefas submetidas
-terminem antes de sair do bloco — não é preciso chamar `.join()`
-manualmente como no `threading` de mais baixo nível. Um detalhe fácil de
-esquecer, mas crítico: exceções que ocorrem DENTRO de uma tarefa não são
-propagadas imediatamente — elas ficam guardadas no objeto `Future`
-correspondente, e só são relevantadas quando você chama `.result()` sobre
-ele. Ignorar esse resultado (nunca chamar `.result()` nem verificar
-erros) faz falhas desaparecerem silenciosamente.
+CPU-bound: o programa passa a maior parte do tempo CALCULANDO --
+comprimindo imagens, treinando modelos, calculando hashes. O CPU esta
+sempre ocupado -- threads Python nao ajudam por causa do GIL.
 
-3. threading direto: quando você precisa de controle mais fino
-------------------------------------------------------------------------
+---------------------------------------------------------------------------
+2. O GIL: o que e e por que importa
+---------------------------------------------------------------------------
+GIL = Global Interpreter Lock (Trava Global do Interpretador).
+
+E um mutex -- uma trava -- dentro do CPython que garante que apenas UMA
+thread Python execute codigo bytecode de cada vez, mesmo que o computador
+tenha multiplos nucleos.
+
+POR QUE O GIL EXISTE?
+O gerenciamento de memoria do CPython usa contagem de referencias. Cada
+objeto Python tem um contador que rastreia quantas variaveis apontam para
+ele. Sem protecao, duas threads poderiam decrementar o mesmo contador
+simultaneamente e causar corrupcao de memoria. O GIL resolve isso de
+forma simples: so uma thread executa por vez, entao nao ha conflito.
+
+O QUE O GIL SIGNIFICA NA PRATICA:
+
+    Para I/O-bound (download, leitura de arquivo, banco de dados):
+    Threads FUNCIONAM BEM. Quando uma thread espera I/O, ela LIBERA
+    o GIL para outra thread executar. Voce obtem concorrencia real.
+
+    Para CPU-bound (calculos pesados):
+    Threads NAO AJUDAM. Cada thread precisa do GIL para executar
+    e elas se revezam uma de cada vez. Resultado: igual ou pior
+    que uma thread so, com overhead de coordenacao.
+
+    Para CPU-bound, use multiprocessing: cada PROCESSO tem seu
+    proprio GIL, entao multiplos processos rodam em paralelo real.
+
+---------------------------------------------------------------------------
+3. threading: concorrencia com threads
+---------------------------------------------------------------------------
+O modulo threading permite criar e gerenciar threads:
+
     import threading
+    import time
 
-    t = threading.Thread(target=funcao, args=(1,), daemon=True)
+    def tarefa(nome, duracao):
+        print(f"[{nome}] iniciando...")
+        time.sleep(duracao)     # simula I/O: libera o GIL durante o sleep
+        print(f"[{nome}] concluido!")
+
+    t1 = threading.Thread(target=tarefa, args=("Alpha", 2))
+    t2 = threading.Thread(target=tarefa, args=("Beta", 1))
+
+    t1.start()   # inicia a thread (nao bloqueia)
+    t2.start()
+
+    t1.join()    # espera t1 terminar
+    t2.join()    # espera t2 terminar
+
+    # Beta termina antes por dormir menos:
+    # [Alpha] iniciando...
+    # [Beta] iniciando...
+    # [Beta] concluido!
+    # [Alpha] concluido!
+
+join() e crucial: sem ele, o programa principal pode terminar antes
+das threads. t.join() bloqueia ate que a thread t termine.
+
+THREADS DAEMON:
+
+    t = threading.Thread(target=tarefa, daemon=True)
     t.start()
-    t.join(timeout=5)
+    # Quando o programa principal terminar, threads daemon sao
+    # encerradas automaticamente (mesmo que nao tenham terminado)
 
-`concurrent.futures` cobre a maioria dos casos de forma mais simples, mas
-o módulo `threading` de baixo nível continua sendo útil quando você
-precisa de controle mais fino — por exemplo, um laço de fundo de longa
-duração, ou um "watchdog" que monitora algo continuamente em segundo
-plano, casos que não se encaixam bem no modelo de "submeta uma tarefa e
-espere o resultado" dos executors.
+---------------------------------------------------------------------------
+4. Condicoes de corrida e Lock
+---------------------------------------------------------------------------
+Quando multiplas threads compartilham e modificam o mesmo dado, pode
+ocorrer uma CONDICAO DE CORRIDA (race condition): o resultado depende
+da ordem imprevisivel de execucao.
 
-4. Condição de corrida e Lock: protegendo estado compartilhado
-------------------------------------------------------------------------
+EXEMPLO CLASSICO:
+
     contador = 0
+
     def incrementar():
         global contador
         for _ in range(100_000):
-            contador += 1        # esta linha NÃO é atômica: envolve ler, somar e gravar
+            contador += 1    # NAO e atomico! sao 3 operacoes: ler, somar, escrever
 
-Se duas threads executam `contador += 1` "ao mesmo tempo", pode acontecer
-de as duas LEREM o mesmo valor antigo de `contador` antes de qualquer uma
-gravar o novo valor — resultando em um incremento PERDIDO. Esse fenômeno é
-chamado de CONDIÇÃO DE CORRIDA (race condition), e é um dos bugs mais
-difíceis de reproduzir de forma consistente, porque depende do momento
-exato (imprevisível) em que cada thread é interrompida pelo sistema.
+Por que e um problema? contador += 1 equivale a:
+    temp = contador    # thread 1 le 5
+    temp = temp + 1    # thread 1 calcula 6
+    # thread 2 tambem le 5 e calcula 6 (antes de thread 1 salvar!)
+    contador = temp    # thread 1 salva 6
+    contador = temp    # thread 2 salva 6 -- sobreescreveu! perdeu um incremento
 
-A solução é um `Lock` (também chamado de mutex), que garante que apenas
-UMA thread por vez execute o trecho protegido:
+Com 2 threads fazendo 100.000 incrementos cada, esperamos 200.000.
+O resultado real e menor e varia a cada execucao.
+
+SOLUCAO: Lock (mutex)
 
     lock = threading.Lock()
-    with lock:
-        contador += 1
+    contador = 0
 
-Outros primitivos de sincronização da biblioteca padrão incluem `RLock`
-(um lock que a mesma thread pode adquirir novamente sem travar a si
-mesma), `Semaphore` (limita quantas threads podem acessar algo
-simultaneamente — não apenas uma), `Event` (sinalização simples entre
-threads) e `Condition`/`Barrier` (coordenação mais elaborada entre várias
-threads).
+    def incrementar_seguro():
+        global contador
+        for _ in range(100_000):
+            with lock:          # adquire o lock
+                contador += 1   # so uma thread por vez aqui
+                                 # lock liberado ao sair do with
 
-5. Queue: comunicação entre threads sem compartilhar estado diretamente
-------------------------------------------------------------------------------
+Com Lock, o resultado e sempre 200.000.
+
+Lock garante que apenas uma thread execute o bloco protegido por vez.
+O custo: contencao de lock. Se muitas threads brigam pelo mesmo lock,
+voce perde o beneficio da concorrencia -- por isso proteja apenas o
+minimo necessario (o trecho critico), nao o loop inteiro.
+
+OUTROS PRIMITIVOS DE SINCRONIZACAO:
+
+    threading.RLock()       Lock reentrante (mesma thread pode adquirir varias vezes)
+    threading.Event()       sinaliza entre threads (set/wait/clear)
+    threading.Semaphore(n)  permite ate n threads simultaneas
+    threading.Condition()   wait/notify para comunicacao entre threads
+
+---------------------------------------------------------------------------
+5. Queue: comunicacao segura entre threads
+---------------------------------------------------------------------------
+queue.Queue e uma fila thread-safe: projetada para comunicacao entre
+threads sem precisar de locks manuais:
+
     from queue import Queue
+    import threading
+
     fila = Queue()
-    fila.put(item)
-    item = fila.get(); ...; fila.task_done()
-    fila.join()
 
-`queue.Queue` já é THREAD-SAFE por construção — internamente, ela já
-implementa os locks necessários para que múltiplas threads possam colocar
-(`put`) e retirar (`get`) itens sem risco de condição de corrida. O
-princípio de design que essa ferramenta encoraja é: em vez de várias
-threads compartilharem e modificarem a mesma variável diretamente (o que
-exige locks manuais e é fácil de errar), prefira que elas se COMUNIQUEM
-por MENSAGENS através de uma fila — um padrão conhecido como
-produtor/consumidor, muito mais fácil de raciocinar corretamente.
+    def produtor():
+        for i in range(5):
+            fila.put(i)       # coloca na fila (thread-safe)
+        fila.put(None)        # sentinela: sinaliza "acabou"
 
-6. Multiprocessing: paralelismo real para trabalho de CPU
-------------------------------------------------------------------------
-    with ProcessPoolExecutor() as ex:
-        resultados = list(ex.map(calculo_pesado, dados))
+    def consumidor():
+        while True:
+            item = fila.get()        # retira da fila (bloqueia se vazia)
+            if item is None:
+                break
+            print(f"Processando {item}")
+            fila.task_done()
 
-Diferente de threads (que compartilham o mesmo processo e, portanto, o
-mesmo GIL), cada PROCESSO criado por `ProcessPoolExecutor` tem seu próprio
-interpretador Python e sua própria memória, completamente independentes.
-Isso traz consequências importantes:
+O padrao PRODUTOR-CONSUMIDOR desacopla quem gera dados de quem processa,
+permitindo que operem em velocidades diferentes. Queue cuida da
+sincronizacao automaticamente.
 
-- ganha-se PARALELISMO REAL para trabalho de CPU, aproveitando múltiplos
-  núcleos de verdade — o problema que threads não resolvem, dado o GIL;
-- os dados trocados entre processos precisam ser SERIALIZÁVEIS (via
-  `pickle`), já que processos não compartilham memória diretamente;
-- o custo de CRIAR um processo novo e TRANSFERIR dados entre processos é
-  significativamente mais alto que criar uma thread — por isso,
-  multiprocessing só compensa quando o trabalho em si é grande o
-  suficiente para diluir esse custo fixo;
-- no Linux, o método padrão de criação de processo é `fork`, e é
-  importante proteger o código de nível de módulo com
-  `if __name__ == "__main__":` (Dia 13), para que ele não seja
-  reexecutado indevidamente em cada processo filho criado.
+task_done() informa que o item foi processado -- necessario se voce
+usar fila.join() para esperar que todos os itens sejam processados.
 
-7. Escolhendo a ferramenta certa para cada situação
-------------------------------------------------------------------------
-    I/O com muitas esperas (rede, disco)         -> asyncio (Dia 28) ou threads
-    trabalho intensivo de CPU                      -> processos (ProcessPoolExecutor)
-    muitas tarefas independentes e curtas          -> executor.map (threads ou processos, conforme o tipo de trabalho)
-    pipeline no estilo produtor/consumidor         -> Queue + threads
+---------------------------------------------------------------------------
+6. multiprocessing: paralelismo real
+---------------------------------------------------------------------------
+Para tarefas CPU-bound, use multiprocessing. Cada processo tem seu
+proprio espaco de memoria e GIL:
 
-8. A regra de ouro: meça antes de adicionar concorrência
-------------------------------------------------------------------
-Concorrência multiplica a complexidade do código e a dificuldade de
-depurar problemas (condições de corrida só aparecem às vezes,
-dependendo de timing) — por isso, a prática recomendada é só adotar
-threads ou processos quando o GANHO de desempenho já foi comprovado por
-MEDIÇÃO real (retomando o Dia 29 adiante: meça, não adivinhe), não por
-intuição sobre "isso deveria ser mais rápido em paralelo".
+    from multiprocessing import Pool
+
+    def calcular(n):
+        return sum(range(n))
+
+    if __name__ == '__main__':    # OBRIGATORIO em multiprocessing!
+        with Pool(processes=4) as pool:
+            resultados = pool.map(calcular, [1_000_000] * 8)
+        print(resultados)
+
+POR QUE if __name__ == '__main__' E OBRIGATORIO?
+No Windows e em alguns modos do Linux, o modulo multiprocessing importa
+o script ao criar novos processos. Sem a guarda, cada processo filho
+tentaria criar mais filhos infinitamente (fork bomb).
+
+COMPARTILHANDO ESTADO ENTRE PROCESSOS:
+Processos NAO compartilham memoria. Para compartilhar, use:
+
+    from multiprocessing import Value, Manager
+
+    contador = Value('i', 0)    # 'i' = inteiro compartilhado
+    with contador.get_lock():
+        contador.value += 1
+
+    with Manager() as manager:
+        lista = manager.list([1, 2, 3])   # lista compartilhada (mais lenta)
+
+---------------------------------------------------------------------------
+7. concurrent.futures: interface de alto nivel
+---------------------------------------------------------------------------
+concurrent.futures oferece uma interface unificada para threads e
+processos, mais simples que threading e multiprocessing diretos:
+
+    from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+    import time
+
+    def simular_download(url):
+        time.sleep(0.1)
+        return f"dados de {url}"
+
+    urls = ["url1", "url2", "url3", "url4", "url5"]
+
+    # ThreadPoolExecutor para I/O-bound
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        # map: equivalente a map() mas com threads, PRESERVA A ORDEM
+        resultados = list(executor.map(simular_download, urls))
+
+        # submit: envia uma tarefa, retorna um Future
+        futures = [executor.submit(simular_download, url) for url in urls]
+        resultados = [f.result() for f in futures]
+
+    # ProcessPoolExecutor para CPU-bound (mesma interface!)
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        resultados = list(executor.map(calcular, dados))
+
+FUTURE: representa um resultado que ainda nao esta disponivel.
+
+    future = executor.submit(tarefa)
+    future.done()           # True se terminou
+    future.result()         # bloqueia ate ter resultado (ou levanta excecao)
+    future.cancel()         # tenta cancelar (pode nao funcionar se ja iniciou)
+    future.exception()      # a excecao levantada, se houver
+
+AS_COMPLETED: processar resultados na ordem em que terminam:
+
+    from concurrent.futures import as_completed
+
+    futures = {executor.submit(simular_download, url): url for url in urls}
+    for future in as_completed(futures):
+        url = futures[future]
+        resultado = future.result()
+        print(f"{url} -> {resultado}")
+
+---------------------------------------------------------------------------
+8. Escolhendo a abordagem certa
+---------------------------------------------------------------------------
+
+    Situacao                          Recomendacao
+    ------------------------------    ----------------------------------
+    I/O simples, sequencial           nenhuma concorrencia necessaria
+    Multiplos downloads/requests      ThreadPoolExecutor
+    Muitas requisicoes de API         asyncio (Dia 28)
+    Calculo pesado (multi-nucleo)     ProcessPoolExecutor
+    Comunicacao entre threads         Queue (nao variaveis globais)
+    Servidor web                      framework (FastAPI, Django)
 """,
     exemplos=[
         Exemplo(
-            titulo="Threads para I/O simulado",
-            codigo='''import time
+            titulo="Threads para I/O: downloads simulados",
+            codigo='''import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
-def tarefa_io(n):
-    time.sleep(0.2)          # simula espera de rede
-    return n * 2
+def simular_download(url):
+    time.sleep(0.1)    # libera o GIL durante o sleep
+    return f"conteudo_de_{url}"
 
+# Sequencial: 5 x 0.1s = 0.5s
 inicio = time.perf_counter()
-with ThreadPoolExecutor(max_workers=10) as ex:
-    resultados = list(ex.map(tarefa_io, range(10)))
-print(resultados, f"{time.perf_counter()-inicio:.2f}s")   # ~0.2s, não 2s
-''',
-            explicacao="Dez esperas de 0.2s acontecem em paralelo, porque "
-                       "cada thread libera o GIL enquanto aguarda o sleep, "
-                       "permitindo que as outras avancem nesse meio tempo.",
-        ),
-        Exemplo(
-            titulo="Lock evitando condição de corrida",
-            codigo='''import threading
+resultados_seq = [simular_download(f"url{i}") for i in range(1, 6)]
+tempo_seq = time.perf_counter() - inicio
+print(f"Sequencial:  {tempo_seq:.2f}s ({len(resultados_seq)} itens)")
 
-contador = 0
+# Com ThreadPoolExecutor: ~0.1s (todas rodam ao mesmo tempo)
+inicio = time.perf_counter()
+with ThreadPoolExecutor(max_workers=5) as executor:
+    resultados_pool = list(executor.map(simular_download,
+                                        [f"url{i}" for i in range(1, 6)]))
+tempo_pool = time.perf_counter() - inicio
+print(f"Com pool:    {tempo_pool:.2f}s ({len(resultados_pool)} itens)")
+print(f"Speedup:     {tempo_seq/tempo_pool:.1f}x")
+
+# Threads manuais com Lock protegendo a lista de resultados
+resultados_manual = []
 lock = threading.Lock()
 
-def incrementar(vezes):
-    global contador
-    for _ in range(vezes):
-        with lock:
-            contador += 1
+def baixar(url):
+    dado = simular_download(url)
+    with lock:
+        resultados_manual.append(dado)
 
-threads = [threading.Thread(target=incrementar, args=(50_000,)) for _ in range(4)]
+inicio = time.perf_counter()
+threads = [threading.Thread(target=baixar, args=(f"url{i}",))
+           for i in range(1, 6)]
 for t in threads: t.start()
 for t in threads: t.join()
-print(contador)      # sempre 200000, garantido pelo lock
+tempo_manual = time.perf_counter() - inicio
+print(f"Manual:      {tempo_manual:.2f}s ({len(resultados_manual)} itens)")
 ''',
-            explicacao="Sem o lock, o total variaria de execução para "
-                       "execução, quase sempre ficando abaixo de 200000 "
-                       "por causa de incrementos perdidos na condição de corrida.",
+            explicacao="time.sleep() libera o GIL -- e I/O simulado. "
+                       "Por isso 5 threads com sleep(0.1) completam em ~0.1s total, "
+                       "nao em 0.5s. "
+                       "ThreadPoolExecutor com map e mais limpo que threads manuais: "
+                       "gerencia o pool, coleta resultados e preserva a ordem. "
+                       "O Lock na versao manual protege o append na lista -- "
+                       "list.append e thread-safe em CPython, mas o Lock garante "
+                       "corretude mesmo em implementacoes diferentes.",
         ),
         Exemplo(
-            titulo="Threads não ajudam trabalho de CPU puro",
-            codigo='''import time
-from concurrent.futures import ThreadPoolExecutor
+            titulo="Condicao de corrida e Lock na pratica",
+            codigo='''import threading
 
-def calculo_pesado(n):
-    return sum(i * i for i in range(n))
+# VERSAO COM BUG: condicao de corrida
+contador_bug = [0]
 
-valores = [2_000_000] * 4
+def incrementar_bug(n):
+    for _ in range(n):
+        contador_bug[0] += 1    # nao e atomico!
 
-inicio = time.perf_counter()
-sequencial = [calculo_pesado(v) for v in valores]
-print("sequencial:", f"{time.perf_counter()-inicio:.2f}s")
+threads_bug = [threading.Thread(target=incrementar_bug, args=(10_000,))
+               for _ in range(4)]
+for t in threads_bug: t.start()
+for t in threads_bug: t.join()
+print(f"Com bug    (esperado 40000): {contador_bug[0]}")  # provavelmente menor!
 
-inicio = time.perf_counter()
-with ThreadPoolExecutor(max_workers=4) as ex:
-    paralelo = list(ex.map(calculo_pesado, valores))
-print("com threads:", f"{time.perf_counter()-inicio:.2f}s")
-# os dois tempos ficam parecidos -- o GIL impede o ganho que threads
-# trariam para trabalho de I/O; aqui seria necessario ProcessPoolExecutor
+# VERSAO CORRETA: protegida por Lock
+contador_ok = [0]
+lock = threading.Lock()
+
+def incrementar_seguro(n):
+    for _ in range(n):
+        with lock:
+            contador_ok[0] += 1   # so uma thread por vez
+
+threads_ok = [threading.Thread(target=incrementar_seguro, args=(10_000,))
+              for _ in range(4)]
+for t in threads_ok: t.start()
+for t in threads_ok: t.join()
+print(f"Com lock   (esperado 40000): {contador_ok[0]}")   # sempre 40000!
+
+# Event: sincronizando o inicio de multiplas threads
+evento = threading.Event()
+
+def aguardar_e_rodar(nome):
+    print(f"[{nome}] aguardando sinal...")
+    evento.wait()    # bloqueia ate evento.set()
+    print(f"[{nome}] executando!")
+
+t1 = threading.Thread(target=aguardar_e_rodar, args=("Alpha",))
+t2 = threading.Thread(target=aguardar_e_rodar, args=("Beta",))
+t1.start(); t2.start()
+
+import time; time.sleep(0.1)
+print("Disparando evento para todas as threads...")
+evento.set()        # libera todas as threads que estao em wait()
+t1.join(); t2.join()
 ''',
-            explicacao="Este é o experimento que comprova na prática por "
-                       "que trabalho de CPU precisa de processos, não "
-                       "threads, para ganhar velocidade real.",
+            explicacao="A lista de 1 elemento [0] e usada no lugar de variavel "
+                       "global para simplificar o closures -- funciona igual "
+                       "mas sem precisar de 'global' ou 'nonlocal'. "
+                       "Com 4 threads fazendo 10.000 incrementos, o esperado e "
+                       "40.000 -- sem Lock o resultado e menor e varia a cada execucao. "
+                       "threading.Event e mais limpo que sleep para sincronizar: "
+                       "uma thread sinaliza, todas as que estao em wait() sao liberadas.",
+        ),
+        Exemplo(
+            titulo="Produtor-consumidor com Queue",
+            codigo='''import threading
+from queue import Queue
+import time
+
+def produtor(fila, itens):
+    for item in itens:
+        print(f"[Produtor] gerando {item}")
+        time.sleep(0.05)
+        fila.put(item)
+    fila.put(None)    # sentinela: sinaliza "acabou"
+
+def consumidor(fila, resultados, lock):
+    while True:
+        item = fila.get()        # bloqueia se a fila estiver vazia
+        if item is None:
+            fila.task_done()
+            break
+        print(f"  [Consumidor] processando {item}")
+        time.sleep(0.02)
+        with lock:
+            resultados.append(item * 2)
+        fila.task_done()
+
+fila = Queue(maxsize=3)   # buffer limitado: produtor espera se fila cheia
+resultados = []
+lock = threading.Lock()
+
+t_prod = threading.Thread(target=produtor, args=(fila, [1, 2, 3, 4, 5]))
+t_cons = threading.Thread(target=consumidor, args=(fila, resultados, lock))
+
+t_prod.start()
+t_cons.start()
+t_prod.join()
+t_cons.join()
+
+print(f"Resultados: {sorted(resultados)}")
+''',
+            explicacao="Queue(maxsize=3) limita o buffer: se a fila tiver 3 itens "
+                       "e o consumidor for lento, o produtor bloqueia automaticamente. "
+                       "Isso evita que o produtor sobrecarregue a memoria. "
+                       "O sentinela None sinaliza o fim da producao -- padrao mais "
+                       "limpo que usar eventos ou flags booleanas. "
+                       "Queue ja tem sincronizacao interna -- o Lock extra aqui "
+                       "protege apenas o append na lista de resultados.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d27e1",
             enunciado=(
-                "Escreva processar_paralelo(valores) que usa ThreadPoolExecutor para\n"
-                "aplicar uma função (que dorme 0.01s e devolve o quadrado) e devolve\n"
-                "a lista de resultados NA ORDEM de entrada."
+                "Os imports ja estao na assinatura.\n"
+                "Escreva processar_paralelo(valores) que recebe uma lista\n"
+                "de numeros e devolve uma lista com o QUADRADO de cada um,\n"
+                "calculado com ThreadPoolExecutor.\n\n"
+                "Exemplos:\n"
+                "   processar_paralelo([1, 2, 3]) -> [1, 4, 9]\n"
+                "   processar_paralelo([])         -> []\n\n"
+                "Estrategia:\n"
+                "   def quadrado(n):\n"
+                "       return n * n\n\n"
+                "   with ThreadPoolExecutor() as executor:\n"
+                "       return list(executor.map(quadrado, valores))\n\n"
+                "Por que ThreadPoolExecutor.map?\n"
+                "   - Gerencia o pool de threads automaticamente\n"
+                "   - PRESERVA A ORDEM dos resultados (importante!)\n"
+                "   - list() e necessario: map retorna um iterador\n\n"
+                "Nota: para calculos simples como este, threads nao dao\n"
+                "speedup real (e CPU-bound e o GIL limita). O exercicio\n"
+                "demonstra a interface do ThreadPoolExecutor, que brilha\n"
+                "em tarefas I/O-bound como downloads e chamadas de API."
             ),
             funcao="processar_paralelo",
-            assinatura=("import time\nfrom concurrent.futures import ThreadPoolExecutor"
-                        "\n\n\ndef processar_paralelo(valores):"),
+            assinatura="import time\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef processar_paralelo(valores):",
             testes=[
                 ("processar_paralelo([1, 2, 3])", "[1, 4, 9]"),
                 ("processar_paralelo([])", "[]"),
             ],
             nivel="medio",
-            dica="executor.map preserva a ordem; envolva em list().",
+            dica="with ThreadPoolExecutor() as executor: return list(executor.map(lambda n: n*n, valores))",
         ),
         Exercicio(
             id="d27e2",
             enunciado=(
-                "Escreva contar_seguro(n_threads, incrementos) que soma com várias\n"
-                "threads usando Lock e devolve o total (deve ser exato sempre)."
+                "O import threading ja esta na assinatura.\n"
+                "Escreva contar_seguro(n_threads, incrementos) que:\n"
+                "   - Cria n_threads threads\n"
+                "   - Cada thread incrementa um contador 'incrementos' vezes\n"
+                "   - Usa Lock para evitar condicao de corrida\n"
+                "   - Retorna o valor final do contador\n\n"
+                "Exemplos:\n"
+                "   contar_seguro(4, 10000) -> 40000  (sempre!)\n"
+                "   contar_seguro(1, 5)     -> 5\n"
+                "   contar_seguro(0, 100)   -> 0  (sem threads, contador = 0)\n\n"
+                "Estrategia com lista de 1 elemento (evita nonlocal):\n"
+                "   contador = [0]\n"
+                "   lock = threading.Lock()\n\n"
+                "   def incrementar():\n"
+                "       for _ in range(incrementos):\n"
+                "           with lock:\n"
+                "               contador[0] += 1\n\n"
+                "   threads = [threading.Thread(target=incrementar)\n"
+                "              for _ in range(n_threads)]\n"
+                "   for t in threads: t.start()\n"
+                "   for t in threads: t.join()\n"
+                "   return contador[0]\n\n"
+                "Por que lista [0] em vez de variavel inteira?\n"
+                "Inteiros sao imutaveis: dentro da funcao interna, fazer\n"
+                "'contador += 1' criaria uma variavel LOCAL, nao alterando\n"
+                "o contador externo. Ja 'contador[0] += 1' muta a lista,\n"
+                "que e mutavel e acessivel pelo closure sem nonlocal."
             ),
             funcao="contar_seguro",
             assinatura="import threading\n\n\ndef contar_seguro(n_threads, incrementos):",
@@ -1210,13 +2480,42 @@ print("com threads:", f"{time.perf_counter()-inicio:.2f}s")
                 ("contar_seguro(0, 100)", "0"),
             ],
             nivel="dificil",
-            dica="Use uma variável nonlocal ou uma lista de 1 posição protegida pelo lock.",
+            dica="contador=[0]; lock=threading.Lock(); def inc(): [with lock: contador[0]+=1 for _ in range(incrementos)]; threads=[Thread(target=inc) for _ in range(n_threads)]; start/join todos; return contador[0]",
         ),
         Exercicio(
             id="d27e3",
             enunciado=(
-                "Escreva produtor_consumidor(itens) que usa queue.Queue: uma thread\n"
-                "produtora coloca os itens e uma consumidora soma tudo. Devolva a soma."
+                "Os imports ja estao na assinatura.\n"
+                "Escreva produtor_consumidor(itens) que:\n"
+                "   - Cria uma Queue compartilhada\n"
+                "   - Thread PRODUTORA: coloca cada item na fila\n"
+                "     e ao terminar coloca None (sentinela)\n"
+                "   - Thread CONSUMIDORA: retira itens da fila e\n"
+                "     acumula a SOMA; para ao ver None\n"
+                "   - Retorna a soma de todos os itens\n\n"
+                "Exemplos:\n"
+                "   produtor_consumidor([1, 2, 3, 4]) -> 10\n"
+                "   produtor_consumidor([])            -> 0\n\n"
+                "Estrutura:\n"
+                "   fila = Queue()\n"
+                "   total = [0]\n\n"
+                "   def produtor():\n"
+                "       for item in itens: fila.put(item)\n"
+                "       fila.put(None)   # sentinela de fim\n\n"
+                "   def consumidor():\n"
+                "       while True:\n"
+                "           item = fila.get()\n"
+                "           if item is None: break\n"
+                "           total[0] += item\n\n"
+                "   t_p = Thread(target=produtor)\n"
+                "   t_c = Thread(target=consumidor)\n"
+                "   t_p.start(); t_c.start()\n"
+                "   t_p.join();  t_c.join()\n"
+                "   return total[0]\n\n"
+                "O sentinela None e o sinal de 'acabou' -- o consumidor\n"
+                "para o loop ao receber None em vez de um item real.\n"
+                "Queue.get() bloqueia automaticamente se a fila estiver\n"
+                "vazia, entao o consumidor espera o produtor sem busy-wait."
             ),
             funcao="produtor_consumidor",
             assinatura="import threading\nfrom queue import Queue\n\n\ndef produtor_consumidor(itens):",
@@ -1225,271 +2524,534 @@ print("com threads:", f"{time.perf_counter()-inicio:.2f}s")
                 ("produtor_consumidor([])", "0"),
             ],
             nivel="dificil",
-            dica="Use um sentinela (None) para avisar o consumidor de que acabou.",
+            dica="fila=Queue(); total=[0]; def prod(): [fila.put(i) for i in itens]; fila.put(None); def cons(): while True: i=fila.get(); if i is None: break; total[0]+=i; Thread(prod)+Thread(cons); join; return total[0]",
         ),
     ],
     quiz=[
-        Quiz("Para trabalho pesado de CPU (não I/O), o que geralmente usar em Python?",
-             ["Threads", "Processos (ProcessPoolExecutor)", "asyncio", "Tanto faz, o resultado é o mesmo"], 1,
-             "O GIL impede que threads tragam paralelismo real de bytecode; processos têm seus próprios interpretadores independentes."),
-        Quiz("Por que `contador += 1` não é seguro quando várias threads o executam ao mesmo tempo?",
-             ["É uma operação lenta", "Envolve ler, somar e gravar em passos separados — pode ser interrompida no meio por outra thread",
-              "Precisa obrigatoriamente de global para funcionar", "Só funciona corretamente com números pequenos"], 1,
-             "Sem um lock protegendo essa sequência de passos, incrementos concorrentes podem se perder."),
-        Quiz("Por que threads ajudam trabalho de I/O mas não trabalho de CPU puro em Python?",
-             ["Threads nunca ajudam em nada", "Uma thread libera o GIL enquanto espera I/O, mas o mantém durante cálculo puro",
-              "CPU é sempre mais rápida que I/O de qualquer forma", "Isso depende só da versão do sistema operacional"], 1,
-             "É exatamente essa liberação do GIL durante a espera que permite outras threads avançarem nesse intervalo."),
-        Quiz("Por que preferir queue.Queue a threads compartilhando e modificando a mesma variável diretamente?",
-             ["Queue é sempre mais rápida", "Queue já é thread-safe internamente, evitando a necessidade de gerenciar locks manualmente para cada acesso",
-              "Variáveis compartilhadas nunca funcionam entre threads", "Queue não pode ser usada com Lock"], 1,
-             "O padrão de comunicação por mensagens (produtor/consumidor) é mais fácil de raciocinar corretamente que estado compartilhado direto."),
+        Quiz(
+            "Por que threads Python nao aceleram tarefas CPU-bound?",
+            ["Threads sao mais lentas que processos em Python",
+             "O GIL garante que apenas uma thread execute bytecode Python por vez, entao multiplas threads se revezam em vez de rodar em paralelo",
+             "Python nao suporta threads para calculos matematicos",
+             "Threads so funcionam para operacoes de string"],
+            1,
+            "O GIL (Global Interpreter Lock) e um mutex dentro do CPython que "
+            "protege a contagem de referencias do gerenciador de memoria. "
+            "Para tarefas I/O-bound threads funcionam porque o GIL e liberado "
+            "durante a espera de I/O. "
+            "Para CPU-bound use ProcessPoolExecutor: cada processo tem seu "
+            "proprio GIL e rodam em nucleos diferentes.",
+        ),
+        Quiz(
+            "O que acontece sem Lock ao incrementar um contador com multiplas threads?",
+            ["O contador e incrementado corretamente pois Python e thread-safe",
+             "Ocorre condicao de corrida: threads podem ler o mesmo valor e sobrescrever o incremento da outra, resultando em contagem menor que o esperado",
+             "Uma excecao RuntimeError e levantada automaticamente",
+             "O programa trava em deadlock"],
+            1,
+            "contador += 1 nao e atomico: sao 3 operacoes (ler, somar, escrever). "
+            "Thread 1 le contador=5, Thread 2 le contador=5, "
+            "Thread 1 escreve 6, Thread 2 escreve 6 -- perdeu um incremento! "
+            "Lock garante que apenas uma thread execute o bloco critico por vez.",
+        ),
+        Quiz(
+            "Qual a vantagem de Queue sobre variaveis compartilhadas com Lock?",
+            ["Queue e mais rapida que Lock",
+             "Queue gerencia a sincronizacao internamente, eliminando locks manuais e implementando bloqueio automatico se vazia ou cheia",
+             "Queue nao requer threads -- funciona com processos tambem",
+             "Queue permite compartilhar funcoes entre threads"],
+            1,
+            "Queue e thread-safe por design: put() e get() ja tem sincronizacao "
+            "interna. Voce nao precisa de locks manuais. "
+            "Queue(maxsize=N) automaticamente bloqueia o produtor se a fila "
+            "estiver cheia e bloqueia o consumidor se estiver vazia. "
+            "O resultado e codigo mais limpo e menos propenso a deadlocks.",
+        ),
+        Quiz(
+            "Por que 'if __name__ == \"__main__\"' e obrigatorio com multiprocessing?",
+            ["E apenas convencao -- o codigo funciona sem ela",
+             "Ao criar processos filhos, o modulo multiprocessing importa o script principal; sem a guarda, cada filho tentaria criar mais filhos infinitamente",
+             "multiprocessing nao funciona no Linux sem essa linha",
+             "E necessario apenas no Windows, nao no Linux"],
+            1,
+            "No Windows e em alguns modos no Linux, novos processos sao criados "
+            "importando o modulo principal. Sem a guarda, o codigo de criacao "
+            "de processos executaria em cada filho, que criaria mais filhos -- "
+            "um fork bomb. "
+            "No Linux com fork o problema e menos grave, mas a guarda "
+            "e boa pratica universal.",
+        ),
     ],
     projeto=(
-        "Escreva um verificador de links: dada uma lista de URLs, cheque todas em paralelo com "
-        "ThreadPoolExecutor (timeout, tratamento de erro por item) e compare o tempo com a versão sequencial."
+        "Crie baixador_paralelo.py que demonstre threads vs sequencial:\n\n"
+        "   def simular_download(url, delay=0.1):\n"
+        "       time.sleep(delay)\n"
+        "       return f'dados de {url} ({len(url)} bytes)'\n\n"
+        "   1. SEQUENCIAL: baixa 10 URLs uma por uma, mede o tempo\n\n"
+        "   2. THREADPOOLEXECUTOR: mesmas 10 URLs com executor.map\n"
+        "      - Compare o tempo com o sequencial\n\n"
+        "   3. AS_COMPLETED: processa na ordem de conclusao\n"
+        "      - Use futures = {executor.submit(f, url): url for url in urls}\n"
+        "      - Exibe cada resultado assim que termina\n\n"
+        "   4. PRODUTOR-CONSUMIDOR:\n"
+        "      - 1 thread produtora coloca URLs na Queue\n"
+        "      - 3 threads consumidoras processam as URLs\n"
+        "      - Use sentinelas para sinalizar fim (um por consumidor)\n\n"
+        "   RELATORIO FINAL:\n"
+        "   Metodo               Tempo    Speedup\n"
+        "   ------------------   ------   -------\n"
+        "   Sequencial           1.00s    1.0x\n"
+        "   ThreadPoolExecutor   0.11s    9.1x\n"
+        "   Prod-consumidor      0.11s    9.1x\n\n"
+        "BONUS: adicione tratamento de erros -- simule falhas aleatorias\n"
+        "em alguns downloads e use future.exception() para detecta-las."
     ),
-    leitura=["docs.python.org/pt-br/3/library/concurrent.futures.html", "docs.python.org/pt-br/3/library/threading.html"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/threading.html -- threading",
+        "docs.python.org/pt-br/3/library/concurrent.futures.html -- concurrent.futures",
+        "docs.python.org/pt-br/3/library/queue.html -- Queue thread-safe",
+        "PEP 703 -- Making the GIL Optional in CPython",
+    ],
 ))
 
 # ---------------------------------------------------------------- DIA 28
 DIAS.append(Dia(
     numero=28,
-    titulo="Programação assíncrona com asyncio",
-    nivel="Avançado",
-    duracao="110 min",
+    titulo="Programacao assincrona com asyncio",
+    nivel="Avancado",
+    duracao="120 min",
     objetivos=[
-        "Diferenciar concorrência cooperativa (asyncio) de concorrência preemptiva (threads)",
-        "Escrever e executar corrotinas com async/await",
-        "Executar tarefas concorrentemente com gather e TaskGroup",
-        "Controlar timeout e limitar concorrência com semáforo",
-        "Reconhecer e evitar o erro mais grave em asyncio: bloquear o event loop",
-        "Saber quando asyncio é a ferramenta certa, comparado a threads e processos",
+        "Entender a diferenca entre concorrencia com threads e concorrencia com asyncio",
+        "Compreender o event loop, corrotinas e o que await realmente faz",
+        "Escrever e executar corrotinas com async def, await e asyncio.run",
+        "Executar multiplas corrotinas em paralelo com asyncio.gather",
+        "Usar asyncio.wait_for para impor limites de tempo",
+        "Reconhecer quando asyncio e melhor que threads e quando nao e",
     ],
     teoria="""
-1. A ideia central: concorrência cooperativa em uma única thread
-------------------------------------------------------------------------
-`asyncio` implementa concorrência COOPERATIVA rodando inteiramente em UMA
-única thread: enquanto uma corrotina está esperando por I/O, ela
-DEVOLVE VOLUNTARIAMENTE o controle ao "event loop" (o laço de eventos
-central), que aproveita esse tempo para rodar outra corrotina. Não existe
-paralelismo real de CPU aqui — o que existe é a ELIMINAÇÃO DO TEMPO
-OCIOSO gasto esperando, redirecionando-o para outro trabalho útil.
+No Dia 27 voce aprendeu a usar threads para executar tarefas de forma
+concorrente. asyncio e uma segunda abordagem para o mesmo problema --
+mas com uma filosofia completamente diferente.
 
-A distinção-chave entre os dois modelos de concorrência vistos neste
-curso: com THREADS (Dia 27), o sistema operacional decide, de forma
-PREEMPTIVA, quando interromper uma thread para dar vez a outra — você não
-controla exatamente quando isso acontece. Com `asyncio`, é o SEU PRÓPRIO
-CÓDIGO que decide, de forma COOPERATIVA, em cada `await`, quando "ceder a
-vez" — o controle é explícito e previsível, o que elimina inteiramente a
-classe de bugs de condição de corrida vista no Dia 27 (já que só uma
-coisa roda por vez, e as trocas só acontecem em pontos marcados
-explicitamente com `await`).
+---------------------------------------------------------------------------
+1. Threads versus asyncio: duas formas de concorrencia
+---------------------------------------------------------------------------
+Ambas as abordagens resolvem o problema de I/O-bound: nao desperdicar
+tempo de CPU esperando a rede ou o disco. Mas a forma como fazem isso
+e muito diferente:
 
-2. Corrotinas: funções que podem pausar e retomar
-------------------------------------------------------------
+THREADS (concorrencia preemptiva):
+    O sistema operacional decide quando trocar de thread -- a thread nao
+    tem controle. Pode ser interrompida a qualquer momento.
+    Exige Lock para proteger dados compartilhados.
+    Mais simples de entender inicialmente.
+    Funciona com bibliotecas sincronas existentes (requests, psycopg2...).
+
+ASYNCIO (concorrencia cooperativa):
+    A corrotina decide quando ceder o controle, usando await.
+    So uma corrotina executa por vez, mas troca voluntariamente.
+    NAO exige Lock para dados compartilhados (nao ha troca involuntaria).
+    Exige bibliotecas async (aiohttp, asyncpg...) -- nao funciona com
+    bibliotecas sincronas.
+    Mais eficiente para grande volume de conexoes simultaneas (milhares).
+
+QUANDO USAR CADA UM:
+
+    Situacao                         Recomendacao
+    ----------------------------     ---------------------------------
+    Poucas tarefas I/O (< 100)       threads (mais simples)
+    Muitas conexoes simultaneas      asyncio (mais eficiente)
+    Codigo legado com libs sincronas  threads
+    Novo projeto com suporte async    asyncio
+    CPU-bound                         multiprocessing (ambos falham)
+
+---------------------------------------------------------------------------
+2. O event loop: o coracao do asyncio
+---------------------------------------------------------------------------
+O event loop e um loop que:
+    1. Pega a proxima corrotina pronta para executar
+    2. Executa ate ela fazer await (ceder o controle)
+    3. Enquanto essa corrotina espera, executa outra
+    4. Quando o I/O termina, volta a executar a corrotina original
+
+E como um gerente que distribui trabalho: quando um funcionario para
+para esperar uma resposta, o gerente passa a tarefa para outro funcionario
+e volta ao primeiro quando a resposta chegar.
+
+asyncio.run(corrotina) cria o event loop, executa a corrotina ate o
+fim e encerra o loop. E a forma padrao de iniciar um programa asyncio:
+
     import asyncio
 
-    async def buscar(nome):
-        print("iniciando", nome)
-        await asyncio.sleep(1)          # cede o controle ao event loop aqui
-        return f"{nome} pronto"
-
-    asyncio.run(buscar("a"))            # ponto de entrada único de um programa asyncio
-
-`async def` declara uma FUNÇÃO CORROTINA. Um detalhe que surpreende quem
-está começando: chamar `buscar("a")` SEM `await` não executa nada do
-corpo — apenas cria e devolve um OBJETO corrotina, ainda não iniciado
-(muito parecido com chamar uma função geradora sem consumi-la, Dia 20).
-`await` só pode aparecer DENTRO de uma função declarada com `async def` —
-usá-lo fora disso é um erro de sintaxe.
-
-3. Concorrência de verdade: gather em vez de await sequencial
-------------------------------------------------------------------------
     async def principal():
-        # sequencial: as tres esperas se SOMAM, totalizando 3 segundos
-        a = await buscar("a"); b = await buscar("b"); c = await buscar("c")
-
-        # concorrente: as tres esperas se SOBREPOEM, totalizando ~1 segundo
-        a, b, c = await asyncio.gather(buscar("a"), buscar("b"), buscar("c"))
+        print("iniciando")
+        await asyncio.sleep(1)    # cede o controle por 1 segundo
+        print("terminando")
 
     asyncio.run(principal())
 
-A diferença entre as duas abordagens é a explicação central de todo o
-capítulo: `await` sozinho, um atrás do outro, executa cada corrotina até o
-FIM antes de começar a próxima — se cada uma espera 1 segundo, o total é
-3 segundos. `asyncio.gather` inicia todas ao mesmo tempo e as deixa
-avançar concorrentemente, aproveitando o tempo de espera de cada uma para
-avançar as outras — o tempo total fica próximo do MAIOR tempo individual,
-não da SOMA de todos.
+---------------------------------------------------------------------------
+3. async def e await: a sintaxe central
+---------------------------------------------------------------------------
+async def define uma CORROTINA -- uma funcao que pode ser pausada:
 
-`gather(..., return_exceptions=True)` muda o comportamento padrão diante
-de erros: em vez de interromper tudo assim que uma corrotina falha, ele
-devolve a EXCEÇÃO como se fosse um valor de retorno normal na posição
-correspondente, permitindo que você trate cada resultado individualmente.
+    async def buscar_dados(url):
+        # ... codigo assincrono ...
+        return dados
 
-4. Tasks e TaskGroup: agendando trabalho explicitamente
-------------------------------------------------------------------
-    tarefa = asyncio.create_task(buscar("x"))     # AGENDA a execução imediatamente, sem esperar ainda
-    resultado = await tarefa                       # só aqui espera pelo resultado
+Chamar uma corrotina NAO a executa -- cria um objeto corrotina:
 
-    async with asyncio.TaskGroup() as tg:         # Python 3.11+, geralmente preferível a gather
-        t1 = tg.create_task(buscar("a"))
-        t2 = tg.create_task(buscar("b"))
-    # ao SAIR do bloco `async with`, todas as tarefas já terminaram;
-    # se uma delas falhar, as demais são canceladas automaticamente
+    resultado = buscar_dados("http://api.com")   # nao executou nada!
+    resultado = await buscar_dados("http://api.com")   # executa e espera
 
-`asyncio.create_task` inicia a execução da corrotina imediatamente (sem
-esperar por um `await` explícito), permitindo que ela avance em segundo
-plano enquanto outro código roda. `TaskGroup` (mais recente que `gather`)
-oferece uma semântica mais segura em caso de erro: se qualquer tarefa
-dentro do grupo falhar, todas as outras são automaticamente canceladas, em
-vez de continuarem rodando "esquecidas" em segundo plano.
+await so pode ser usado DENTRO de uma funcao async def.
+await faz duas coisas:
+    1. Executa a corrotina (ou aguarda o awaitable)
+    2. CEDE O CONTROLE ao event loop enquanto espera
 
-5. Timeout e limite de concorrência
-----------------------------------------
-    async with asyncio.timeout(2):        # Python 3.11+
-        await operacao_lenta()
+    async def exemplo():
+        print("antes do await")
+        resultado = await alguma_operacao_lenta()  # cede aqui
+        print("depois do await")                    # retoma aqui
+        return resultado
 
-    resultado = await asyncio.wait_for(operacao_lenta(), timeout=2)    # forma equivalente, disponível antes do 3.11
+O ponto crucial: enquanto exemplo() esta "esperando" em await, o event
+loop pode executar OUTRAS corrotinas. Isso e a concorrencia do asyncio.
 
-    sem = asyncio.Semaphore(10)
-    async def limitado(url):
-        async with sem:                   # no máximo 10 corrotinas executando este bloco ao mesmo tempo
-            return await baixar(url)
+AWAITABLES: o que pode ser usado com await:
+    - Corrotinas (async def)
+    - asyncio.Future
+    - asyncio.Task
+    - Qualquer objeto com __await__
 
-Limitar a concorrência com um semáforo é essencial ao lidar com centenas
-ou milhares de requisições simultâneas: sem esse limite, seu programa
-poderia abrir tantas conexões simultâneas que sobrecarregaria o servidor
-de destino (ou até seus próprios recursos locais) — o semáforo garante
-que, no máximo, um número fixo de operações rode ao mesmo tempo, mesmo
-que muito mais tarefas estejam "esperando a vez".
+---------------------------------------------------------------------------
+4. asyncio.sleep: o I/O simulado
+---------------------------------------------------------------------------
+asyncio.sleep(n) e o equivalente assincrono de time.sleep(n):
 
-6. O pecado capital do asyncio: bloquear o event loop
-------------------------------------------------------------------
-    time.sleep(1)          # PARA TUDO -- nenhuma outra corrotina avanca durante este segundo inteiro
-    await asyncio.sleep(1) # correto: cede o controle, permitindo outras corrotinas avancarem
+    time.sleep(1)           # BLOQUEIA a thread inteira por 1 segundo
+    await asyncio.sleep(1)  # CEDE o controle por 1 segundo (nao bloqueia)
 
-    requests.get(url)      # bloqueante -> prefira bibliotecas assincronas como aiohttp/httpx
-    open(...).read()       # bloqueante -> aiofiles, ou delegue a uma thread:
+A diferenca e critica: time.sleep dentro de uma corrotina bloqueia o
+event loop inteiro -- nenhuma outra corrotina executa durante esse tempo.
+asyncio.sleep cede o controle para que outras corrotinas possam rodar.
 
-    resultado = await asyncio.to_thread(funcao_bloqueante, arg)
+    # ERRADO: bloqueia o event loop
+    async def tarefa_errada():
+        time.sleep(1)    # bloqueia TUDO
 
-Como todo o modelo do `asyncio` depende de corrotinas CEDEREM o controle
-voluntariamente nos pontos de `await`, uma única chamada BLOQUEANTE
-tradicional (uma função síncrona que não cede controle nenhum, como
-`time.sleep` comum, ou uma requisição de rede feita com uma biblioteca
-síncrona) CONGELA o event loop inteiro por sua duração — nenhuma outra
-corrotina consegue avançar nesse meio tempo, mesmo que existam dezenas
-esperando. `asyncio.to_thread` é o mecanismo de escape para código
-bloqueante que você não pode reescrever de forma assíncrona: ele delega a
-chamada para uma thread separada, liberando o event loop principal
-enquanto aguarda o resultado.
+    # CORRETO: cede o controle
+    async def tarefa_certa():
+        await asyncio.sleep(1)   # outras corrotinas rodam enquanto espera
 
-7. Iteração assíncrona
---------------------------
-    async def gerar():
-        for i in range(3):
-            await asyncio.sleep(0.1)
-            yield i
+A regra: dentro de corrotinas, nunca use funcoes bloqueantes (time.sleep,
+requests.get, open em modo padrao). Use sempre as versoes async.
 
-    async for x in gerar():
-        print(x)
+---------------------------------------------------------------------------
+5. asyncio.gather: executando multiplas corrotinas em paralelo
+---------------------------------------------------------------------------
+asyncio.gather executa multiplas corrotinas e aguarda TODAS terminarem:
 
-Assim como existem geradores comuns (Dia 20), existem GERADORES
-ASSÍNCRONOS: funções que combinam `async def` com `yield`, percorridas com
-`async for` em vez de `for` comum. Também existem gerenciadores de
-contexto assíncronos (`async with`, para recursos cuja entrada/saída
-também envolve espera de I/O) e compreensões assíncronas, seguindo o
-mesmo padrão de "adicionar `async` na frente" das construções síncronas
-equivalentes.
+    import asyncio
 
-8. Quando usar asyncio, comparado com threads e processos
-------------------------------------------------------------------
-    milhares de conexões de rede simultâneas         -> asyncio (uma única thread lida com todas)
-    poucas chamadas bloqueantes, em bibliotecas sem suporte assíncrono   -> threads
-    cálculo pesado de CPU                              -> processos
+    async def buscar(url):
+        await asyncio.sleep(0.1)   # simula download
+        return f"dados de {url}"
 
-O ecossistema construído especificamente para `asyncio` inclui frameworks
-web como FastAPI, bibliotecas de requisições HTTP como `aiohttp` e
-`httpx`, drivers de banco de dados como `asyncpg`, e clientes de cache
-como `redis.asyncio` — todos desenhados para NUNCA bloquear o event loop,
-completando o ecossistema necessário para aproveitar de fato os
-benefícios da programação assíncrona em uma aplicação real.
+    async def principal():
+        # Executa as 3 simultaneamente, nao uma por vez!
+        resultados = await asyncio.gather(
+            buscar("url1"),
+            buscar("url2"),
+            buscar("url3"),
+        )
+        print(resultados)   # ['dados de url1', 'dados de url2', 'dados de url3']
+
+    asyncio.run(principal())
+
+gather retorna uma lista com os resultados NA MESMA ORDEM das corrotinas
+passadas -- mesmo que algumas terminem antes de outras.
+
+PASSANDO UMA LISTA DINAMICA:
+
+    corrotinas = [buscar(f"url{i}") for i in range(10)]
+    resultados = await asyncio.gather(*corrotinas)   # desempacota a lista
+
+TRATANDO ERROS EM GATHER:
+
+    # Por padrao: se uma corrotina levantar excecao, gather propaga
+    # Com return_exceptions=True: erros viram resultados normais
+    resultados = await asyncio.gather(
+        corrotina1(),
+        corrotina2(),
+        return_exceptions=True,
+    )
+    for r in resultados:
+        if isinstance(r, Exception):
+            print(f"Erro: {r}")
+        else:
+            print(f"OK: {r}")
+
+---------------------------------------------------------------------------
+6. asyncio.create_task: executando sem esperar
+---------------------------------------------------------------------------
+asyncio.gather espera todas as corrotinas de uma vez. create_task permite
+iniciar uma corrotina "em background" e continuar executando outras coisas:
+
+    async def principal():
+        task1 = asyncio.create_task(buscar("url1"))   # inicia agora
+        task2 = asyncio.create_task(buscar("url2"))   # inicia agora
+
+        # Faz outras coisas enquanto as tasks rodam
+        await asyncio.sleep(0)   # cede o controle (deixa as tasks progredir)
+
+        resultado1 = await task1   # espera task1
+        resultado2 = await task2   # espera task2
+
+Tasks sao como "threads asyncio" -- uma vez criadas, rodam de forma
+independente no event loop. gather e uma forma conveniente de criar
+e esperar multiplas tasks de uma vez.
+
+---------------------------------------------------------------------------
+7. asyncio.wait_for: impondo limites de tempo
+---------------------------------------------------------------------------
+wait_for executa uma corrotina com um limite de tempo:
+
+    async def operacao_lenta():
+        await asyncio.sleep(10)
+        return "resultado"
+
+    async def principal():
+        try:
+            resultado = await asyncio.wait_for(
+                operacao_lenta(),
+                timeout=2.0     # cancela se nao terminar em 2 segundos
+            )
+            print("OK:", resultado)
+        except asyncio.TimeoutError:
+            print("Timeout! operacao muito lenta")
+
+Se o timeout estourar, asyncio.TimeoutError e levantada e a corrotina
+interna e cancelada automaticamente. Muito util para chamadas de rede
+onde o servidor pode nao responder.
+
+---------------------------------------------------------------------------
+8. asyncio.Queue: comunicacao entre corrotinas
+---------------------------------------------------------------------------
+Assim como queue.Queue para threads, asyncio.Queue e thread-safe para
+corrotinas:
+
+    async def produtor(fila):
+        for i in range(5):
+            await fila.put(i)
+            await asyncio.sleep(0.01)
+        await fila.put(None)   # sentinela
+
+    async def consumidor(fila):
+        while True:
+            item = await fila.get()
+            if item is None:
+                break
+            print(f"Processando {item}")
+            fila.task_done()
+
+    async def principal():
+        fila = asyncio.Queue()
+        await asyncio.gather(
+            produtor(fila),
+            consumidor(fila),
+        )
+
+---------------------------------------------------------------------------
+9. Integrando asyncio com codigo sincrono
+---------------------------------------------------------------------------
+asyncio.run() e a ponte entre codigo sincrono e assincrono:
+
+    # Codigo sincrono chamando asyncio:
+    def funcao_sincrona(x):
+        return asyncio.run(corrotina_assincrona(x))
+
+    # Corrotina chamando codigo sincrono (nao bloqueante):
+    async def corrotina():
+        resultado = await asyncio.to_thread(funcao_bloqueante, args)
+        # to_thread executa a funcao em uma thread separada para nao
+        # bloquear o event loop
+
+asyncio.to_thread e util para integrar bibliotecas sincronas (como
+requests) em codigo asyncio sem bloquear o event loop.
 """,
     exemplos=[
         Exemplo(
-            titulo="Sequencial versus concorrente",
-            codigo='''import asyncio, time
+            titulo="Corrotinas basicas: do sequencial ao concorrente",
+            codigo='''import asyncio
+import time
 
-async def tarefa(nome, segundos):
-    await asyncio.sleep(segundos)
-    return f"{nome} ({segundos}s)"
+async def simular_download(url, delay):
+    print(f"[inicio] {url}")
+    await asyncio.sleep(delay)    # cede o controle aqui
+    print(f"[fim]    {url}")
+    return f"dados de {url}"
 
-async def principal():
+# SEQUENCIAL: await um por vez
+async def sequencial():
+    inicio = time.perf_counter()
+    r1 = await simular_download("url1", 0.3)
+    r2 = await simular_download("url2", 0.2)
+    r3 = await simular_download("url3", 0.1)
+    tempo = time.perf_counter() - inicio
+    print(f"Sequencial: {tempo:.2f}s -> {[r1, r2, r3]}")
+
+# CONCORRENTE: gather executa todas ao mesmo tempo
+async def concorrente():
     inicio = time.perf_counter()
     resultados = await asyncio.gather(
-        tarefa("a", 0.3), tarefa("b", 0.3), tarefa("c", 0.3)
+        simular_download("url1", 0.3),
+        simular_download("url2", 0.2),
+        simular_download("url3", 0.1),
     )
-    print(resultados, f"{time.perf_counter()-inicio:.2f}s")   # ~0.3s
+    tempo = time.perf_counter() - inicio
+    print(f"Concorrente: {tempo:.2f}s -> {resultados}")
 
-asyncio.run(principal())
+print("=== SEQUENCIAL (0.6s esperado) ===")
+asyncio.run(sequencial())
+
+print("\n=== CONCORRENTE (0.3s esperado) ===")
+asyncio.run(concorrente())
 ''',
-            explicacao="Três esperas de 0.3s custam apenas 0.3s no total, "
-                       "porque gather permite que as três avancem "
-                       "concorrentemente em vez de uma atrás da outra.",
+            explicacao="await um por um e sequencial: 0.3 + 0.2 + 0.1 = 0.6s. "
+                       "gather executa todas ao mesmo tempo: o maior delay domina = 0.3s. "
+                       "Repare na ordem da saida do modo concorrente: url3 termina "
+                       "antes de url1, mas os resultados de gather preservam a ordem "
+                       "original -- independente de qual terminou primeiro.",
         ),
         Exemplo(
-            titulo="Limitando a concorrência com semáforo",
+            titulo="Tasks, timeouts e tratamento de erros",
             codigo='''import asyncio
 
-async def baixar(i, sem):
-    async with sem:
-        await asyncio.sleep(0.1)
-        return i
+async def operacao(nome, delay, falhar=False):
+    await asyncio.sleep(delay)
+    if falhar:
+        raise ValueError(f"{nome}: falhou apos {delay}s")
+    return f"{nome}: ok ({delay}s)"
 
-async def principal():
-    sem = asyncio.Semaphore(3)          # no maximo 3 por vez
-    return await asyncio.gather(*(baixar(i, sem) for i in range(9)))
+# TASKS: iniciar e esperar separadamente
+async def exemplo_tasks():
+    t1 = asyncio.create_task(operacao("A", 0.1))
+    t2 = asyncio.create_task(operacao("B", 0.2))
 
-print(asyncio.run(principal()))
+    # Faz outra coisa enquanto as tasks rodam
+    await asyncio.sleep(0.05)
+    print("Tasks em andamento...")
+
+    r1 = await t1
+    r2 = await t2
+    print(r1, r2)
+
+asyncio.run(exemplo_tasks())
+
+# TIMEOUT: limitando o tempo de espera
+async def com_timeout():
+    try:
+        resultado = await asyncio.wait_for(
+            operacao("lenta", 2.0),
+            timeout=0.5
+        )
+        print("OK:", resultado)
+    except asyncio.TimeoutError:
+        print("Timeout! operacao cancelada.")
+
+asyncio.run(com_timeout())
+
+# GATHER COM ERROS: capturando excecoes individualmente
+async def com_erros():
+    resultados = await asyncio.gather(
+        operacao("ok1",   0.1),
+        operacao("falha", 0.1, falhar=True),
+        operacao("ok2",   0.1),
+        return_exceptions=True,
+    )
+    for r in resultados:
+        if isinstance(r, Exception):
+            print(f"  ERRO: {r}")
+        else:
+            print(f"  OK: {r}")
+
+asyncio.run(com_erros())
 ''',
-            explicacao="Sem o semáforo, as nove tarefas rodariam todas ao "
-                       "mesmo tempo — com ele, apenas 3 executam "
-                       "simultaneamente, protegendo o recurso de destino.",
+            explicacao="create_task inicia a corrotina imediatamente -- ela ja "
+                       "comeca a rodar quando voce faz await asyncio.sleep(0.05). "
+                       "wait_for cancela a corrotina se ela nao terminar no tempo. "
+                       "return_exceptions=True e essencial em producao: sem ele, "
+                       "a primeira excecao cancela todas as outras corrotinas "
+                       "do gather e propaga o erro.",
         ),
         Exemplo(
-            titulo="O que acontece ao bloquear o event loop por engano",
-            codigo='''import asyncio, time
+            titulo="Padrao produtor-consumidor assincrono",
+            codigo='''import asyncio
+import time
 
-async def rapida(nome):
-    await asyncio.sleep(0.1)
-    print(nome, "terminou")
+async def produtor(fila, itens):
+    for item in itens:
+        print(f"  [prod] colocando {item}")
+        await fila.put(item)
+        await asyncio.sleep(0.02)   # simula producao lenta
+    await fila.put(None)            # sentinela
 
-async def bloqueia_tudo():
-    time.sleep(0.5)     # ERRADO dentro de uma corrotina: bloqueia o loop inteiro
-    print("bloqueante terminou")
+async def consumidor(fila, nome, resultados):
+    while True:
+        item = await fila.get()     # bloqueia cooperativamente se vazia
+        if item is None:
+            fila.task_done()
+            break
+        print(f"  [{nome}] processando {item}")
+        await asyncio.sleep(0.05)   # simula processamento
+        resultados.append(item * 2)
+        fila.task_done()
 
 async def principal():
+    fila = asyncio.Queue(maxsize=3)
+    resultados = []
+
     inicio = time.perf_counter()
-    await asyncio.gather(rapida("a"), rapida("b"), bloqueia_tudo())
-    print(f"{time.perf_counter()-inicio:.2f}s")
-    # em vez de ~0.5s (o maior tempo), o total fica proximo de 0.6s+,
-    # porque time.sleep impediu "a" e "b" de progredirem durante ele
+    await asyncio.gather(
+        produtor(fila, [1, 2, 3, 4, 5]),
+        consumidor(fila, "C1", resultados),
+    )
+    print(f"Tempo: {time.perf_counter()-inicio:.2f}s")
+    print(f"Resultados: {sorted(resultados)}")
 
 asyncio.run(principal())
 ''',
-            explicacao="Mesmo dentro de asyncio.gather, uma única chamada "
-                       "bloqueante como time.sleep (em vez de await "
-                       "asyncio.sleep) anula boa parte do ganho esperado.",
+            explicacao="asyncio.Queue funciona como queue.Queue mas com "
+                       "versoes assincronas: await fila.put() e await fila.get(). "
+                       "maxsize=3 limita o buffer: se cheia, put() cede o controle "
+                       "ate o consumidor retirar um item. "
+                       "task_done() e importante se voce usar fila.join() para "
+                       "esperar que todos os itens sejam processados.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d28e1",
             enunciado=(
-                "Escreva a corrotina dobrar(x) (com um await asyncio.sleep(0)) e a\n"
-                "função síncrona executar(x) que a roda com asyncio.run e devolve o valor."
+                "Os imports e a estrutura ja estao na assinatura.\n"
+                "Complete duas partes:\n\n"
+                "1. async def dobrar(x): deve retornar x * 2\n\n"
+                "2. def executar(x): funcao SINCRONA que executa\n"
+                "   a corrotina dobrar(x) e retorna o resultado\n\n"
+                "Exemplos:\n"
+                "   executar(5)  -> 10\n"
+                "   executar(0)  -> 0\n"
+                "   asyncio.iscoroutinefunction(dobrar) -> True\n\n"
+                "O terceiro teste verifica que dobrar e de fato uma\n"
+                "corrotina (definida com async def).\n\n"
+                "Estrategia de executar:\n"
+                "   return asyncio.run(dobrar(x))\n\n"
+                "asyncio.run() e a ponte entre codigo sincrono e\n"
+                "assincrono: cria o event loop, executa a corrotina\n"
+                "ate o fim, fecha o loop e retorna o resultado.\n\n"
+                "dobrar(x) sozinho nao executa nada -- cria um objeto\n"
+                "corrotina. So asyncio.run() ou await realmente executam."
             ),
             funcao="executar",
             assinatura="import asyncio\n\n\nasync def dobrar(x):\n    ...\n\n\ndef executar(x):",
@@ -1498,29 +3060,66 @@ asyncio.run(principal())
                 ("executar(0)", "0"),
                 ("asyncio.iscoroutinefunction(dobrar)", "True"),
             ],
-            dica="return asyncio.run(dobrar(x))",
+            dica="async def dobrar(x): return x * 2. def executar(x): return asyncio.run(dobrar(x))",
         ),
         Exercicio(
             id="d28e2",
             enunciado=(
-                "Escreva executar_todos(valores) que usa asyncio.gather para dobrar\n"
-                "todos os valores concorrentemente e devolve a lista de resultados."
+                "Os imports e a corrotina dobrar ja estao na assinatura.\n"
+                "Escreva def executar_todos(valores) que executa dobrar()\n"
+                "para cada valor em paralelo e retorna a lista de resultados.\n\n"
+                "Exemplos:\n"
+                "   executar_todos([1, 2, 3]) -> [2, 4, 6]\n"
+                "   executar_todos([])         -> []\n\n"
+                "Estrategia:\n"
+                "   async def principal():\n"
+                "       return await asyncio.gather(\n"
+                "           *[dobrar(v) for v in valores]\n"
+                "       )\n\n"
+                "   return asyncio.run(principal())\n\n"
+                "Por que gather em vez de varios await separados?\n"
+                "   await dobrar(1) -> await dobrar(2) -> await dobrar(3)\n"
+                "   Isso e SEQUENCIAL: espera cada um antes do proximo.\n\n"
+                "   gather(dobrar(1), dobrar(2), dobrar(3))\n"
+                "   Isso e CONCORRENTE: todas rodam ao mesmo tempo.\n\n"
+                "O * desempacota a lista em argumentos separados:\n"
+                "   gather(*[dobrar(1), dobrar(2)]) == gather(dobrar(1), dobrar(2))"
             ),
             funcao="executar_todos",
-            assinatura=("import asyncio\n\n\nasync def dobrar(x):\n    await asyncio.sleep(0)\n"
-                        "    return x * 2\n\n\ndef executar_todos(valores):"),
+            assinatura="import asyncio\n\n\nasync def dobrar(x):\n    await asyncio.sleep(0)\n    return x * 2\n\n\ndef executar_todos(valores):",
             testes=[
                 ("executar_todos([1, 2, 3])", "[2, 4, 6]"),
                 ("executar_todos([])", "[]"),
             ],
             nivel="medio",
-            dica="Crie uma corrotina interna async def principal(): return await asyncio.gather(*(...)).",
+            dica="async def principal(): return await asyncio.gather(*[dobrar(v) for v in valores]); return asyncio.run(principal())",
         ),
         Exercicio(
             id="d28e3",
             enunciado=(
-                "Escreva com_timeout(segundos, limite) que roda asyncio.sleep(segundos)\n"
-                "com asyncio.wait_for(limite) e devolve 'ok' ou 'timeout'."
+                "O import asyncio ja esta na assinatura.\n"
+                "Escreva def com_timeout(segundos, limite) que:\n"
+                "   - Cria uma corrotina que dorme 'segundos'\n"
+                "   - Tenta executa-la com timeout de 'limite' segundos\n"
+                "   - Retorna 'ok' se terminar a tempo\n"
+                "   - Retorna 'timeout' se o limite for estourado\n\n"
+                "Exemplos:\n"
+                "   com_timeout(0.01, 1)    -> 'ok'      (0.01s < 1s limite)\n"
+                "   com_timeout(1, 0.01)    -> 'timeout' (1s > 0.01s limite)\n\n"
+                "Estrategia:\n"
+                "   async def principal():\n"
+                "       try:\n"
+                "           await asyncio.wait_for(\n"
+                "               asyncio.sleep(segundos),\n"
+                "               timeout=limite\n"
+                "           )\n"
+                "           return 'ok'\n"
+                "       except asyncio.TimeoutError:\n"
+                "           return 'timeout'\n\n"
+                "   return asyncio.run(principal())\n\n"
+                "asyncio.wait_for cancela a corrotina automaticamente\n"
+                "quando o timeout estoura e levanta asyncio.TimeoutError.\n"
+                "Em Python 3.11+ TimeoutError (sem prefixo) tambem funciona."
             ),
             funcao="com_timeout",
             assinatura="import asyncio\n\n\ndef com_timeout(segundos, limite):",
@@ -1529,250 +3128,582 @@ asyncio.run(principal())
                 ("com_timeout(1, 0.01)", "'timeout'"),
             ],
             nivel="dificil",
-            dica="Capture asyncio.TimeoutError (ou TimeoutError) em volta do wait_for.",
+            dica="async def principal(): try: await asyncio.wait_for(asyncio.sleep(segundos), timeout=limite); return 'ok'; except asyncio.TimeoutError: return 'timeout'; return asyncio.run(principal())",
         ),
     ],
     quiz=[
-        Quiz("O que acontece se você chamar time.sleep(5) (não asyncio.sleep) dentro de uma corrotina?",
-             ["Nada de especial acontece", "Bloqueia o event loop inteiro por 5 segundos, impedindo qualquer outra corrotina de avançar",
-              "Gera um erro de sintaxe imediatamente", "Roda automaticamente em outra thread"], 1,
-             "asyncio depende de cessão voluntária de controle; time.sleep não cede nada, travando tudo."),
-        Quiz("Qual a diferença prática entre 'await f(); await g()' e 'await asyncio.gather(f(), g())'?",
-             ["Nenhuma diferença de comportamento", "gather executa as duas corrotinas concorrentemente; await sequencial soma os tempos de espera",
-              "gather sempre é mais lento", "gather só aceita uma corrotina por vez"], 1,
-             "await sozinho espera cada uma terminar antes de iniciar a próxima; gather inicia todas e deixa avançarem juntas."),
-        Quiz("Qual a diferença central entre a concorrência de threads e a do asyncio?",
-             ["Não há diferença nenhuma entre os dois modelos", "Threads são preemptivas (o SO decide quando trocar); asyncio é cooperativo (o código decide, em cada await)",
-              "asyncio sempre usa múltiplos núcleos de CPU", "Threads nunca podem rodar código de I/O"], 1,
-             "Essa diferença de controle é o que elimina condições de corrida em asyncio: só uma coisa roda por vez, com trocas em pontos explícitos."),
-        Quiz("Para que serve asyncio.Semaphore num cenário de milhares de requisições?",
-             ["Para acelerar cada requisição individual", "Para limitar quantas operações rodam concorrentemente ao mesmo tempo, protegendo o recurso de destino",
-              "Para ordenar os resultados", "Semaphore só funciona com threading, não com asyncio"], 1,
-             "Sem esse limite, todas as tarefas tentariam rodar ao mesmo tempo, potencialmente sobrecarregando o servidor ou o próprio programa."),
+        Quiz(
+            "Qual a diferenca fundamental entre threads e asyncio para concorrencia?",
+            ["asyncio e sempre mais rapido que threads",
+             "Threads sao preemptivas (o SO decide quando trocar); asyncio e cooperativo (a corrotina decide quando ceder com await)",
+             "asyncio funciona com qualquer biblioteca; threads so com bibliotecas especiais",
+             "Threads usam multiplos nucleos; asyncio usa apenas um"],
+            1,
+            "Threads: o sistema operacional pode interromper a thread a qualquer "
+            "momento -- por isso precisam de Lock para dados compartilhados. "
+            "asyncio: a corrotina so cede o controle em um await -- entao voce "
+            "sabe exatamente onde a troca ocorre e nao precisa de Lock. "
+            "Essa previsibilidade torna asyncio menos propenso a race conditions.",
+        ),
+        Quiz(
+            "O que acontece quando voce chama uma corrotina sem await?",
+            ["A corrotina executa normalmente e retorna o resultado",
+             "Um objeto corrotina e criado mas NADA e executado -- voce obtem um aviso 'coroutine was never awaited'",
+             "Python levanta TypeError imediatamente",
+             "A corrotina executa em background automaticamente"],
+            1,
+            "async def f(): return 42 -- f() nao executa nada. "
+            "Cria apenas um objeto corrotina, como uma receita que nao foi cozinhada. "
+            "Para executar: await f() (dentro de async def) ou asyncio.run(f()). "
+            "Python 3.x avisa 'RuntimeWarning: coroutine was never awaited' "
+            "se o objeto for descartado sem ser executado.",
+        ),
+        Quiz(
+            "Qual a diferenca entre asyncio.gather e criar tasks sequenciais com await?",
+            ["Nao ha diferenca -- os dois executam na mesma ordem",
+             "gather executa todas as corrotinas CONCORRENTEMENTE; await sequencial espera cada uma terminar antes de comecar a proxima",
+             "gather e mais lento que await sequencial",
+             "Tasks so funcionam dentro de gather"],
+            1,
+            "await c1(); await c2(); await c3() -- sequencial: 0.3+0.2+0.1 = 0.6s. "
+            "await gather(c1(), c2(), c3()) -- concorrente: max(0.3, 0.2, 0.1) = 0.3s. "
+            "gather deixa todas rodarem ao mesmo tempo, trocando entre elas "
+            "a cada await interno. Os resultados sao retornados na ordem original.",
+        ),
+        Quiz(
+            "Por que time.sleep() dentro de uma corrotina e um problema?",
+            ["time.sleep nao funciona dentro de funcoes async",
+             "time.sleep bloqueia a thread inteira -- o event loop para completamente e nenhuma outra corrotina executa durante o sleep",
+             "time.sleep e mais lento que asyncio.sleep",
+             "Nao e um problema -- funciona normalmente"],
+            1,
+            "asyncio roda em uma thread. time.sleep(1) bloqueia essa thread "
+            "por 1 segundo -- o event loop nao pode executar nenhuma outra "
+            "corrotina durante esse tempo. "
+            "asyncio.sleep(1) cede o controle: o event loop executa outras "
+            "corrotinas enquanto aguarda. "
+            "Regra: dentro de corrotinas, nunca use funcoes bloqueantes. "
+            "Use sempre versoes async (asyncio.sleep, aiohttp, asyncpg...).",
+        ),
     ],
     projeto=(
-        "Escreva um raspador assíncrono: dada uma lista de URLs, faça as requisições com httpx/aiohttp "
-        "limitando a 10 simultâneas, com timeout e retentativa, e grave os resultados em JSON."
+        "Crie cliente_assincrono.py que simula um cliente de API assincrono:\n\n"
+        "   async def buscar_usuario(id, delay=0.1):\n"
+        "       await asyncio.sleep(delay)   # simula latencia de rede\n"
+        "       return {'id': id, 'nome': f'User{id}', 'ativo': id % 2 == 0}\n\n"
+        "   async def buscar_posts(user_id, delay=0.2):\n"
+        "       await asyncio.sleep(delay)\n"
+        "       return [{'titulo': f'Post {i} de {user_id}'} for i in range(3)]\n\n"
+        "   1. SEQUENCIAL: busca 5 usuarios um por vez, mede o tempo\n\n"
+        "   2. PARALELO: busca os 5 usuarios com gather, mede o tempo\n\n"
+        "   3. ANINHADO: para cada usuario, busca tambem seus posts\n"
+        "      usando gather para paralelizar as buscas de posts\n\n"
+        "   4. COM TIMEOUT: busca com limite de 0.15s por usuario\n"
+        "      Usuarios com delay > 0.15s retornam None no resultado\n\n"
+        "   5. COM ERROS: alguns usuarios lancam excecao aleatoriamente\n"
+        "      Use return_exceptions=True e separe erros de sucessos\n\n"
+        "   RELATORIO:\n"
+        "   Metodo        Tempo    Usuarios OK\n"
+        "   -----------   ------   -----------\n"
+        "   Sequencial    0.50s    5\n"
+        "   Paralelo      0.10s    5\n"
+        "   Com timeout   0.15s    3\n\n"
+        "BONUS: adicione asyncio.Queue para um produtor que gera IDs\n"
+        "e N consumidores que buscam os dados em paralelo."
     ),
-    leitura=["docs.python.org/pt-br/3/library/asyncio.html", "PEP 492"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/asyncio.html -- asyncio completo",
+        "docs.python.org/pt-br/3/library/asyncio-task.html -- corrotinas e tasks",
+        "PEP 492 -- Coroutines with async and await syntax",
+    ],
 ))
 # ---------------------------------------------------------------- DIA 29
 DIAS.append(Dia(
     numero=29,
-    titulo="Desempenho: complexidade, medição e otimização",
-    nivel="Avançado",
-    duracao="100 min",
+    titulo="Desempenho: complexidade, medicao e otimizacao",
+    nivel="Avancado",
+    duracao="110 min",
     objetivos=[
-        "Estimar a complexidade de um algoritmo usando a notação O grande",
-        "Conhecer o custo real das operações mais comuns em listas, dicts e sets no CPython",
-        "Medir desempenho com timeit e cProfile antes de qualquer otimização",
-        "Aplicar as otimizações que costumam valer a pena, e reconhecer as que não valem",
-        "Saber quando Python simplesmente não é a ferramenta certa para o problema",
-        "Internalizar a ordem correta: funcione, teste, meça, otimize o gargalo real, meça de novo",
+        "Entender notacao O e prever como o tempo de execucao cresce com o tamanho da entrada",
+        "Medir desempenho com timeit, time e cProfile para encontrar gargalos reais",
+        "Conhecer o custo das operacoes mais comuns de lista, dict e set",
+        "Aplicar otimizacoes classicas: memoizacao, estruturas certas e geradores",
+        "Saber quando otimizar e quando nao otimizar",
+        "Usar collections.Counter, deque e heapq como alternativas mais eficientes",
     ],
     teoria="""
-1. Notação O grande: como o tempo cresce com o tamanho da entrada
-------------------------------------------------------------------------------
-    O(1)        tempo constante: acesso a índice, dict[chave], x in set
-    O(log n)    cresce muito devagar: busca binária (Dia 12)
-    O(n)        cresce proporcionalmente: percorrer uma lista, x in lista
-    O(n log n)  o melhor possível para ordenação por comparação: sort()
-    O(n**2)     cresce com o quadrado: laços aninhados sobre a mesma coleção
-    O(2**n)     cresce exponencialmente: recursão sem memoização (fibonacci ingênuo, Dia 21)
+Codigo correto e a primeira prioridade. Codigo eficiente vem depois --
+e so quando necessario. Donald Knuth disse: "premature optimization is
+the root of all evil" (otimizacao prematura e a raiz de todo o mal).
+Isso significa: primeiro faca funcionar, depois meca, depois otimize
+apenas o que as medicoes mostram ser um problema real.
 
-A notação O grande descreve como o TEMPO de execução cresce conforme o
-TAMANHO da entrada (`n`) aumenta — não é uma medida de tempo absoluto (em
-segundos), mas de TAXA DE CRESCIMENTO. Um algoritmo O(n) processando 10
-elementos pode ser mais lento, em segundos, que um O(n²) processando 5
-elementos — a notação O só importa de verdade quando `n` cresce
-significativamente.
+---------------------------------------------------------------------------
+1. Notacao O: como o tempo cresce com o tamanho da entrada
+---------------------------------------------------------------------------
+A notacao O (leia "O grande") descreve como o tempo de execucao ou uso
+de memoria cresce quando o tamanho da entrada (n) aumenta. Ela ignora
+constantes e se concentra no comportamento assintotic -- o que domina
+quando n fica muito grande.
 
-O erro mais comum de desempenho encontrado em código Python real NÃO é
-"a linguagem é lenta" — é um `x in lista` escondido DENTRO de um laço
-`for`, transformando silenciosamente um algoritmo que parecia O(n) em um
-O(n²) real, porque cada checagem de pertencimento percorre a lista
-inteira de novo.
+    Notacao     Nome             Exemplo concreto
+    --------    ---------------  ----------------------------------------
+    O(1)        Constante        lista[i], dict[chave], set add/remove
+    O(log n)    Logaritmico      busca binaria, heappush/heappop
+    O(n)        Linear           percorrer lista, busca linear
+    O(n log n)  Linearitimico   sort(), sorted(), merge sort
+    O(n^2)      Quadratico       dois loops aninhados, bubble sort
+    O(2^n)      Exponencial      fibonacci recursivo sem cache
+    O(n!)       Fatorial         permutacoes de n elementos
 
-2. Custo real das estruturas de dados no CPython
-------------------------------------------------------------------------
-    lista:  acesso por índice O(1) | append O(1) | insert(0)/pop(0) O(n) | `in` O(n)
-    dict:   get/set/`in` O(1) em média
-    set:    add/`in` O(1) em média
-    deque:  appendleft/popleft O(1)   <- use como fila, em vez de lista (Dia 8)
-    heapq:  push/pop O(log n)          <- fila de prioridade
-    string: imutável; concatenar repetidamente em laço com += é O(n²) no total, use "".join(partes) em vez disso
+Como ler na pratica:
 
-Esta tabela é, na prática, o "manual de referência rápida" mais útil deste
-capítulo: antes de escrever um laço que faz buscas repetidas, checar
-"devo usar lista, dict ou set aqui?" já resolve a maioria dos problemas de
-desempenho antes mesmo deles aparecerem.
+    n = 1.000 elementos
 
-3. Meça, não adivinhe: as ferramentas certas
-------------------------------------------------------------------------
+    O(1):      1 operacao    -- sempre instantaneo
+    O(log n):  10 operacoes  -- muito rapido
+    O(n):      1.000         -- rapido
+    O(n log n): 10.000       -- aceitavel
+    O(n^2):    1.000.000     -- pode ficar lento
+    O(2^n):    10^300        -- impraticavel
+
+O impacto de escolher a estrutura errada:
+
+    lista = list(range(1_000_000))
+    busca_lista = 999_999 in lista      # O(n): percorre ate 1M elementos
+    conjunto = set(lista)
+    busca_set = 999_999 in conjunto     # O(1): calculo de hash direto
+
+    Para n=1.000.000, busca em lista pode ser 1.000.000x mais lenta
+    do que busca em set para o pior caso.
+
+---------------------------------------------------------------------------
+2. Custo das operacoes mais comuns
+---------------------------------------------------------------------------
+Conhecer o custo de cada operacao permite escolher a estrutura certa:
+
+LISTA:
+
+    Operacao              Custo    Motivo
+    -------------------   ------   ----------------------------------------
+    lista[i]              O(1)     acesso direto por indice de memoria
+    lista.append(x)       O(1)     adiciona no final sem mover nada
+    lista.pop()           O(1)     remove do final sem mover nada
+    lista.insert(0, x)    O(n)     empurra todos os elementos uma posicao
+    lista.pop(0)          O(n)     desloca todos os elementos uma posicao
+    x in lista            O(n)     percorre ate encontrar (ou nao)
+    lista.sort()          O(n log n) algoritmo Timsort
+    len(lista)            O(1)     Python guarda o tamanho separado
+
+DICIONARIO E SET (baseados em tabela hash):
+
+    Operacao              Custo    Notas
+    -------------------   ------   ----------------------------------------
+    dict[chave]           O(1)     caso medio; O(n) pior caso (raro)
+    chave in dict         O(1)     muito mais rapido que in lista
+    dict[chave] = valor   O(1)
+    del dict[chave]       O(1)
+    x in set              O(1)
+    set.add(x)            O(1)
+    set1 & set2           O(min(len(s1), len(s2)))
+
+Para insercao e remocao frequente no INICIO de uma sequencia,
+use collections.deque em vez de lista:
+
+    from collections import deque
+    d = deque([1, 2, 3])
+    d.appendleft(0)    # O(1) -- lista.insert(0, x) seria O(n)
+    d.popleft()        # O(1) -- lista.pop(0) seria O(n)
+
+---------------------------------------------------------------------------
+3. Medindo desempenho: timeit e cProfile
+---------------------------------------------------------------------------
+Nao adivinhe onde esta o gargalo. MECA.
+
+TIMEIT: para comparar implementacoes pequenas
+
     import timeit
-    timeit.timeit("sum(range(1000))", number=10000)
 
-    python3 -m timeit -s "d={i:i for i in range(1000)}" "999 in d"
+    # Mede o tempo medio de 1 milhao de execucoes
+    tempo = timeit.timeit(
+        stmt="x in lista",
+        setup="lista = list(range(1000)); x = 999",
+        number=100_000,
+    )
+    print(f"Busca em lista: {tempo:.4f}s")
+
+    # Forma mais pratica: usar a funcao diretamente
+    import timeit
+
+    def busca_lista(n):
+        lista = list(range(n))
+        return n - 1 in lista
+
+    def busca_set(n):
+        conjunto = set(range(n))
+        return n - 1 in conjunto
+
+    t_lista = timeit.timeit(lambda: busca_lista(10_000), number=100)
+    t_set   = timeit.timeit(lambda: busca_set(10_000),   number=100)
+    print(f"Lista: {t_lista:.4f}s  |  Set: {t_set:.4f}s")
+    print(f"Set e {t_lista/t_set:.1f}x mais rapido")
+
+TIME MANUAL: para medir blocos maiores
+
+    import time
+
+    inicio = time.perf_counter()    # mais preciso que time.time()
+    resultado = funcao_pesada()
+    duracao = time.perf_counter() - inicio
+    print(f"Duracao: {duracao:.4f}s")
+
+CPROFILE: para encontrar gargalos em programas inteiros
 
     import cProfile
-    cProfile.run("principal()", sort="cumtime")
+    cProfile.run("minha_funcao(dados)", sort="cumulative")
 
-    python3 -m cProfile -s tottime script.py
+    # Ou na linha de comando:
+    # python -m cProfile -s cumulative meu_script.py
 
-`timeit` mede o tempo de um trecho PEQUENO e ISOLADO de código, rodando-o
-muitas vezes para reduzir o ruído de medições individuais — ideal para
-comparar duas formas alternativas de fazer a mesma coisa. `cProfile` mede
-um PROGRAMA INTEIRO (ou uma função complexa), mostrando quanto tempo foi
-gasto em CADA função chamada — essencial para descobrir ONDE, dentro de um
-programa grande, o tempo está de fato sendo gasto, em vez de otimizar por
-palpite.
+cProfile mostra: quantas vezes cada funcao foi chamada, tempo total
+em cada funcao e tempo proprio (excluindo chamadas internas). Procure
+as funcoes com maior "tottime" ou "cumtime" -- esse e o gargalo.
 
-Para análise mais fina, `line_profiler` mede tempo LINHA POR LINHA dentro
-de uma função específica; para investigar consumo de MEMÓRIA (não tempo),
-`tracemalloc` (da biblioteca padrão) e `memory_profiler` cumprem esse
-papel:
+---------------------------------------------------------------------------
+4. Memoizacao: evitando recalcular o que ja foi calculado
+---------------------------------------------------------------------------
+Memoizacao e guardar o resultado de uma funcao pura para reutilizar
+quando os mesmos argumentos aparecerem novamente.
 
-    import tracemalloc
-    tracemalloc.start()
-    ...
-    print(tracemalloc.get_traced_memory())
+O problema classico -- Fibonacci recursivo ingenuo:
 
-4. Otimizações que costumam valer a pena, em ordem de impacto
-------------------------------------------------------------------------------
-    a) trocar a estrutura de dados (lista -> set/dict, quando o uso é busca repetida);
-    b) melhorar o ALGORITMO em si (transformar O(n²) em O(n log n) ou O(n));
-    c) memoizar com @lru_cache (Dia 21) o que é puro (sempre o mesmo resultado para os mesmos argumentos) e repetitivo;
-    d) preferir funções embutidas e compreensões (Dia 10) — elas rodam em código C internamente, mais rápido que um laço Python equivalente;
-    e) usar "".join() em vez de += repetido para concatenar strings (Dia 4);
-    f) evitar trabalho desnecessário: filtre cedo, saia cedo (cláusulas de guarda, Dia 5), prefira geradores (Dia 20) quando não precisa materializar tudo;
-    g) para processamento numérico em massa, usar `numpy` costuma trazer ganhos de ordens de grandeza sobre laços Python puros.
+    def fib_lento(n):
+        if n < 2: return n
+        return fib_lento(n-1) + fib_lento(n-2)
 
-Esses itens estão ordenados aproximadamente por RELAÇÃO custo-benefício:
-trocar uma estrutura de dados costuma exigir poucas linhas e trazer ganho
-enorme; já as micro-otimizações da próxima seção exigem reescrever código
-inteiro para um ganho quase imperceptível.
+    fib_lento(40)   # ~20 segundos! calcula fib(38) mais de 1 bilhao de vezes
 
-5. Micro-otimizações que raramente importam na prática
-------------------------------------------------------------------------
-Trocar `for` por `while`, remover uma variável temporária "para economizar
-memória", usar `map()` em vez de uma compreensão equivalente — esses
-ajustes trazem ganho MARGINAL de desempenho, mas custo ALTO em
-legibilidade do código. A citação clássica de Donald Knuth resume bem o
-princípio: "otimização prematura é a raiz de todo o mal" — otimizar antes
-de saber ONDE está o gargalo real é, na melhor das hipóteses, desperdício
-de esforço, e na pior, torna o código mais difícil de manter sem ganho
-real algum.
+Com @lru_cache, cada resultado e calculado apenas UMA vez:
 
-A ordem correta de trabalho, sempre: primeiro FUNCIONE (o código faz o
-que deveria); depois TESTE (Dia 24, para garantir que continue
-funcionando); depois MEÇA (com as ferramentas da seção 3); só então
-OTIMIZE especificamente o GARGALO identificado pela medição; e MEÇA DE
-NOVO, para confirmar que a otimização realmente trouxe o ganho esperado
-— e não introduziu um bug novo no processo.
+    from functools import lru_cache
 
-6. Quando Python puro simplesmente não basta
-------------------------------------------------------------------------
-    numpy / pandas / polars      processamento numérico e de tabelas em escala, com operações vetorizadas em C
-    numba (@jit) / cython        compilam trechos críticos de Python para código de máquina
-    ctypes / cffi / PyO3         permitem chamar código C ou Rust diretamente
-    multiprocessing               distribui trabalho entre todos os núcleos de CPU disponíveis (Dia 27)
-    PyPy                          uma implementação alternativa de Python com compilação just-in-time (JIT)
+    @lru_cache(maxsize=None)
+    def fib_rapido(n):
+        if n < 2: return n
+        return fib_rapido(n-1) + fib_rapido(n-2)
 
-Para a imensa maioria dos programas do dia a dia, Python puro (com boas
-escolhas de estrutura de dados e algoritmo) já é rápido o suficiente. Essa
-lista existe para os casos, relativamente raros, em que a medição
-comprova que o gargalo está no próprio interpretador Python e não há mais
-o que otimizar dentro dele.
+    fib_rapido(80)   # instantaneo! calculou apenas 81 valores distintos
 
-7. Uma nota sobre memória, não só tempo
-------------------------------------------------------------------------
-    __slots__ (Dia 17) reduz o consumo de memória em classes com muitas instâncias
-    geradores (Dia 20) em vez de listas, quando não é necessário guardar tudo de uma vez
-    array.array, para sequências grandes de números de um único tipo (mais compacto que uma lista comum)
-    sys.getsizeof(obj) mostra o tamanho RASO de um objeto em bytes (não conta o que ele referencia internamente)
+    fib_rapido.cache_info()
+    # CacheInfo(hits=78, misses=81, maxsize=None, currsize=81)
+
+QUANDO USAR lru_cache:
+    - Funcao PURA: mesmo argumento sempre retorna o mesmo resultado
+    - Chamada com os mesmos argumentos multiplas vezes
+    - Argumentos sao hasheaveis (int, str, tuple -- nao list ou dict)
+
+NAO USE lru_cache:
+    - Funcoes com efeitos colaterais (print, escrita em arquivo...)
+    - Funcoes com argumentos mutaveis (listas, dicionarios)
+    - Quando o espaco de argumentos e muito grande (cache pode crescer demais)
+
+---------------------------------------------------------------------------
+5. Geradores versus listas: memoria sob controle
+---------------------------------------------------------------------------
+Geradores calculam valores sob demanda -- economizam memoria quando voce
+so vai usar cada valor uma vez:
+
+    import sys
+
+    # Lista: todos os valores na memoria de uma vez
+    lista = [x**2 for x in range(1_000_000)]
+    print(sys.getsizeof(lista))    # ~8.5 MB
+
+    # Gerador: calcula um valor por vez, ocupa quase nada
+    gen = (x**2 for x in range(1_000_000))
+    print(sys.getsizeof(gen))      # ~120 bytes
+
+    # Para reducoes, use gerador diretamente:
+    total = sum(x**2 for x in range(1_000_000))   # sem lista intermediaria
+
+QUANDO USAR GERADOR:
+    - Voce so vai percorrer uma vez
+    - Passa direto para sum(), any(), all(), max(), min()
+    - O conjunto de dados e grande (economiza RAM)
+
+QUANDO USAR LISTA:
+    - Precisa percorrer mais de uma vez
+    - Precisa de indexacao (lista[i]) ou len()
+    - Quer inspecionar o resultado durante depuracao
+
+---------------------------------------------------------------------------
+6. collections: estruturas especializadas
+---------------------------------------------------------------------------
+O modulo collections oferece estruturas otimizadas para casos especificos:
+
+COUNTER: contando ocorrencias eficientemente
+
+    from collections import Counter
+
+    palavras = "a b a c a b d".split()
+    contagem = Counter(palavras)
+    print(contagem)                  # Counter({'a': 3, 'b': 2, 'c': 1, 'd': 1})
+    print(contagem.most_common(2))   # [('a', 3), ('b', 2)]
+
+    # Equivalente manual (mais lento):
+    contagem = {}
+    for p in palavras:
+        contagem[p] = contagem.get(p, 0) + 1
+
+DEQUE: fila dupla com insercao O(1) nas duas pontas
+
+    from collections import deque
+
+    d = deque([1, 2, 3], maxlen=3)   # maxlen: descarta automaticamente
+    d.appendleft(0)    # [0, 1, 2, 3] -> maxlen descarta o 3: [0, 1, 2]
+    d.popleft()        # 0, fila vira [1, 2]
+    d.rotate(1)        # rotaciona: [2, 1]
+
+    # Perfeito para filas e historico de tamanho fixo:
+    historico = deque(maxlen=100)   # guarda os ultimos 100 itens
+
+DEFAULTDICT: dicionario com valor padrao automatico
+
+    from collections import defaultdict
+
+    grupos = defaultdict(list)
+    for palavra in ["ana", "bia", "alice", "bob"]:
+        grupos[palavra[0]].append(palavra)   # sem verificar se a chave existe
+    # {'a': ['ana', 'alice'], 'b': ['bia', 'bob']}
+
+HEAPQ: fila de prioridade (min-heap)
+
+    import heapq
+
+    h = []
+    heapq.heappush(h, 3)
+    heapq.heappush(h, 1)
+    heapq.heappush(h, 2)
+    heapq.heappop(h)    # 1 -- sempre retorna o menor
+
+    # Top N elementos de uma sequencia grande:
+    heapq.nlargest(3,  [5, 1, 8, 3, 9, 2])   # [9, 8, 5]
+    heapq.nsmallest(3, [5, 1, 8, 3, 9, 2])   # [1, 2, 3]
+
+---------------------------------------------------------------------------
+7. Outras otimizacoes classicas
+---------------------------------------------------------------------------
+CONSTRUCAO DE STRING: use join, nao +=
+
+    # LENTO: cada += cria uma nova string (O(n^2) no total)
+    resultado = ""
+    for palavra in lista_de_palavras:
+        resultado += palavra + " "
+
+    # RAPIDO: join e O(n)
+    resultado = " ".join(lista_de_palavras)
+
+LOOKUP EM SET em vez de lista para verificar pertencimento:
+
+    # O(n) para cada verificacao
+    palavras_validas = ["python", "java", "go", "rust"]
+    if palavra in palavras_validas:    # percorre a lista
+
+    # O(1) para cada verificacao
+    palavras_validas = {"python", "java", "go", "rust"}
+    if palavra in palavras_validas:    # hash direto
+
+EVITE ATRIBUTO LOOKUP REPETIDO EM LOOPS:
+
+    # Mais lento: lookup de append a cada iteracao
+    for x in dados:
+        lista.append(x * 2)
+
+    # Mais rapido: referencia local ao metodo
+    append = lista.append
+    for x in dados:
+        append(x * 2)
+
+COMPREENSOES SAO MAIS RAPIDAS QUE LOOPS EQUIVALENTES:
+    # Loop tradicional: mais lento
+    resultado = []
+    for x in range(1000):
+        resultado.append(x * 2)
+
+    # Compreensao: mais rapido (implementada em C)
+    resultado = [x * 2 for x in range(1000)]
 """,
     exemplos=[
         Exemplo(
-            titulo="O(n**2) virando O(n) com uma troca de estrutura",
-            codigo='''import time
-
-def comuns_lento(a, b):
-    return [x for x in a if x in b]          # b e lista -> cada 'in' e O(m), total O(n*m)
-
-def comuns_rapido(a, b):
-    conjunto = set(b)                        # O(m), pago uma unica vez
-    return [x for x in a if x in conjunto]   # cada 'in' agora e O(1), total O(n)
-
-a = list(range(20000)); b = list(range(10000, 30000))
-for f in (comuns_lento, comuns_rapido):
-    t = time.perf_counter(); f(a, b)
-    print(f.__name__, f"{time.perf_counter()-t:.3f}s")
-''',
-            explicacao="Uma única linha (transformar b em set) muda a "
-                       "ordem de grandeza do algoritmo inteiro, sem "
-                       "precisar reescrever mais nada.",
-        ),
-        Exemplo(
-            titulo="Concatenação de strings: += repetido versus join",
+            titulo="Comparando complexidades na pratica",
             codigo='''import timeit
+import sys
 
-lento = """
-s = ""
-for i in range(10000):
-    s += str(i)
-"""
-rapido = """
-partes = [str(i) for i in range(10000)]
-s = "".join(partes)
-"""
-print("+=  :", round(timeit.timeit(lento, number=50), 3))
-print("join:", round(timeit.timeit(rapido, number=50), 3))
+n = 10_000
+
+# O(n) vs O(1): busca em lista vs set
+lista = list(range(n))
+conjunto = set(lista)
+
+t_lista = timeit.timeit(lambda: (n - 1) in lista,   number=10_000)
+t_set   = timeit.timeit(lambda: (n - 1) in conjunto, number=10_000)
+print(f"Busca em lista: {t_lista:.4f}s")
+print(f"Busca em set:   {t_set:.4f}s")
+print(f"Set e {t_lista/t_set:.0f}x mais rapido para n={n}")
+
+# O(n^2) vs O(n log n): algoritmos de ordenacao
+import random
+dados = list(range(1000))
+random.shuffle(dados)
+
+def bubble_sort(lst):
+    lst = lst[:]
+    n = len(lst)
+    for i in range(n):
+        for j in range(n - i - 1):
+            if lst[j] > lst[j + 1]:
+                lst[j], lst[j + 1] = lst[j + 1], lst[j]
+    return lst
+
+t_bubble = timeit.timeit(lambda: bubble_sort(dados), number=10)
+t_sorted = timeit.timeit(lambda: sorted(dados),       number=10)
+print(f"\nBubble sort O(n^2): {t_bubble:.4f}s")
+print(f"sorted()   O(n lg n): {t_sorted:.6f}s")
+print(f"sorted() e {t_bubble/t_sorted:.0f}x mais rapido")
+
+# Memoria: lista vs gerador
+lista_g = [x**2 for x in range(100_000)]
+gen_g   = (x**2 for x in range(100_000))
+print(f"\nLista:   {sys.getsizeof(lista_g):>10,} bytes")
+print(f"Gerador: {sys.getsizeof(gen_g):>10,} bytes")
 ''',
-            explicacao="Cada += cria uma string inteiramente NOVA (strings "
-                       "são imutáveis, Dia 4); join calcula o tamanho final "
-                       "e aloca a memória uma única vez.",
+            explicacao="A diferenca entre O(n) e O(1) parece abstrata ate voce "
+                       "medir: para n=10.000, set e dezenas de vezes mais rapido. "
+                       "Para n=1.000.000 a diferenca seria de milhoes de vezes. "
+                       "Bubble sort O(n^2) vs sorted() O(n log n): para n=1000, "
+                       "sorted() ja e dezenas de vezes mais rapido. "
+                       "A diferenca de memoria entre lista e gerador e dramatica: "
+                       "800KB vs 120 bytes para 100.000 elementos.",
         ),
         Exemplo(
-            titulo="Perfilando para descobrir onde o tempo realmente vai",
-            codigo='''import cProfile
-import pstats
-import io
+            titulo="Memoizacao: lru_cache vs recursao ingenua",
+            codigo='''import timeit
+from functools import lru_cache
 
-def trabalho_rapido():
-    return sum(range(1000))
+# Fibonacci LENTO: recalcula o mesmo valor exponencialmente
+def fib_lento(n):
+    if n < 2: return n
+    return fib_lento(n-1) + fib_lento(n-2)
 
-def trabalho_lento():
-    total = 0
-    for i in range(200000):
-        total += i
-    return total
+# Fibonacci RAPIDO: cada valor calculado apenas uma vez
+@lru_cache(maxsize=None)
+def fib_cache(n):
+    if n < 2: return n
+    return fib_cache(n-1) + fib_cache(n-2)
 
-def principal():
-    trabalho_rapido()
-    trabalho_lento()
+# Fibonacci ITERATIVO: O(n) sem overhead de recursao
+def fib_iter(n):
+    if n < 2: return n
+    a, b = 0, 1
+    for _ in range(n - 1):
+        a, b = b, a + b
+    return b
 
-buffer = io.StringIO()
-perfil = cProfile.Profile()
-perfil.enable()
-principal()
-perfil.disable()
+# Comparando para n=30
+n = 30
+t_lento = timeit.timeit(lambda: fib_lento(n), number=10)
+t_cache = timeit.timeit(lambda: fib_cache(n), number=10_000)
+t_iter  = timeit.timeit(lambda: fib_iter(n),  number=10_000)
 
-stats = pstats.Stats(perfil, stream=buffer).sort_stats("cumulative")
-stats.print_stats(3)
-print(buffer.getvalue()[:400])
+print(f"fib_lento({n}):  {t_lento:.4f}s (x10 chamadas)")
+print(f"fib_cache({n}):  {t_cache:.6f}s (x10.000 chamadas)")
+print(f"fib_iter({n}):   {t_iter:.6f}s (x10.000 chamadas)")
+print(f"Resultado: {fib_cache(80)}")
+print(f"Cache info: {fib_cache.cache_info()}")
 ''',
-            explicacao="cProfile revela QUAL função consumiu mais tempo, "
-                       "em vez de você precisar adivinhar olhando o código "
-                       "e cronometrar manualmente cada trecho suspeito.",
+            explicacao="fib_lento(35) faz mais de 29 milhoes de chamadas. "
+                       "fib_cache(35) faz apenas 36 chamadas distintas -- "
+                       "o resto vem do cache. "
+                       "fib_iter e ainda mais eficiente: sem overhead de recursao "
+                       "e sem dicionario de cache. "
+                       "cache_info() mostra hits (respostas do cache) vs misses "
+                       "(calculados de fato) -- util para avaliar a eficiencia do cache.",
+        ),
+        Exemplo(
+            titulo="collections e otimizacoes de string",
+            codigo='''from collections import Counter, deque, defaultdict
+import timeit
+
+# COUNTER: contando palavras eficientemente
+texto = "o rato roeu a roupa do rei de roma o rato e o rei"
+c = Counter(texto.split())
+print("Top 3 palavras:", c.most_common(3))
+
+# DEQUE: fila de historico com tamanho fixo
+historico = deque(maxlen=5)
+for i in range(10):
+    historico.append(i)
+print("Ultimos 5:", list(historico))   # [5, 6, 7, 8, 9]
+
+# DEFAULTDICT: agrupando sem verificar chave
+palavras = "abacate banana amora blueberry caju acai".split()
+por_inicial = defaultdict(list)
+for p in palavras:
+    por_inicial[p[0]].append(p)
+print("Por inicial:", dict(por_inicial))
+
+# STRING JOIN vs += em loop
+partes = ["parte"] * 10_000
+
+def concatenar_mais():
+    r = ""
+    for p in partes:
+        r += p
+    return r
+
+def concatenar_join():
+    return "".join(partes)
+
+t_mais = timeit.timeit(concatenar_mais, number=100)
+t_join = timeit.timeit(concatenar_join, number=100)
+print(f"\n+=   : {t_mais:.4f}s")
+print(f"join : {t_join:.4f}s")
+print(f"join e {t_mais/t_join:.1f}x mais rapido")
+''',
+            explicacao="Counter.most_common(n) usa internamente um heap para "
+                       "encontrar os N mais frequentes sem ordenar tudo -- O(m log n). "
+                       "deque com maxlen descarta automaticamente o elemento mais antigo: "
+                       "perfeito para janelas deslizantes e historico de tamanho fixo. "
+                       "join e mais rapido que += porque calcula o tamanho total antes "
+                       "de alocar memoria, enquanto += recria a string a cada iteracao.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d29e1",
             enunciado=(
-                "Escreva interseccao_rapida(a, b) devolvendo a lista dos elementos de\n"
-                "`a` que também estão em `b`, preservando a ordem de `a`, sem repetir,\n"
-                "e com complexidade O(n + m)."
+                "Escreva interseccao_rapida(a, b) que retorna uma lista\n"
+                "com os elementos que aparecem em AMBAS as listas,\n"
+                "SEM duplicatas, em O(n+m) usando set.\n\n"
+                "Exemplos:\n"
+                "   interseccao_rapida([1, 2, 3, 2], [2, 3, 9]) -> [2, 3]\n"
+                "   interseccao_rapida([], [1])                  -> []\n"
+                "   interseccao_rapida([5, 5], [5])              -> [5]\n\n"
+                "Por que usar set?\n"
+                "   Abordagem ingenua: para cada elemento de a, percorre b\n"
+                "   -> O(n*m): lento para listas grandes\n\n"
+                "   Com set: converter b para set e O(m), depois\n"
+                "   verificar pertencimento e O(1) por elemento\n"
+                "   -> O(n+m): muito mais rapido\n\n"
+                "Estrategia:\n"
+                "   conjunto_b = set(b)    # O(m)\n"
+                "   vistos = set()         # controla duplicatas no resultado\n"
+                "   resultado = []\n"
+                "   for x in a:            # O(n)\n"
+                "       if x in conjunto_b and x not in vistos:\n"
+                "           resultado.append(x)\n"
+                "           vistos.add(x)\n"
+                "   return resultado"
             ),
             funcao="interseccao_rapida",
             assinatura="def interseccao_rapida(a, b):",
@@ -1782,13 +3713,30 @@ print(buffer.getvalue()[:400])
                 ("interseccao_rapida([5, 5], [5])", "[5]"),
             ],
             nivel="medio",
-            dica="Converta b em set e use outro set para controlar o que já foi incluído.",
+            dica="conjunto_b = set(b); vistos = set(); resultado = []; for x in a: if x in conjunto_b and x not in vistos: resultado.append(x); vistos.add(x); return resultado",
         ),
         Exercicio(
             id="d29e2",
             enunciado=(
-                "Escreva fib(n) com memoização (lru_cache ou dicionário próprio),\n"
-                "capaz de calcular fib(80) instantaneamente. fib(0)=0, fib(1)=1."
+                "O import lru_cache e o decorator @lru_cache ja estao\n"
+                "na assinatura. Complete a funcao fib(n) que calcula o\n"
+                "n-esimo numero de Fibonacci de forma recursiva.\n\n"
+                "Exemplos:\n"
+                "   fib(10) -> 55\n"
+                "   fib(0)  -> 0\n"
+                "   fib(80) -> 23416728348467685\n\n"
+                "A sequencia de Fibonacci:\n"
+                "   fib(0) = 0\n"
+                "   fib(1) = 1\n"
+                "   fib(n) = fib(n-1) + fib(n-2)  para n >= 2\n\n"
+                "Implemente a recursao ingenua -- o cache cuida do resto:\n"
+                "   if n < 2: return n\n"
+                "   return fib(n-1) + fib(n-2)\n\n"
+                "Sem @lru_cache, fib(80) seria impraticavel:\n"
+                "   fib_sem_cache(40) ja leva varios segundos\n"
+                "   fib_sem_cache(80) levaria mais tempo que a vida do universo\n\n"
+                "Com @lru_cache(maxsize=None), cada valor e calculado\n"
+                "apenas UMA vez. Resultados anteriores sao reutilizados."
             ),
             funcao="fib",
             assinatura="from functools import lru_cache\n\n\n@lru_cache(maxsize=None)\ndef fib(n):",
@@ -1798,13 +3746,29 @@ print(buffer.getvalue()[:400])
                 ("fib(80)", "23416728348467685"),
             ],
             nivel="medio",
-            dica="A recursão ingênua já funciona — o cache faz o resto.",
+            dica="if n < 2: return n; return fib(n-1) + fib(n-2)",
         ),
         Exercicio(
             id="d29e3",
             enunciado=(
-                "Escreva top_n(texto, n) devolvendo a lista das n palavras mais\n"
-                "frequentes como tuplas (palavra, contagem), em ordem decrescente."
+                "O import Counter ja esta na assinatura.\n"
+                "Escreva top_n(texto, n) que retorna as n palavras mais\n"
+                "frequentes de um texto, como lista de tuplas (palavra, contagem),\n"
+                "ordenadas da mais para a menos frequente.\n\n"
+                "Exemplos:\n"
+                "   top_n('a b a c a b', 2) -> [('a', 3), ('b', 2)]\n"
+                "   top_n('', 3)            -> []\n"
+                "   top_n('x', 5)           -> [('x', 1)]\n\n"
+                "Estrategia:\n"
+                "   palavras = texto.split()           # divide em lista\n"
+                "   if not palavras: return []         # caso vazio\n"
+                "   return Counter(palavras).most_common(n)\n\n"
+                "Counter(lista) conta automaticamente as ocorrencias.\n"
+                "most_common(n) retorna as n mais comuns em ordem decrescente.\n"
+                "Se n for maior que o vocabulario, retorna tudo que existe.\n\n"
+                "Internamente, most_common(n) usa um heap para encontrar\n"
+                "os n maiores sem ordenar o contador inteiro -- O(m log n)\n"
+                "onde m e o numero de palavras unicas."
             ),
             funcao="top_n",
             assinatura="from collections import Counter\n\n\ndef top_n(texto, n):",
@@ -1814,303 +3778,654 @@ print(buffer.getvalue()[:400])
                 ("top_n('x', 5)", "[('x', 1)]"),
             ],
             nivel="medio",
-            dica="Counter(texto.split()).most_common(n) já devolve o formato pedido.",
+            dica="palavras = texto.split(); if not palavras: return []; return Counter(palavras).most_common(n)",
         ),
     ],
     quiz=[
-        Quiz("Qual a complexidade de `x in lista` e `x in set`, respectivamente?",
-             ["O(1) e O(1)", "O(n) e O(1) em média", "O(n) e O(n)", "O(log n) e O(1)"], 1,
-             "set usa hashing para localizar o elemento diretamente; lista precisa percorrer item a item no pior caso."),
-        Quiz("Qual deveria ser o primeiro passo antes de otimizar qualquer código?",
-             ["Reescrever partes críticas em C", "Medir e encontrar o gargalo real com ferramentas como cProfile",
-              "Trocar todo for por while", "Adicionar threads ou processos imediatamente"], 1,
-             "Sem medição, o esforço de otimização frequentemente recai sobre trechos que já eram rápidos o suficiente."),
-        Quiz("Por que 's += str(i)' repetido em laço é mais lento que '\"\".join(partes)'?",
-             ["+= é sintaxe inválida em laços", "Cada += cria uma string nova inteira, já que strings são imutáveis; join aloca uma vez só",
-              "join só funciona com números", "Não há diferença de desempenho real entre os dois"], 1,
-             "A imutabilidade das strings (Dia 4) torna cada += uma cópia completa; join evita essas cópias repetidas."),
-        Quiz("O que a notação O grande realmente descreve?",
-             ["O tempo exato de execução em segundos", "Como o tempo de execução cresce conforme o tamanho da entrada aumenta",
-              "A quantidade de memória RAM disponível", "A versão do Python necessária"], 1,
-             "É uma medida de taxa de crescimento, não de tempo absoluto — por isso não diz nada sobre entradas pequenas isoladamente."),
+        Quiz(
+            "Qual operacao em lista tem custo O(n) e deve ser evitada em loops?",
+            ["lista.append(x) -- adiciona ao final",
+             "lista[i] -- acesso por indice",
+             "lista.insert(0, x) -- insere no inicio, deslocando todos os elementos",
+             "len(lista) -- retorna o tamanho"],
+            2,
+            "lista.insert(0, x) e lista.pop(0) sao O(n): todos os elementos "
+            "precisam ser deslocados uma posicao. "
+            "append e pop() (sem indice) sao O(1): operam no final sem mover nada. "
+            "Para insercao e remocao frequente no inicio, use collections.deque "
+            "que tem appendleft e popleft em O(1).",
+        ),
+        Quiz(
+            "Por que @lru_cache transforma fib(80) de impraticavel em instantaneo?",
+            ["lru_cache paraleliza a recursao automaticamente",
+             "lru_cache memoriza resultados ja calculados -- cada valor de fib e calculado apenas uma vez em vez de exponencialmente",
+             "lru_cache converte a recursao em iteracao",
+             "lru_cache aumenta o limite de recursao do Python"],
+            1,
+            "Sem cache: fib(80) chama fib(79) e fib(78), cada um chama dois mais, "
+            "e assim por diante. O numero de chamadas cresce exponencialmente. "
+            "Com lru_cache: fib(79) e calculado uma vez, o resultado fica no cache. "
+            "Quando fib(80) precisa de fib(79) de novo, le do cache -- O(1). "
+            "Total: apenas 81 calculos distintos em vez de 2^80.",
+        ),
+        Quiz(
+            "Qual a diferenca de complexidade entre 'x in lista' e 'x in conjunto'?",
+            ["Ambos sao O(1) -- Python otimiza automaticamente",
+             "lista e O(n) pois percorre ate encontrar; set e O(1) pois usa hash para localizar diretamente",
+             "set e mais lento que lista para elementos no inicio",
+             "Depende do tipo do elemento"],
+            1,
+            "Lista: percorre elemento por elemento ate achar x ou chegar ao fim. "
+            "Para o pior caso (x nao existe), percorre TODOS os n elementos: O(n). "
+            "Set: calcula hash(x) e vai diretamente ao bucket correspondente: O(1). "
+            "Para verificacoes frequentes de pertencimento, converta para set uma vez "
+            "e economize O(n) por verificacao.",
+        ),
+        Quiz(
+            "Por que 'join' e mais rapido que '+=' para construir strings em loop?",
+            ["join usa multiplos nucleos internamente",
+             "'+=' cria uma nova string a cada iteracao (O(n) por operacao, O(n^2) no total); join calcula o tamanho total antes de alocar memoria uma unica vez",
+             "join usa bytes em vez de unicode",
+             "Nao ha diferenca -- ambos sao equivalentes"],
+            1,
+            "Strings sao imutaveis. resultado += parte cria uma NOVA string a cada vez, "
+            "copiando todo o conteudo anterior. Para n partes, o total de operacoes "
+            "e 1+2+3+...+n = O(n^2). "
+            "join calcula o tamanho total (soma dos len()), aloca uma vez e copia. "
+            "Para n partes de tamanho m: O(n*m) em vez de O(n^2*m).",
+        ),
     ],
     projeto=(
-        "Pegue um script seu que demore mais de 1 segundo, perfile com cProfile, identifique "
-        "o gargalo, otimize e documente o antes/depois com números."
+        "Crie benchmarks.py que compare implementacoes de diferentes\n"
+        "complexidades para o mesmo problema:\n\n"
+        "   PROBLEMA 1 -- Busca de duplicatas:\n"
+        "   def tem_duplicata_o_n2(lista): dois loops aninhados\n"
+        "   def tem_duplicata_o_n(lista):  usando set\n"
+        "   Compare para listas de 100, 1000, 10000 elementos\n\n"
+        "   PROBLEMA 2 -- Contagem de palavras:\n"
+        "   def contar_manual(texto):  loop com dict.get()\n"
+        "   def contar_counter(texto): Counter(texto.split())\n"
+        "   Compare para textos de 10, 100, 1000 palavras\n\n"
+        "   PROBLEMA 3 -- Concatenacao de strings:\n"
+        "   def concatenar_mais(partes): loop com +=\n"
+        "   def concatenar_join(partes): ''.join(partes)\n"
+        "   Compare para 100, 1000, 10000 partes\n\n"
+        "   RELATORIO:\n"
+        "   Para cada problema, exiba uma tabela:\n"
+        "   n       O(n^2)    O(n)    speedup\n"
+        "   -----   -------   -----   -------\n"
+        "   100     0.001s    0.0001s  10x\n"
+        "   1000    0.100s    0.001s   100x\n"
+        "   10000   10.000s   0.010s   1000x\n\n"
+        "BONUS: use cProfile em uma funcao com gargalo artificial\n"
+        "e mostre como identificar a funcao mais lenta pelo relatorio."
     ),
-    leitura=["docs.python.org/pt-br/3/library/profile.html", "wiki.python.org/moin/TimeComplexity"],
+    leitura=[
+        "docs.python.org/pt-br/3/library/timeit.html -- modulo timeit",
+        "docs.python.org/pt-br/3/library/profile.html -- cProfile",
+        "docs.python.org/pt-br/3/library/collections.html -- collections",
+        "wiki.python.org/moin/TimeComplexity -- custo das operacoes",
+    ],
 ))
 
 # ---------------------------------------------------------------- DIA 30
 DIAS.append(Dia(
     numero=30,
-    titulo="Projeto final: estrutura, empacotamento e boas práticas",
-    nivel="Avançado",
-    duracao="130 min",
+    titulo="Projeto final: estrutura, empacotamento e boas praticas",
+    nivel="Avancado",
+    duracao="150 min",
     objetivos=[
-        "Estruturar um projeto Python seguindo o layout profissional com src/",
-        "Escrever um pyproject.toml e instalar o projeto em modo editável",
-        "Configurar ferramentas de qualidade (linter, formatador, tipos, testes) e integração contínua",
-        "Gerenciar segredos e configuração sem versioná-los por engano",
-        "Empacotar e distribuir um projeto Python no Linux",
-        "Sintetizar os 30 dias num checklist prático para o projeto final do curso",
+        "Organizar um projeto Python com estrutura de diretorios profissional",
+        "Configurar pyproject.toml como descritor moderno do projeto",
+        "Escrever README, docstrings e comentarios que realmente ajudam",
+        "Usar linter (ruff) e formatador (black) para padronizar o codigo",
+        "Entender o fluxo de publicacao no PyPI",
+        "Integrar tudo que foi aprendido nos 30 dias em um projeto coeso",
     ],
     teoria="""
-1. Estrutura recomendada de um projeto (layout src)
-------------------------------------------------------------
+Voce chegou ao Dia 30. Ao longo do curso voce aprendeu a escrever
+codigo Python correto, eficiente, testado e bem documentado. Hoje
+vamos falar de algo igualmente importante: como ORGANIZAR e EMPACOTAR
+esse codigo para que outras pessoas (e voce mesmo no futuro) consigam
+usar, entender e contribuir com ele.
+
+---------------------------------------------------------------------------
+1. Estrutura de diretorios de um projeto Python moderno
+---------------------------------------------------------------------------
+Nao existe uma estrutura universal obrigatoria, mas ha convencoes
+amplamente adotadas que tornam projetos faceis de navegar:
+
+ESTRUTURA SRC (recomendada para bibliotecas):
+
     meu_projeto/
-        pyproject.toml
-        README.md
-        LICENSE
-        .gitignore
-        src/
-            meu_pacote/
-                __init__.py
-                cli.py
-                modelos.py
-                servicos.py
-        tests/
-            test_modelos.py
-        docs/
+    +-- src/
+    |   +-- meu_projeto/
+    |       +-- __init__.py       torna o diretorio um pacote
+    |       +-- core.py           logica principal
+    |       +-- utils.py          funcoes utilitarias
+    |       +-- cli.py            interface de linha de comando
+    |       +-- models.py         tipos de dados / dataclasses
+    +-- tests/
+    |   +-- __init__.py
+    |   +-- test_core.py
+    |   +-- test_utils.py
+    +-- docs/
+    |   +-- index.md
+    +-- pyproject.toml            configuracao do projeto (moderno)
+    +-- README.md                 apresentacao do projeto
+    +-- LICENSE                   licenca de uso
+    +-- .gitignore                o que o git deve ignorar
+    +-- .github/
+        +-- workflows/
+            +-- ci.yml            CI: testa automaticamente a cada commit
 
-O layout com uma pasta `src/` intermediária (em vez de colocar o pacote
-direto na raiz do projeto) resolve um problema sutil, mas real: sem
-`src/`, é fácil que os testes importem acidentalmente o código do
-DIRETÓRIO ATUAL (onde você está rodando os testes) em vez do pacote
-efetivamente INSTALADO no ambiente virtual — um erro clássico que
-mascara problemas reais de empacotamento, porque "funciona na minha
-máquina" mesmo quando a instalação de verdade estaria quebrada para outra
-pessoa.
+Por que src/? Separa o codigo-fonte instalavel do resto do projeto.
+Evita importar acidentalmente o pacote local em vez do instalado,
+o que causa bugs sutis nos testes.
 
-2. pyproject.toml: a configuração central do projeto moderno
-------------------------------------------------------------------------
+ESTRUTURA SIMPLES (para scripts e projetos pequenos):
+
+    meu_script/
+    +-- meu_script.py
+    +-- tests/
+    |   +-- test_meu_script.py
+    +-- pyproject.toml
+    +-- README.md
+
+---------------------------------------------------------------------------
+2. pyproject.toml: o descritor moderno do projeto
+---------------------------------------------------------------------------
+pyproject.toml e o arquivo de configuracao padrao atual do Python,
+substituindo setup.py, setup.cfg e requirements.txt de forma unificada.
+
+    [project]
+    name = "meu-projeto"
+    version = "0.1.0"
+    description = "Uma ferramenta para processar dados"
+    readme = "README.md"
+    requires-python = ">=3.10"
+    license = {text = "MIT"}
+    authors = [
+        {name = "Seu Nome", email = "voce@email.com"},
+    ]
+    dependencies = [
+        "requests>=2.28",
+        "click>=8.0",
+    ]
+
+    [project.optional-dependencies]
+    dev = [
+        "pytest>=7.0",
+        "ruff>=0.1",
+        "black>=23.0",
+    ]
+
+    [project.scripts]
+    meu-projeto = "meu_projeto.cli:main"
+
     [build-system]
     requires = ["hatchling"]
     build-backend = "hatchling.build"
 
-    [project]
-    name = "meu-pacote"
-    version = "0.1.0"
-    description = "Faz algo útil"
-    readme = "README.md"
-    requires-python = ">=3.10"
-    dependencies = ["requests>=2.31"]
-
-    [project.optional-dependencies]
-    dev = ["pytest", "mypy", "ruff"]
-
-    [project.scripts]
-    meucomando = "meu_pacote.cli:principal"
-
     [tool.ruff]
-    line-length = 100
+    line-length = 88
+    select = ["E", "F", "I"]
 
-`pyproject.toml` (formalizado pelas PEP 518 e PEP 621) unificou o que
-antes era espalhado por `setup.py`, `setup.cfg` e `requirements.txt`
-separados — hoje é o arquivo único e padrão para descrever nome, versão,
-dependências e configuração de ferramentas do projeto. A seção
-`[project.scripts]` é particularmente valiosa: ela declara um "entry
-point" (`meucomando`), que faz o comando existir automaticamente no PATH
-do ambiente virtual assim que o pacote é instalado — sem precisar do
-`chmod +x` e do shebang manual vistos no Dia 25.
+    [tool.pytest.ini_options]
+    testpaths = ["tests"]
 
-Instalação em modo de DESENVOLVIMENTO:
+A secao [project.scripts] define um comando de terminal:
+ao instalar o pacote, "meu-projeto" passa a ser um comando
+disponivel no PATH que chama a funcao main() do modulo cli.py.
 
-    python3 -m venv .venv && source .venv/bin/activate
-    pip install -e ".[dev]"
+---------------------------------------------------------------------------
+3. Gerenciando dependencias com ambientes virtuais
+---------------------------------------------------------------------------
+Cada projeto deve ter seu proprio ambiente virtual:
 
-O `-e` (editable) instala o pacote de forma que mudanças no código-fonte
-tenham efeito IMEDIATO, sem precisar reinstalar a cada alteração — o
-`[dev]` entre colchetes instala também as dependências opcionais
-declaradas em `optional-dependencies.dev` (aqui, pytest, mypy e ruff).
+    python3 -m venv .venv
+    source .venv/bin/activate
 
-3. Ferramentas de qualidade que compõem um fluxo de trabalho sólido
-------------------------------------------------------------------------------
-    ruff check . && ruff format .     linter + formatador (rápido; substitui a combinação flake8+black+isort)
-    mypy src/                          checagem estática de tipos (Dia 23)
-    pytest --cov=src                   testes e cobertura (Dia 24)
-    pre-commit install                 roda automaticamente essas checagens antes de CADA commit
+    pip install -e ".[dev]"       instala o projeto em modo editavel
+    pip freeze > requirements.lock congela versoes exatas
 
-`ruff`, escrito em Rust, tornou-se o padrão emergente da comunidade por
-combinar em uma única ferramenta, muito rápida, o que antes exigia três
-ferramentas separadas (um linter, um formatador e um organizador de
-imports). `pre-commit` automatiza a execução dessas checagens no exato
-momento do commit, prevenindo que código com problemas óbvios (estilo
-inconsistente, erros de tipo simples) sequer entre no histórico do
-repositório.
+FERRAMENTAS MODERNAS: uv e extremamente rapido e gerencia venv e
+dependencias de forma integrada.
 
-4. Git no dia a dia de um projeto
---------------------------------------
-    git init && git add -A && git commit -m "feat: primeira versao"
-    git switch -c feature/x
-    .gitignore: .venv/, __pycache__/, *.pyc, .pytest_cache/, dist/, .env
+    uv venv
+    uv pip install -e ".[dev]"
+    uv run pytest
 
-Uma regra que não admite exceção: NUNCA versione segredos (senhas, tokens
-de API, chaves privadas) diretamente no repositório — mesmo removendo o
-arquivo depois, ele permanece no HISTÓRICO do git, acessível a qualquer
-um com acesso ao repositório. A prática recomendada é usar variáveis de
-AMBIENTE para valores sensíveis, e versionar apenas um arquivo
-`.env.example` (sem valores reais) mostrando quais variáveis o projeto
-espera encontrar.
+---------------------------------------------------------------------------
+4. README.md: a porta de entrada do projeto
+---------------------------------------------------------------------------
+O README e a primeira coisa que qualquer pessoa ve. Um bom README
+responde cinco perguntas:
 
-5. Configuração e segredos em tempo de execução
-------------------------------------------------------------------
-    import os
-    TOKEN = os.environ["API_TOKEN"]          # falha ALTO (KeyError) se a variável faltar — comportamento correto
-    DEBUG = os.getenv("DEBUG", "0") == "1"   # usa um valor padrão explícito quando a variável está ausente
+    1. O QUE FAZ: uma frase descrevendo o projeto
+    2. POR QUE USAR: qual problema resolve
+    3. COMO INSTALAR: comandos exatos, sem ambiguidade
+    4. COMO USAR: exemplos de codigo funcionando
+    5. COMO CONTRIBUIR: como rodar testes, como submeter mudancas
 
-Retomando o princípio do Dia 15 ("falhe cedo e alto"): usar
-`os.environ["CHAVE"]` (colchetes) para configuração OBRIGATÓRIA é
-deliberado — se a variável de ambiente não estiver definida, o programa
-falha imediatamente com uma mensagem clara, em vez de continuar rodando
-com um valor `None` silencioso que só causaria um erro confuso mais
-adiante. Já `os.getenv("CHAVE", padrao)` é apropriado quando existe um
-valor padrão razoável para o caso da variável estar ausente.
+ESTRUTURA MINIMA:
 
-6. Integração contínua com GitHub Actions (esqueleto)
-------------------------------------------------------------------
+    # Nome do Projeto
+
+    Descricao curta em uma ou duas frases.
+
+    ## Instalacao
+
+        pip install meu-projeto
+
+    ## Uso rapido
+
+        from meu_projeto import processar
+        resultado = processar("entrada.csv")
+
+    ## Desenvolvimento
+
+        git clone https://github.com/usuario/meu-projeto
+        cd meu-projeto
+        python -m venv .venv && source .venv/bin/activate
+        pip install -e ".[dev]"
+        pytest
+
+    ## Licenca
+
+    MIT -- veja LICENSE para detalhes.
+
+---------------------------------------------------------------------------
+5. Qualidade de codigo: linters e formatadores
+---------------------------------------------------------------------------
+RUFF: linter e formatador extremamente rapido
+
+    pip install ruff
+    ruff check .          verifica erros e problemas de estilo
+    ruff check --fix .    corrige automaticamente o que for possivel
+    ruff format .         formata o codigo
+
+O que ruff verifica:
+    E: erros de estilo PEP 8 (espacos, comprimento de linha...)
+    F: erros do pyflakes (variaveis nao usadas, imports nao usados...)
+    I: ordenacao de imports
+
+BLACK: formatador opinativo
+
+    pip install black
+    black .               formata todos os arquivos .py
+
+Black e "sem configuracao": ele decide o estilo e voce nao discute.
+O ganho e que discussoes de estilo acabam -- o black decide.
+
+MYPY: verificador de tipos (Dia 23)
+
+    pip install mypy
+    mypy src/
+
+---------------------------------------------------------------------------
+6. Controle de versao semantico
+---------------------------------------------------------------------------
+Versoes seguem o padrao MAJOR.MINOR.PATCH (ex: 2.1.4):
+
+    PATCH (2.1.4 -> 2.1.5): correcao de bug, nao quebra nada
+    MINOR (2.1.x -> 2.2.0): nova funcionalidade, compativel com anterior
+    MAJOR (2.x.x -> 3.0.0): mudanca que quebra compatibilidade
+
+Na pratica:
+    0.x.x : desenvolvimento inicial, API pode mudar a qualquer momento
+    1.0.0 : primeira versao estavel, API publica definida
+    1.x.0 : novas funcionalidades, compativel com 1.0.0
+    2.0.0 : mudancas que quebram codigo que usava 1.x
+
+---------------------------------------------------------------------------
+7. Publicando no PyPI
+---------------------------------------------------------------------------
+PyPI e o repositorio de pacotes Python onde pip install busca os pacotes.
+
+    pip install build twine
+
+    python -m build
+    # Gera: dist/meu_projeto-0.1.0.tar.gz
+    #       dist/meu_projeto-0.1.0-py3-none-any.whl
+
+    twine upload --repository testpypi dist/*    teste primeiro!
+    twine upload dist/*                          publicacao real
+
+    # Qualquer pessoa pode instalar:
+    pip install meu-projeto
+
+Use tokens de API (pypi.org/manage/account/token/) em vez de senha.
+
+---------------------------------------------------------------------------
+8. CI/CD com GitHub Actions
+---------------------------------------------------------------------------
+CI (Continuous Integration) roda os testes a cada push automaticamente.
+Crie o arquivo .github/workflows/ci.yml no repositorio:
+
+    name: CI
     on: [push, pull_request]
     jobs:
-      testes:
+      test:
         runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            python-version: ["3.10", "3.11", "3.12"]
         steps:
           - uses: actions/checkout@v4
           - uses: actions/setup-python@v5
-            with: {python-version: "3.12"}
+            with:
+              python-version: ${{ matrix.python-version }}
           - run: pip install -e ".[dev]"
-          - run: ruff check . && mypy src/ && pytest
+          - run: ruff check .
+          - run: pytest --tb=short
 
-Um workflow de CI (integração contínua) roda essas checagens
-automaticamente a CADA push ou pull request, antes mesmo de alguém
-revisar o código manualmente — funcionando como uma rede de segurança
-que pega problemas óbvios (testes quebrados, erros de tipo, violações de
-estilo) antes que cheguem à branch principal do projeto.
+Cada push no GitHub aciona esse workflow. Se qualquer passo falhar,
+voce recebe notificacao e o PR nao pode ser mergeado.
 
-7. Empacotamento e distribuição no Linux
-------------------------------------------------------------------
-    python3 -m build                 gera os arquivos dist/*.whl e dist/*.tar.gz, os formatos padrão de distribuição
-    twine upload dist/*              publica esses arquivos no PyPI (o repositório público de pacotes Python)
-    pipx install meu-pacote          instala CLIs Python em ambientes isolados automaticamente, sem conflitar com outros projetos
-    Docker: FROM python:3.12-slim + pip install .    empacota o projeto inteiro, com suas dependências, numa imagem de container
-    systemd: um "unit file" permite rodar o projeto como um serviço de fundo gerenciado pelo próprio sistema operacional Linux
+---------------------------------------------------------------------------
+9. O que voce construiu em 30 dias
+---------------------------------------------------------------------------
+    Semana 1 (Dias 1-7):   tipos, operadores, strings, condicionais,
+                            while, for
+    Semana 2 (Dias 8-14):  colecoes, compreensoes, funcoes, modulos,
+                            arquivos, JSON, CSV
+    Semana 3 (Dias 15-23): excecoes, POO (3 dias), dataclasses/Enum/ABC,
+                            iteradores, decoradores, context managers,
+                            type hints
+    Semana 4 (Dias 24-30): testes, Linux, regex, concorrencia, asyncio,
+                            desempenho, projeto final
 
-8. Checklist prático para o projeto final
-------------------------------------------------------------
-    [ ] resolve um problema real seu, não um exercício artificial
-    [ ] estrutura de pacote com src/ e tests/, seguindo o padrão deste dia
-    [ ] CLI com argparse e uma tela de --help decente (Dia 25)
-    [ ] persistência de dados (JSON, CSV ou SQLite)
-    [ ] tratamento de erros com exceções próprias (Dia 15)
-    [ ] type hints em todo o código público (Dia 23)
-    [ ] pelo menos 15 testes passando (Dia 24)
-    [ ] README com instalação, uso e exemplos
-    [ ] logging configurável em vez de print (Dia 25)
-    [ ] versionado no git, com commits descritivos ao longo do desenvolvimento
+Voce tem agora as ferramentas para construir:
+    - Scripts de automacao e processamento de dados
+    - APIs e servicos web (com FastAPI ou Django)
+    - Ferramentas de linha de comando
+    - Bibliotecas reutilizaveis
+    - Pipelines de dados e ETL
+    - Aplicacoes com concorrencia e assincronia
 
-9. O que estudar depois destes 30 dias
-------------------------------------------
-    Web: FastAPI, Django, Flask
-    Dados: pandas, polars, matplotlib, scikit-learn
-    Banco de dados: sqlite3, SQLAlchemy, psycopg
-    Automação: Playwright, paramiko, Ansible
-    Infraestrutura: Docker, systemd, cron
-    Fundamentos mais profundos: estruturas de dados avançadas, SQL, redes, design de sistemas
-
-O melhor próximo passo, depois de qualquer curso — inclusive este — é
-sempre o mesmo: escrever um programa que VOCÊ vai efetivamente usar toda
-semana. Ler documentação enquanto se constrói algo real e útil ensina
-mais, de forma duradoura, do que qualquer sequência de exercícios
-fechados — é exatamente por isso que o projeto final pede um problema
-seu, não mais um enunciado artificial.
+O proximo passo: escolha UM projeto real que resolva um problema
+que voce tem, e construa-o. A melhor forma de consolidar 30 dias de
+aprendizado e colocar tudo em pratica em algo que importa para voce.
 """,
     exemplos=[
         Exemplo(
-            titulo="Esqueleto de CLI instalável, com subcomandos",
-            codigo='''# src/tarefas/cli.py
-import argparse
+            titulo="Modulo profissional com dataclass, tipagem e docstrings",
+            codigo='''from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+import json
+
+
+@dataclass
+class Tarefa:
+    """Representa uma tarefa com titulo e estado de conclusao."""
+
+    titulo: str
+    feita: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.titulo.strip():
+            raise ValueError("titulo nao pode ser vazio")
+
+    def concluir(self) -> None:
+        """Marca a tarefa como concluida."""
+        self.feita = True
+
+    def __str__(self) -> str:
+        icone = "x" if self.feita else " "
+        return f"[{icone}] {self.titulo}"
+
+
+class GerenciadorTarefas:
+    """Gerencia uma colecao de tarefas com persistencia em JSON."""
+
+    def __init__(self, arquivo: Optional[str] = None) -> None:
+        self._tarefas: list[Tarefa] = []
+        self._arquivo = Path(arquivo) if arquivo else None
+        if self._arquivo and self._arquivo.exists():
+            self._carregar()
+
+    def adicionar(self, titulo: str) -> Tarefa:
+        """Adiciona uma nova tarefa e retorna ela."""
+        t = Tarefa(titulo)
+        self._tarefas.append(t)
+        return t
+
+    def concluir(self, indice: int) -> None:
+        """Conclui a tarefa no indice dado. Levanta IndexError se invalido."""
+        if not 0 <= indice < len(self._tarefas):
+            raise IndexError(f"indice {indice} invalido")
+        self._tarefas[indice].concluir()
+
+    def pendentes(self) -> list[str]:
+        """Retorna titulos das tarefas ainda nao concluidas."""
+        return [t.titulo for t in self._tarefas if not t.feita]
+
+    def resumo(self) -> str:
+        """Retorna 'X/Y concluidas'."""
+        feitas = sum(1 for t in self._tarefas if t.feita)
+        return f"{feitas}/{len(self._tarefas)} concluidas"
+
+    def _carregar(self) -> None:
+        dados = json.loads(self._arquivo.read_text(encoding="utf-8"))
+        self._tarefas = [Tarefa(**d) for d in dados]
+
+    def salvar(self) -> None:
+        """Persiste as tarefas no arquivo configurado."""
+        if not self._arquivo:
+            raise RuntimeError("nenhum arquivo configurado")
+        dados = [{"titulo": t.titulo, "feita": t.feita}
+                 for t in self._tarefas]
+        self._arquivo.write_text(
+            json.dumps(dados, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+
+g = GerenciadorTarefas()
+g.adicionar("Aprender Python")
+g.adicionar("Fazer projeto final")
+g.adicionar("Publicar no GitHub")
+g.concluir(0)
+g.concluir(1)
+
+for t in g._tarefas:
+    print(t)
+print(g.resumo())
+print("Pendentes:", g.pendentes())
+''',
+            explicacao="Optional[str] = None aceita string ou nenhum valor. "
+                       "__post_init__ valida dados apos a criacao da dataclass. "
+                       "_tarefas e _arquivo com underscore sinalizam uso interno. "
+                       "Cada metodo publico tem docstring de uma linha -- suficiente "
+                       "para metodos simples, mais detalhado so quando necessario. "
+                       "O modulo e autocontido: pode ser importado ou executado.",
+        ),
+        Exemplo(
+            titulo="Comparacao de versoes e serializacao JSON",
+            codigo='''import json
+
+
+def comparar_versoes(a: str, b: str) -> int:
+    # Converte 'MAJOR.MINOR.PATCH' em tupla de inteiros para comparacao correta
+    # '1.10.0' como string < '1.9.9' (errado); como inteiros (1,10,0) > (1,9,9) (certo)
+    def para_tupla(v: str) -> tuple:
+        return tuple(int(x) for x in v.split("."))
+
+    ta, tb = para_tupla(a), para_tupla(b)
+    if ta > tb:
+        return 1
+    if ta < tb:
+        return -1
+    return 0
+
+
+def serializar(dados) -> str:
+    # ensure_ascii=False preserva acentos e UTF-8 no JSON
+    return json.dumps(dados, ensure_ascii=False)
+
+
+def desserializar(texto: str):
+    return json.loads(texto)
+
+
+# Testando comparacao de versoes
+casos = [
+    ("1.10.0", "1.9.9"),    # 1.10 > 1.9 numericamente
+    ("1.0.0",  "1.0.0"),
+    ("0.9.0",  "1.0.0"),
+    ("2.0.0",  "1.99.99"),
+]
+for a, b in casos:
+    r = comparar_versoes(a, b)
+    sinal = {1: ">", -1: "<", 0: "="}[r]
+    print(f"{a} {sinal} {b}")
+
+# Testando serializacao (ida e volta)
+tarefas = [
+    {"titulo": "Aprender Python", "feita": True},
+    {"titulo": "Fazer projeto",   "feita": False},
+]
+json_str = serializar(tarefas)
+print("\nJSON:", json_str)
+print("Ida e volta:", desserializar(json_str) == tarefas)
+''',
+            explicacao="A comparacao de versoes como string falha porque "
+                       "'1.10.0' < '1.9.9' lexicograficamente (compara '1' com '1', "
+                       "depois '1' com '9' -- e '1' < '9'). "
+                       "Convertendo para tupla de inteiros (1,10,0) vs (1,9,9): "
+                       "Python compara elemento a elemento e 10 > 9 -- correto. "
+                       "ensure_ascii=False e essencial para projetos em portugues: "
+                       "sem ele, 'Sao Paulo' viraria 'S\\u00e3o Paulo' no JSON.",
+        ),
+        Exemplo(
+            titulo="CLI completa com subcomandos e testes sem sys.argv",
+            codigo='''import argparse
 import json
 import sys
 from pathlib import Path
 
 ARQUIVO = Path.home() / ".tarefas.json"
 
-def carregar() -> list[dict]:
+
+def carregar():
     if not ARQUIVO.exists():
         return []
     return json.loads(ARQUIVO.read_text(encoding="utf-8"))
 
-def salvar(tarefas: list[dict]) -> None:
-    ARQUIVO.write_text(json.dumps(tarefas, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
 
-def principal(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="tarefas")
-    sub = p.add_subparsers(dest="comando", required=True)
-    add = sub.add_parser("add"); add.add_argument("titulo")
-    sub.add_parser("listar")
-    ok = sub.add_parser("concluir"); ok.add_argument("indice", type=int)
+def salvar(tarefas):
+    ARQUIVO.write_text(
+        json.dumps(tarefas, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
-    args = p.parse_args(argv)
+
+def cmd_adicionar(args):
     tarefas = carregar()
+    tarefas.append({"titulo": args.titulo, "feita": False})
+    salvar(tarefas)
+    print(f"Adicionado: {args.titulo}")
 
-    if args.comando == "add":
-        tarefas.append({"titulo": args.titulo, "feita": False})
-        salvar(tarefas)
-    elif args.comando == "listar":
-        for i, t in enumerate(tarefas):
-            print(f"{i} [{'x' if t['feita'] else ' '}] {t['titulo']}")
-    elif args.comando == "concluir":
-        tarefas[args.indice]["feita"] = True
-        salvar(tarefas)
-    return 0
+
+def cmd_listar(args):
+    tarefas = carregar()
+    if not tarefas:
+        print("Nenhuma tarefa.")
+        return
+    for i, t in enumerate(tarefas):
+        icone = "x" if t["feita"] else " "
+        print(f"  {i}. [{icone}] {t['titulo']}")
+
+
+def cmd_concluir(args):
+    tarefas = carregar()
+    if not 0 <= args.indice < len(tarefas):
+        print(f"Indice invalido: {args.indice}", file=sys.stderr)
+        sys.exit(1)
+    tarefas[args.indice]["feita"] = True
+    salvar(tarefas)
+    print(f"Concluida: {tarefas[args.indice]['titulo']}")
+
+
+def cmd_resumo(args):
+    tarefas = carregar()
+    feitas = sum(1 for t in tarefas if t["feita"])
+    print(f"{feitas}/{len(tarefas)} concluidas")
+
+
+def criar_parser():
+    p = argparse.ArgumentParser(description="Gerenciador de tarefas")
+    sub = p.add_subparsers(dest="comando", required=True)
+
+    add = sub.add_parser("adicionar")
+    add.add_argument("titulo")
+    add.set_defaults(func=cmd_adicionar)
+
+    lst = sub.add_parser("listar")
+    lst.set_defaults(func=cmd_listar)
+
+    done = sub.add_parser("concluir")
+    done.add_argument("indice", type=int)
+    done.set_defaults(func=cmd_concluir)
+
+    res = sub.add_parser("resumo")
+    res.set_defaults(func=cmd_resumo)
+
+    return p
+
+
+def main(argv=None):
+    # argv=None usa sys.argv; passar lista permite testar sem modificar sys.argv
+    args = criar_parser().parse_args(argv)
+    args.func(args)
+
 
 if __name__ == "__main__":
-    sys.exit(principal())
-''',
-            explicacao="Subcomandos com add_subparsers seguem o mesmo "
-                       "padrão de CLIs conhecidas como git (git commit, "
-                       "git push) — cada subcomando com seus próprios argumentos.",
-        ),
-        Exemplo(
-            titulo="Comparando versões corretamente",
-            codigo='''def versao_tupla(v: str) -> tuple[int, ...]:
-    return tuple(int(p) for p in v.split("."))
+    main()
 
-print(versao_tupla("1.10.0") > versao_tupla("1.9.9"))   # True
-print(sorted(["1.0.0", "1.10.0", "1.2.0"], key=versao_tupla))
+# Simulando uso sem modificar sys.argv
+main(["adicionar", "Estudar Python"])
+main(["adicionar", "Fazer projeto"])
+main(["concluir", "0"])
+main(["listar"])
+main(["resumo"])
 ''',
-            explicacao="Comparar as versões como TEXTO puro daria a "
-                       "resposta errada ('1.10.0' < '1.9.9' alfabeticamente, "
-                       "porque '1' < '9'); convertendo para tupla de int, a "
-                       "comparação numérica funciona corretamente.",
-        ),
-        Exemplo(
-            titulo="Configuração via variáveis de ambiente, falhando cedo",
-            codigo='''import os
-
-def carregar_configuracao():
-    modo_debug = os.getenv("DEBUG", "0") == "1"
-    try:
-        limite_conexoes = int(os.getenv("LIMITE_CONEXOES", "10"))
-    except ValueError:
-        raise ValueError("LIMITE_CONEXOES precisa ser um numero inteiro") from None
-    return {"debug": modo_debug, "limite_conexoes": limite_conexoes}
-
-print(carregar_configuracao())
-# Uma chave OBRIGATORIA (sem valor padrao razoavel) usaria colchetes:
-# TOKEN = os.environ["API_TOKEN"]  -- levanta KeyError se faltar, de proposito
-''',
-            explicacao="Valores com padrão razoável usam getenv com "
-                       "fallback; valores realmente obrigatórios usam "
-                       "colchetes, para falhar alto e cedo se estiverem ausentes.",
+            explicacao="set_defaults(func=cmd_xxx) associa cada subcomando a sua funcao. "
+                       "args.func(args) despacha sem if/elif -- cada subparser carrega "
+                       "sua propria funcao. "
+                       "main(argv=None) e o padrao testavel: em producao usa sys.argv, "
+                       "em testes passa uma lista. "
+                       "sys.exit(1) sinaliza erro ao shell -- convencao Unix: "
+                       "0 = sucesso, qualquer outro valor = erro.",
         ),
     ],
     exercicios=[
         Exercicio(
             id="d30e1",
             enunciado=(
-                "Escreva comparar_versoes(a, b) devolvendo 1 se a > b, -1 se a < b e 0\n"
-                "se forem iguais (formato 'X.Y.Z')."
+                "Escreva comparar_versoes(a, b) que compara duas strings\n"
+                "de versao semantica no formato 'MAJOR.MINOR.PATCH'.\n\n"
+                "Retorna:\n"
+                "    1  se a e maior que b\n"
+                "    0  se sao iguais\n"
+                "   -1  se a e menor que b\n\n"
+                "Exemplos:\n"
+                "   comparar_versoes('1.10.0', '1.9.9') ->  1\n"
+                "   comparar_versoes('1.0.0',  '1.0.0') ->  0\n"
+                "   comparar_versoes('0.9.0',  '1.0.0') -> -1\n\n"
+                "Por que nao basta comparar as strings diretamente?\n"
+                "   '1.10.0' < '1.9.9' como strings (lexicografico)\n"
+                "   porque '1' < '9' ao comparar o segundo campo -- ERRADO!\n"
+                "   Como inteiros: (1,10,0) > (1,9,9) -- CORRETO!\n\n"
+                "Estrategia:\n"
+                "   Converta cada versao em tupla de inteiros:\n"
+                "   '1.10.0' -> (1, 10, 0)\n"
+                "   '1.9.9'  -> (1, 9, 9)\n"
+                "   Compare as tuplas: (1,10,0) > (1,9,9) -> True\n\n"
+                "Python compara tuplas elemento a elemento:\n"
+                "   (1,10,0) vs (1,9,9): 1==1, depois 10 > 9 -> maior"
             ),
             funcao="comparar_versoes",
             assinatura="def comparar_versoes(a, b):",
@@ -2120,13 +4435,27 @@ print(carregar_configuracao())
                 ("comparar_versoes('0.9.0', '1.0.0')", "-1"),
             ],
             nivel="medio",
-            dica="Converta em tuplas de int e compare diretamente.",
+            dica="ta = tuple(int(x) for x in a.split('.')); tb = tuple(int(x) for x in b.split('.')); return 1 if ta > tb else -1 if ta < tb else 0",
         ),
         Exercicio(
             id="d30e2",
             enunciado=(
-                "Escreva serializar(tarefas) e desserializar(texto) usando JSON, de modo\n"
-                "que desserializar(serializar(x)) == x."
+                "O import json ja esta na assinatura.\n"
+                "Complete duas funcoes:\n\n"
+                "1. serializar(tarefas) -> str:\n"
+                "   Converte a lista de dicionarios para JSON (string).\n\n"
+                "2. desserializar(texto) -> list:\n"
+                "   Converte a string JSON de volta para lista.\n\n"
+                "Exemplos:\n"
+                "   desserializar(serializar([{'t': 'a', 'feita': False}]))\n"
+                "   -> [{'t': 'a', 'feita': False}]\n\n"
+                "   desserializar(serializar([])) -> []\n"
+                "   isinstance(serializar([]), str) -> True\n\n"
+                "serializar deve retornar uma STRING (json.dumps).\n"
+                "desserializar deve retornar um objeto Python (json.loads).\n\n"
+                "Use ensure_ascii=False para preservar acentos no JSON.\n\n"
+                "Juntas formam um par de IDA E VOLTA:\n"
+                "   desserializar(serializar(dados)) == dados"
             ),
             funcao="serializar",
             assinatura="import json\n\n\ndef serializar(tarefas):\n    ...\n\n\ndef desserializar(texto):",
@@ -2136,50 +4465,142 @@ print(carregar_configuracao())
                 ("desserializar(serializar([]))", "[]"),
                 ("isinstance(serializar([]), str)", "True"),
             ],
-            dica="json.dumps e json.loads, com ensure_ascii=False.",
+            dica="serializar: return json.dumps(tarefas, ensure_ascii=False). desserializar: return json.loads(texto)",
         ),
         Exercicio(
             id="d30e3",
             enunciado=(
-                "Projeto integrador: escreva GerenciadorTarefas com adicionar(titulo),\n"
-                "concluir(indice), pendentes() e resumo() -> '2/3 concluidas'.\n"
-                "concluir com índice inválido deve levantar IndexError."
+                "Crie a classe GerenciadorTarefas com:\n\n"
+                "   __init__(self):\n"
+                "       self._tarefas = []  <- NUNCA no corpo da classe!\n\n"
+                "   adicionar(self, titulo: str) -> None:\n"
+                "       Adiciona {'titulo': titulo, 'feita': False}\n\n"
+                "   concluir(self, indice: int) -> None:\n"
+                "       Marca tarefas[indice]['feita'] = True\n"
+                "       Levanta IndexError se indice invalido\n\n"
+                "   pendentes(self) -> list:\n"
+                "       Retorna titulos das tarefas com feita=False\n\n"
+                "   resumo(self) -> str:\n"
+                "       Retorna 'X/Y concluidas'\n\n"
+                "Exemplos:\n"
+                "   g = GerenciadorTarefas()\n"
+                "   g.adicionar('a'); g.adicionar('b')\n"
+                "   g.concluir(0)\n"
+                "   g.resumo()    -> '1/2 concluidas'\n"
+                "   g.pendentes() -> ['b']\n"
+                "   GerenciadorTarefas().resumo()    -> '0/0 concluidas'\n"
+                "   GerenciadorTarefas().concluir(5) -> IndexError\n\n"
+                "Validando o indice em concluir:\n"
+                "   if not 0 <= indice < len(self._tarefas):\n"
+                "       raise IndexError(f'indice {indice} invalido')"
             ),
             funcao="GerenciadorTarefas",
             assinatura="class GerenciadorTarefas:\n    def __init__(self):",
             testes=[
-                ("(lambda g: (g.adicionar('a'), g.adicionar('b'), g.concluir(0), "
-                 "g.resumo())[3])(GerenciadorTarefas())", "'1/2 concluidas'"),
+                ("(lambda g: (g.adicionar('a'), g.adicionar('b'), g.concluir(0), g.resumo())[3])(GerenciadorTarefas())",
+                 "'1/2 concluidas'"),
                 ("(lambda g: (g.adicionar('a'), g.pendentes())[1])(GerenciadorTarefas())",
                  "['a']"),
                 ("GerenciadorTarefas().resumo()", "'0/0 concluidas'"),
                 ("GerenciadorTarefas().concluir(5)", "!raise IndexError"),
             ],
             nivel="dificil",
-            dica="Guarde dicionários {'titulo': ..., 'feita': False} numa lista de instância.",
+            dica="self._tarefas=[]; adicionar: append({'titulo':titulo,'feita':False}); concluir: if not 0<=i<len: raise IndexError; self._tarefas[i]['feita']=True; pendentes: [t['titulo'] for t in ... if not t['feita']]; resumo: f'{feitas}/{total} concluidas'",
         ),
     ],
     quiz=[
-        Quiz("Para que serve `pip install -e .`?",
-             ["Instalar uma versão publicada do PyPI", "Instalar o projeto local em modo editável, refletindo mudanças no código imediatamente",
-              "Exportar as dependências para um arquivo", "Criar um ambiente virtual novo"], 1,
-             "Mudanças no código-fonte passam a valer sem precisar reinstalar o pacote a cada alteração."),
-        Quiz("Qual arquivo centraliza a configuração de projetos Python modernos?",
-             ["setup.py", "pyproject.toml", "requirements.txt", "config.ini"], 1,
-             "As PEP 518 e 621 tornaram o pyproject.toml o padrão, substituindo a combinação antiga de setup.py/setup.cfg."),
-        Quiz("Por que usar o layout com uma pasta src/ intermediária, em vez do pacote direto na raiz?",
-             ["É apenas uma preferência estética sem efeito real", "Evita que os testes importem acidentalmente o código do diretório atual em vez do pacote instalado",
-              "src/ é exigido pela sintaxe do Python", "Torna o código mais rápido de importar"], 1,
-             "Sem src/, um erro de empacotamento pode passar despercebido porque os testes rodam contra o código local, não o instalado de fato."),
-        Quiz("Por que usar os.environ['CHAVE'] (colchetes) em vez de os.getenv('CHAVE') para um token de API obrigatório?",
-             ["Não há diferença nenhuma entre as duas formas", "Colchetes fazem o programa falhar imediatamente (KeyError) se a variável faltar, evitando um erro confuso mais tarde",
-              "getenv não existe no módulo os", "Colchetes são mais rápidos de executar"], 1,
-             "Falhar cedo e alto (Dia 15) é preferível a continuar rodando com um valor ausente que só causaria problemas adiante."),
+        Quiz(
+            "Para que serve a estrutura src/ em um projeto Python?",
+            ["E uma convencao puramente estetica sem impacto tecnico",
+             "Separa o codigo instalavel do resto e evita importar acidentalmente o pacote local em vez do instalado nos testes",
+             "E obrigatoria para publicar no PyPI",
+             "Permite ter multiplos pacotes em um mesmo repositorio"],
+            1,
+            "Sem src/, ao rodar pytest na raiz do projeto, Python pode importar "
+            "o diretorio local meu_projeto/ em vez do pacote instalado no venv. "
+            "Isso causa bugs sutis onde os testes passam localmente mas falham "
+            "apos a instalacao. Com src/, o pacote so e encontrado se instalado.",
+        ),
+        Quiz(
+            "O que [project.scripts] em pyproject.toml define?",
+            ["Os scripts de CI/CD que rodam no GitHub Actions",
+             "Comandos de terminal disponiveis apos instalar o pacote, mapeados para funcoes Python especificas",
+             "Scripts de banco de dados para migracao",
+             "Aliases para comandos do pip"],
+            1,
+            "[project.scripts] define entry points: apos 'pip install meu-projeto', "
+            "o comando 'meu-projeto' fica disponivel no terminal e chama "
+            "a funcao main() do modulo cli.py. "
+            "E assim que ferramentas como pytest, black e ruff viram "
+            "comandos de terminal apos instalacao.",
+        ),
+        Quiz(
+            "No versionamento semantico, quando deve-se incrementar o MAJOR?",
+            ["A cada nova funcionalidade adicionada",
+             "Apenas para correcoes de bugs criticos",
+             "Quando ha mudancas que quebram compatibilidade com versoes anteriores",
+             "A cada novo commit no repositorio"],
+            2,
+            "PATCH (x.y.Z): correcao de bug, nao quebra nada. "
+            "MINOR (x.Y.0): nova funcionalidade, compativel com anterior. "
+            "MAJOR (X.0.0): mudanca que quebra codigo que usava a versao anterior "
+            "(remover funcao publica, mudar assinatura, alterar comportamento). "
+            "Versoes 0.x.x sinalizam desenvolvimento inicial -- API instavel.",
+        ),
+        Quiz(
+            "Por que main(argv=None) e melhor que main() para scripts CLI?",
+            ["Nao ha diferenca -- e apenas convencao",
+             "Com argv=None a funcao usa sys.argv automaticamente; passando uma lista permite testar sem modificar sys.argv",
+             "argv=None torna o argparse mais rapido",
+             "E necessario para que o argparse funcione com subparsers"],
+            1,
+            "parse_args(None) le sys.argv[1:] -- comportamento padrao em producao. "
+            "parse_args(['adicionar', 'titulo']) usa a lista diretamente -- "
+            "permite testar sem modificar sys.argv ou chamar o script de verdade. "
+            "Esse padrao e fundamental para ter testes unitarios em CLIs.",
+        ),
     ],
     projeto=(
-        "PROJETO FINAL: escolha um problema real (organizador de arquivos, controle de gastos, "
-        "leitor de RSS, gerador de relatórios) e entregue o pacote completo seguindo o checklist "
-        "da seção 8: estrutura src/, CLI, persistência, tipos, testes, README e logging."
+        "PROJETO FINAL: construa um gerenciador de tarefas completo\n"
+        "integrando tudo o que voce aprendeu nos 30 dias.\n\n"
+        "ESTRUTURA DO PROJETO:\n\n"
+        "   tarefas/\n"
+        "   +-- src/\n"
+        "   |   +-- tarefas/\n"
+        "   |       +-- __init__.py\n"
+        "   |       +-- models.py     (Tarefa como dataclass)\n"
+        "   |       +-- storage.py    (serializar/carregar JSON)\n"
+        "   |       +-- core.py       (GerenciadorTarefas)\n"
+        "   |       +-- cli.py        (argparse com subcomandos)\n"
+        "   +-- tests/\n"
+        "   |   +-- test_models.py\n"
+        "   |   +-- test_core.py\n"
+        "   |   +-- test_storage.py\n"
+        "   +-- pyproject.toml\n"
+        "   +-- README.md\n\n"
+        "FUNCIONALIDADES MINIMAS:\n"
+        "   tarefas adicionar 'Titulo da tarefa'\n"
+        "   tarefas listar [--pendentes | --concluidas]\n"
+        "   tarefas concluir <indice>\n"
+        "   tarefas remover <indice>\n"
+        "   tarefas resumo\n"
+        "   tarefas exportar --formato [json|csv]\n\n"
+        "REQUISITOS DE QUALIDADE:\n"
+        "   - Type hints em todas as funcoes publicas\n"
+        "   - Docstrings em classes e metodos publicos\n"
+        "   - Testes para todos os metodos do GerenciadorTarefas\n"
+        "   - ruff check . sem erros\n"
+        "   - README com instalacao, uso e exemplos\n\n"
+        "BONUS:\n"
+        "   - Prioridade nas tarefas (alta/media/baixa)\n"
+        "   - Data de criacao e conclusao\n"
+        "   - Filtro por prioridade\n"
+        "   - Desfazer a ultima acao"
     ),
-    leitura=["packaging.python.org", "PEP 621", "docs.astral.sh/ruff"],
+    leitura=[
+        "packaging.python.org -- guia oficial de empacotamento Python",
+        "PEP 621 -- pyproject.toml como descritor de projeto",
+        "docs.astral.sh/ruff -- documentacao do ruff",
+        "semver.org -- especificacao de versionamento semantico",
+    ],
 ))
