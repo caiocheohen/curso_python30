@@ -28,7 +28,7 @@ RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ))
 
 import conteudo                                  # noqa: E402
-from nucleo import avaliador, progresso          # noqa: E402
+from nucleo import avaliador, certificado, progresso  # noqa: E402
 
 WEB = RAIZ / "web"
 TOKEN = secrets.token_urlsafe(16)
@@ -256,6 +256,51 @@ def acao_lido(corpo: dict) -> dict:
     return {"ok": True}
 
 
+def acao_desmarcar_lido(corpo: dict) -> dict:
+    dados = progresso.carregar()
+    dia = int(corpo.get("dia", 0))
+    if dia in dados["dias_lidos"]:
+        dados["dias_lidos"].remove(dia)
+        progresso.salvar(dados)
+    return {"ok": True}
+
+
+def acao_elegibilidade(_corpo: dict) -> dict:
+    """Verifica se o aluno pode emitir certificado e retorna o que falta."""
+    dados = progresso.carregar()
+    resultado = certificado.verificar_elegibilidade(dados)
+    # Formata mensagens amigáveis para o front-end
+    msgs: list[str] = []
+    if resultado["exercicios_faltando"]:
+        n = len(resultado["exercicios_faltando"])
+        msgs.append(f"{n} exercício(s) ainda não concluído(s).")
+    if resultado["dias_sem_quiz"]:
+        ns = ", ".join(str(d) for d in resultado["dias_sem_quiz"][:5])
+        extra = "..." if len(resultado["dias_sem_quiz"]) > 5 else ""
+        msgs.append(f"Quiz não feito nos dias: {ns}{extra}.")
+    if resultado["media_quiz"] < 75.0 and not resultado["dias_sem_quiz"]:
+        msgs.append(
+            f"Média dos quizzes é {resultado['media_quiz']:.0f}% "
+            f"(mínimo exigido: 75%)."
+        )
+    resultado["pendencias"] = msgs
+    return resultado
+
+
+def acao_certificado(corpo: dict) -> dict:
+    """Gera o HTML do certificado para um aluno elegível."""
+    nome = (corpo.get("nome") or "").strip()
+    cpf = (corpo.get("cpf") or "").strip()
+    if not nome or not cpf:
+        return {"erro": "nome e CPF são obrigatórios"}
+    dados = progresso.carregar()
+    elegibilidade = certificado.verificar_elegibilidade(dados)
+    if not elegibilidade["elegivel"]:
+        return {"erro": "aluno não elegível para o certificado"}
+    html = certificado.gerar_html(nome, cpf, dados)
+    return {"html": html}
+
+
 def acao_buscar(termo: str) -> dict:
     achados = conteudo.buscar(termo) if termo.strip() else []
     return {"resultados": [{"numero": d.numero, "titulo": d.titulo,
@@ -378,6 +423,9 @@ class Handler(BaseHTTPRequestHandler):
             "/api/recriar": acao_recriar,
             "/api/quiz": acao_quiz,
             "/api/lido": acao_lido,
+            "/api/desmarcar_lido": acao_desmarcar_lido,
+            "/api/elegibilidade": acao_elegibilidade,
+            "/api/certificado": acao_certificado,
         }
         if rota not in acoes:
             self._erro(HTTPStatus.NOT_FOUND, "rota desconhecida")

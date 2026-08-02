@@ -39,7 +39,7 @@ python3 curso_web.py
 
 O navegador abre sozinho. É isso — não há `pip install`, venv nem configuração.
 
-Prefere terminal? `python3 curso.py`. Quer atalhos no PATH (`curso` e `curso-gui`)? `bash instalar.sh`.
+Prefere terminal? `python3 curso.py`. Quer atalho no sistema com ícone no desktop? `bash instalar.sh`.
 
 **Requisitos:** Linux com Python 3.10 ou superior (`python3 --version`). Deve funcionar em macOS; ainda não foi testado lá.
 
@@ -50,7 +50,8 @@ Prefere terminal? `python3 curso.py`. Quer atalhos no PATH (`curso` e `curso-gui
 - **60 questões de quiz** com explicação de cada resposta.
 - **30 projetos diários** sem correção — o espaço para errar sozinho.
 - **Editor embutido** na interface gráfica: realce de sintaxe, numeração de linhas, indentação automática, `Ctrl+Enter` para testar.
-- **Progresso persistente**: dias lidos, exercícios resolvidos, notas dos quizzes, sequência de dias seguidos e revisão espaçada dos assuntos em que você foi pior.
+- **Progresso persistente**: dias lidos, exercícios resolvidos, notas dos quizzes, sequência de dias seguidos e revisão espaçada.
+- **Certificado de conclusão** emitido diretamente pelo curso ao atingir os critérios mínimos.
 
 ## Duas interfaces, um curso só
 
@@ -126,6 +127,27 @@ python3 curso.py ementa           # lista os 30 dias
 
 Constância vence intensidade: uma hora por dia rende mais que sete horas no sábado. Se um dia parecer pesado, faça só a teoria e um exercício — voltar amanhã vale mais que parar.
 
+## Certificado de conclusão
+
+Ao concluir o curso, a interface gráfica libera a emissão de um certificado em PDF.
+
+**Critérios para emissão:**
+
+- Todos os 90 exercícios concluídos (3 por dia × 30 dias)
+- Média dos quizzes igual ou superior a 75%
+
+O botão **Certificado** fica sempre visível na barra lateral, mostrando o percentual de progresso atual. Enquanto os critérios não forem atingidos ele exibe o que ainda falta; ao cumprir tudo, libera o formulário para preenchimento do nome completo e CPF.
+
+O certificado gerado é um HTML autocontido que pode ser salvo como PDF diretamente pelo navegador (`Ctrl+P` → Salvar como PDF → Layout paisagem). Ele contém:
+
+- Nome completo e CPF do aluno
+- Nome do curso, carga horária (45 horas) e data de conclusão
+- Média de aproveitamento nos quizzes
+- Conteúdo programático completo no verso
+- Dados do emissor: Caio Cheohen, CNPJ 63.635.799/0001-02, Macaé — RJ
+
+O certificado não requer conexão com a internet nem instalação de nenhuma biblioteca adicional.
+
 ## Como a correção funciona
 
 Cada exercício declara seus testes como pares de expressão e resultado esperado, ao lado do enunciado:
@@ -150,22 +172,37 @@ A comparação tem alguns cuidados: `float` compara com tolerância, `bool` comp
 ## Estrutura do código
 
 ```
-curso.py         interface de terminal
-curso_web.py     interface gráfica (servidor HTTP local, só stdlib)
-web/             index.html, app.css, app.js
+curso.py              interface de terminal
+curso_web.py          interface gráfica (servidor HTTP local, só stdlib)
+web/                  index.html, app.css, app.js
+assets/
+└── icon.png          ícone do curso (usado pelo instalador)
 nucleo/
-├── modelos.py   Dia, Exercicio, Quiz, Exemplo (dataclasses)
-├── ui.py        cores ANSI, caixas, realce de código
-├── progresso.py persistência em JSON
-├── avaliador.py criação e correção dos exercícios
-└── _runner.py   executor isolado (subprocesso + timeout)
+├── modelos.py        Dia, Exercicio, Quiz, Exemplo (dataclasses)
+├── ui.py             cores ANSI, caixas, realce de código
+├── progresso.py      persistência em JSON
+├── avaliador.py      criação e correção dos exercícios
+├── certificado.py    geração do certificado de conclusão
+└── _runner.py        executor isolado (subprocesso + timeout)
 conteudo/
-└── semana1-4.py os 30 dias
+└── semana1-4.py      os 30 dias
+instalar.sh           cria atalhos, ícone no desktop e entrada no menu
+desinstalar.sh        remove tudo que o instalador criou
 ```
 
 O motor não sabe nada sobre interface, e as interfaces não sabem corrigir exercício nenhum — foi isso que permitiu acrescentar a versão gráfica sem tocar na lógica.
 
 O próprio código é material de estudo: a partir do dia 13 você consegue lê-lo inteiro, e ele usa dataclasses, subprocess, pathlib, JSON, context managers e type hints.
+
+## Instalação opcional
+
+`bash instalar.sh` cria:
+
+- Os comandos `curso-python` (navegador) e `curso-python-terminal` (terminal) em `~/.local/bin`
+- Um ícone no desktop com clique duplo para abrir o curso
+- Uma entrada no menu de aplicativos do sistema (GNOME, KDE, XFCE)
+
+Para desfazer tudo: `bash desinstalar.sh`. Seu progresso em `~/curso_python30/` nunca é removido.
 
 ## Seus arquivos
 

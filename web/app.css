@@ -79,10 +79,15 @@ html, body {
 /* ------------------------------------------------------- estrutura ------ */
 .corpo { display: flex; height: calc(100vh - 61px); }
 
-.lateral {
-  width: 288px; flex-shrink: 0; overflow-y: auto;
+.lateral-wrap {
+  width: 288px; flex-shrink: 0;
+  display: flex; flex-direction: column;
   background: var(--fundo-2); border-right: 1px solid var(--borda);
-  padding: 12px 0 40px;
+}
+
+.lateral {
+  flex: 1; overflow-y: auto;
+  padding: 12px 0 8px;
 }
 .grupo-nivel {
   padding: 14px 18px 6px; font-size: 11px; letter-spacing: .12em;
@@ -289,7 +294,77 @@ pre.codigo code { background: none; padding: 0; color: inherit; font-size: inher
 .aviso.erro { border-color: var(--vermelho); color: var(--vermelho); }
 
 @media (max-width: 900px) {
-  .lateral { width: 210px; }
+  .lateral-wrap { width: 210px; }
   .painel, .cabecalho-dia, .abas { padding-left: 20px; padding-right: 20px; }
   .medidores { display: none; }
+}
+
+/* -------------------------------------------------- certificado -------- */
+.btn-certificado {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 12px auto 4px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #8B6914 0%, #C9A84C 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(139,105,20,0.35);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-certificado:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-certificado:active { transform: translateY(0); }
+.btn-certificado.oculto { display: none; }
+
+/* estados do botao certificado */
+.btn-cert-ok {
+  background: linear-gradient(135deg, #8B6914 0%, #C9A84C 100%);
+  color: #fff;
+  opacity: 1;
+  cursor: pointer;
+}
+.btn-cert-ok:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-cert-bloqueado {
+  background: transparent;
+  color: var(--texto-apagado, #6c7086);
+  border: 1px solid var(--borda, #45475a);
+  box-shadow: none;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.btn-cert-bloqueado:hover { opacity: 1; }
+
+.cert-pct {
+  font-size: 11px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+
+/* desmarcar aula como lida */
+.aula-lida-label {
+  font-size: 13.5px;
+  color: var(--verde);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.botao-desmarcar {
+  font-size: 12px;
+  padding: 5px 12px;
+  opacity: 0.55;
+  border-color: var(--borda);
+}
+.botao-desmarcar:hover {
+  opacity: 1;
+  color: var(--vermelho);
+  border-color: var(--vermelho);
 }

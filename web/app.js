@@ -132,6 +132,199 @@ async function recarregarPainel() {
   estado.painel = await api("/api/painel");
   atualizarMedidores();
   desenharLateral();
+  atualizarBotaoCertificado();
+}
+
+/* ------------------------------------------------ certificado ---------- */
+
+function atualizarBotaoCertificado() {
+  const p = estado.painel;
+  const btn = $("#btn-certificado");
+  if (!btn) return;
+
+  const pctEx = Math.round((p.exercicios_ok / p.total_exercicios) * 100);
+  const exOk = p.exercicios_ok === p.total_exercicios;
+
+  if (exOk) {
+    btn.className = "btn-certificado btn-cert-ok";
+    btn.innerHTML = "Emitir Certificado";
+    btn.title = "Todos os exercicios concluidos! Clique para emitir.";
+    btn.onclick = abrirModalCertificado;
+  } else {
+    btn.className = "btn-certificado btn-cert-bloqueado";
+    btn.innerHTML = "Certificado  <span class=\"cert-pct\">" + pctEx + "%</span>";
+    btn.title = p.exercicios_ok + "/" + p.total_exercicios + " exercicios. Conclua todos para liberar.";
+    btn.onclick = () => {
+      const overlay = document.createElement("div");
+      overlay.id = "modal-cert-overlay";
+      overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999;";
+      overlay.innerHTML =
+        "<div style=\"background:var(--fundo,#1e1e2e);color:var(--texto,#cdd6f4);border:1px solid #45475a;border-radius:10px;padding:2rem;width:min(360px,90vw);font-family:sans-serif;position:relative;\">" +
+          "<button onclick=\"this.closest('#modal-cert-overlay').remove()\" style=\"position:absolute;top:1rem;right:1rem;background:none;border:none;color:#6c7086;font-size:1.4rem;cursor:pointer;\">&times;</button>" +
+          "<h2 style=\"font-size:1rem;margin-bottom:1rem;\">Certificado ainda bloqueado</h2>" +
+          "<div style=\"background:#313244;border-radius:8px;padding:1rem;font-size:0.82rem;line-height:1.8;\">" +
+            "<div style=\"display:flex;justify-content:space-between;margin-bottom:0.4rem;\">" +
+              "<span style=\"color:#a6adc8;\">Exercicios</span>" +
+              "<span style=\"color:#fab387;font-weight:600;\">" + p.exercicios_ok + "/" + p.total_exercicios + "</span>" +
+            "</div>" +
+            "<div style=\"background:#1e1e2e;border-radius:4px;height:6px;margin-bottom:1rem;overflow:hidden;\">" +
+              "<div style=\"height:100%;width:" + pctEx + "%;background:#fab387;border-radius:4px;\"></div>" +
+            "</div>" +
+            "<p style=\"color:#6c7086;font-size:0.78rem;text-align:center;\">Conclua todos os exercicios e tenha media >= 75% nos quizzes para liberar o certificado.</p>" +
+          "</div>" +
+        "</div>";
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+      document.body.appendChild(overlay);
+    };
+  }
+}
+
+function abrirModalCertificado() {
+  const overlay = document.createElement("div");
+  overlay.id = "modal-cert-overlay";
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.55);
+    display:flex;align-items:center;justify-content:center;z-index:9999;`;
+
+  overlay.innerHTML = `
+    <div id="modal-cert" style="
+      background:var(--fundo,#1e1e2e);color:var(--texto,#cdd6f4);
+      border:1px solid #45475a;border-radius:10px;padding:2rem;
+      width:min(420px,90vw);font-family:sans-serif;position:relative;">
+      <button id="modal-fechar" style="
+        position:absolute;top:1rem;right:1rem;background:none;border:none;
+        color:#6c7086;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+      <h2 style="font-size:1.1rem;margin-bottom:0.4rem;">
+        Emitir Certificado
+      </h2>
+      <p style="font-size:0.8rem;color:#6c7086;margin-bottom:1.5rem;">
+        Verificando sua elegibilidade...
+      </p>
+      <div id="modal-corpo">
+        <div id="msg-elegibilidade" style="margin-bottom:1.2rem;"></div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#modal-fechar").onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  // Verifica elegibilidade primeiro
+  api("/api/elegibilidade", { corpo: {} }).then((r) => {
+    const corpo = overlay.querySelector("#modal-corpo");
+    const msgEl = overlay.querySelector("#msg-elegibilidade");
+
+    if (!r.elegivel) {
+      // Mostra o que falta
+      let html = `<div style="background:#313244;border-radius:6px;padding:1rem;margin-bottom:1rem;">
+        <p style="font-size:0.85rem;font-weight:600;color:#f38ba8;margin-bottom:0.6rem;">
+          Ainda nao e possivel emitir o certificado:
+        </p>
+        <ul style="font-size:0.8rem;color:#cba6f7;padding-left:1.2rem;line-height:1.9;">`;
+      r.pendencias.forEach((p) => { html += `<li>${esc(p)}</li>`; });
+      html += `</ul></div>`;
+
+      if (r.exercicios_faltando && r.exercicios_faltando.length) {
+        html += `<p style="font-size:0.75rem;color:#6c7086;margin-bottom:0.4rem;">
+          Exercicios pendentes (${r.exercicios_faltando.length}):
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:1rem;">`;
+        r.exercicios_faltando.forEach((id) => {
+          html += `<span style="font-size:0.7rem;background:#1e1e2e;border:1px solid #45475a;
+            border-radius:4px;padding:2px 6px;font-family:monospace;color:#fab387;">${esc(id)}</span>`;
+        });
+        html += `</div>`;
+      }
+
+      html += `<p style="font-size:0.75rem;color:#a6adc8;text-align:center;">
+        Media atual dos quizzes: <strong style="color:#a6e3a1;">${r.media_quiz}%</strong>
+        &nbsp;(minimo: 75%)
+      </p>`;
+
+      msgEl.innerHTML = html;
+      corpo.querySelector("#modal-fechar") && null;
+
+      // Troca o texto do subtitulo
+      overlay.querySelector("p").textContent = "Veja o que ainda precisa ser concluido:";
+      return;
+    }
+
+    // Elegivel: mostra formulario
+    overlay.querySelector("p").textContent =
+      "Preencha seus dados para gerar o certificado.";
+    msgEl.innerHTML = `
+      <div style="background:#313244;border-radius:6px;padding:1rem;margin-bottom:1rem;">
+        <p style="font-size:0.8rem;color:#a6e3a1;margin-bottom:0.8rem;">
+          Parabens! Todos os requisitos foram cumpridos.
+          Media dos quizzes: <strong>${r.media_quiz}%</strong>
+        </p>
+        <label style="display:block;margin-bottom:0.8rem;">
+          <span style="font-size:0.8rem;color:#cdd6f4;display:block;margin-bottom:0.3rem;">
+            Nome completo
+          </span>
+          <input id="cert-nome" type="text" placeholder="Ex: Maria da Silva Oliveira"
+            style="width:100%;padding:0.5rem 0.7rem;background:#1e1e2e;
+            border:1px solid #45475a;border-radius:6px;color:#cdd6f4;
+            font-size:0.85rem;outline:none;">
+        </label>
+        <label style="display:block;margin-bottom:1rem;">
+          <span style="font-size:0.8rem;color:#cdd6f4;display:block;margin-bottom:0.3rem;">
+            CPF (somente numeros ou com pontos/traco)
+          </span>
+          <input id="cert-cpf" type="text" placeholder="Ex: 123.456.789-00"
+            style="width:100%;padding:0.5rem 0.7rem;background:#1e1e2e;
+            border:1px solid #45475a;border-radius:6px;color:#cdd6f4;
+            font-size:0.85rem;outline:none;">
+        </label>
+        <button id="btn-gerar-cert" style="
+          width:100%;padding:0.6rem;background:#cba6f7;color:#1e1e2e;
+          border:none;border-radius:6px;font-size:0.9rem;font-weight:600;
+          cursor:pointer;">
+          Gerar Certificado
+        </button>
+        <p id="cert-erro" style="color:#f38ba8;font-size:0.75rem;margin-top:0.5rem;display:none;"></p>
+      </div>`;
+
+    const btnGerar = overlay.querySelector("#btn-gerar-cert");
+    btnGerar.onclick = async () => {
+      const nome = overlay.querySelector("#cert-nome").value.trim();
+      const cpf = overlay.querySelector("#cert-cpf").value.trim();
+      const erroEl = overlay.querySelector("#cert-erro");
+      erroEl.style.display = "none";
+
+      if (!nome || nome.split(" ").filter(Boolean).length < 2) {
+        erroEl.textContent = "Informe o nome completo (nome e sobrenome).";
+        erroEl.style.display = "block";
+        return;
+      }
+      if (!cpf || cpf.replace(/\D/g, "").length !== 11) {
+        erroEl.textContent = "CPF invalido. Informe os 11 digitos.";
+        erroEl.style.display = "block";
+        return;
+      }
+
+      btnGerar.textContent = "Gerando...";
+      btnGerar.disabled = true;
+      try {
+        const resp = await api("/api/certificado", { corpo: { nome, cpf } });
+        if (resp.erro) throw new Error(resp.erro);
+        const w = window.open("", "_blank");
+        w.document.open();
+        w.document.write(resp.html);
+        w.document.close();
+        overlay.remove();
+      } catch (err) {
+        erroEl.textContent = err.message || "Erro ao gerar certificado.";
+        erroEl.style.display = "block";
+        btnGerar.textContent = "Gerar Certificado";
+        btnGerar.disabled = false;
+      }
+    };
+  }).catch(() => {
+    overlay.querySelector("#msg-elegibilidade").textContent =
+      "Erro ao verificar elegibilidade. Tente novamente.";
+  });
 }
 
 /* ------------------------------------------------------------ dia ------- */
@@ -215,19 +408,30 @@ function painelTeoria() {
     </div>
     <div class="teoria">${corpo}</div>
     <div class="rodape-dia">
-      <button class="botao ${d.lido ? "" : "principal"}" id="btn-lido">
-        ${d.lido ? "✓ Aula concluída" : "Marcar aula como lida"}
-      </button>
+      ${d.lido
+        ? `<span class="aula-lida-label">✓ Aula concluída</span>
+           <button class="botao botao-desmarcar" id="btn-desmarcar">Desmarcar</button>`
+        : `<button class="botao principal" id="btn-lido">Marcar aula como lida</button>`}
       <button class="botao" id="btn-para-exercicios">Ir para os exercícios →</button>
     </div>`;
 
-  $("#btn-lido").onclick = async () => {
-    await api("/api/lido", { corpo: { dia: d.numero } });
-    estado.dia.lido = true;
-    await recarregarPainel();
-    desenharDia();
-    avisar("Aula marcada como lida", "ok");
-  };
+  if (d.lido) {
+    $("#btn-desmarcar").onclick = async () => {
+      await api("/api/desmarcar_lido", { corpo: { dia: d.numero } });
+      estado.dia.lido = false;
+      await recarregarPainel();
+      desenharDia();
+      avisar("Aula desmarcada", "");
+    };
+  } else {
+    $("#btn-lido").onclick = async () => {
+      await api("/api/lido", { corpo: { dia: d.numero } });
+      estado.dia.lido = true;
+      await recarregarPainel();
+      desenharDia();
+      avisar("Aula marcada como lida", "ok");
+    };
+  }
   $("#btn-para-exercicios").onclick = () => { estado.aba = "exercicios"; desenharDia(); };
 }
 
