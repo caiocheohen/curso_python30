@@ -173,6 +173,7 @@ def painel_json() -> dict:
     quizzes = dados.get("quiz", {})
     acertos = sum(q["acertos"] for q in quizzes.values())
     total_q = sum(q["total"] for q in quizzes.values())
+    notas = dados.get("notas", {})
     return {
         "dias": [_resumo_dia(d, dados) for d in conteudo.DIAS],
         "total_dias": conteudo.TOTAL_DIAS,
@@ -185,6 +186,7 @@ def painel_json() -> dict:
         "sessoes": len(dados.get("sessoes", [])),
         "proximo": progresso.proximo_dia(dados, conteudo.TOTAL_DIAS),
         "pasta": str(progresso.diretorio_base()),
+        "notas": notas,
     }
 
 
@@ -263,6 +265,15 @@ def acao_desmarcar_lido(corpo: dict) -> dict:
     if dia in dados["dias_lidos"]:
         dados["dias_lidos"].remove(dia)
         progresso.salvar(dados)
+    return {"ok": True}
+
+
+def acao_salvar_nota(corpo: dict) -> dict:
+    """Salva uma anotacao. chave = 'geral' ou numero do dia (string)."""
+    chave = str(corpo.get("chave", "geral"))
+    texto = corpo.get("texto", "")
+    dados = progresso.carregar()
+    progresso.salvar_nota(dados, chave, texto)
     return {"ok": True}
 
 
@@ -425,6 +436,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/quiz": acao_quiz,
             "/api/lido": acao_lido,
             "/api/desmarcar_lido": acao_desmarcar_lido,
+            "/api/nota": acao_salvar_nota,
             "/api/elegibilidade": acao_elegibilidade,
             "/api/certificado": acao_certificado,
         }

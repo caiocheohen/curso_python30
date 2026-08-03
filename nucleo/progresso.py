@@ -90,6 +90,15 @@ def sequencia(dados: dict) -> int:
     return streak
 
 
+def salvar_nota(dados: dict, chave: str, texto: str) -> None:
+    """Salva uma anotação. chave = 'geral' ou o numero do dia como string."""
+    if texto.strip():
+        dados["notas"][chave] = texto
+    else:
+        dados["notas"].pop(chave, None)
+    salvar(dados)
+
+
 def proximo_dia(dados: dict, total: int = 30) -> int:
     for d in range(1, total + 1):
         if d not in dados["dias_lidos"]:

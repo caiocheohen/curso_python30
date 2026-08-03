@@ -368,3 +368,134 @@ pre.codigo code { background: none; padding: 0; color: inherit; font-size: inher
   color: var(--vermelho);
   border-color: var(--vermelho);
 }
+
+/* ------------------------------------------------------- anotações ------ */
+.btn-notas-flutuante {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--acento, #cba6f7);
+  color: #1e1e2e;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+.btn-notas-flutuante:hover { transform: scale(1.08); }
+.btn-notas-flutuante.tem-nota::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a6e3a1;
+  border: 2px solid var(--fundo, #1e1e2e);
+}
+
+.painel-notas {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 340px;
+  height: 380px;
+  min-width: 260px;
+  min-height: 200px;
+  background: var(--fundo-2, #313244);
+  border: 1px solid var(--borda, #45475a);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  z-index: 9001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.painel-notas.oculto { display: none; }
+
+.notas-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 12px;
+  background: var(--fundo-3, #262637);
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid var(--borda, #45475a);
+}
+.notas-abas { display: flex; gap: 4px; }
+.notas-aba {
+  background: none;
+  border: none;
+  color: var(--texto-apagado, #a6adc8);
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.notas-aba:hover { background: rgba(255,255,255,0.06); }
+.notas-aba.ativa {
+  background: var(--acento, #cba6f7);
+  color: #1e1e2e;
+  font-weight: 600;
+}
+.notas-fechar {
+  background: none;
+  border: none;
+  color: var(--texto-apagado, #a6adc8);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.notas-fechar:hover { background: rgba(255,255,255,0.08); color: #f38ba8; }
+
+.notas-texto {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--texto, #cdd6f4);
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+}
+
+.notas-rodape {
+  padding: 4px 12px 8px;
+  text-align: right;
+}
+.notas-status {
+  font-size: 11px;
+  color: var(--texto-apagado, #6c7086);
+}
+
+.notas-redimensionar {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--borda, #45475a) 50%);
+}
+
+@media (max-width: 640px) {
+  .painel-notas {
+    width: calc(100vw - 24px);
+    right: 12px;
+    left: 12px;
+    bottom: 84px;
+  }
+  .btn-notas-flutuante { bottom: 16px; right: 16px; }
+}

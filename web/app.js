@@ -10,6 +10,7 @@ const estado = {
   aba: "teoria",
   exercicio: 0,
   respostas: [],
+  notas: { escopo: "geral", timer: null },
 };
 
 /* ----------------------------------------------------------- rede ------- */
@@ -343,6 +344,12 @@ async function abrirDia(numero, aba = "teoria") {
   desenharLateral();
   desenharDia();
   $("#principal").scrollTop = 0;
+  atualizarIndicadorNotas();
+  // Se o painel de notas estiver aberto e no escopo "dia", recarrega o conteúdo
+  const painelNotas = $("#painel-notas");
+  if (painelNotas && !painelNotas.classList.contains("oculto") && estado.notas.escopo === "dia") {
+    carregarNota();
+  }
 }
 
 function desenharDia() {
@@ -779,10 +786,147 @@ document.addEventListener("click", (ev) => {
   if (!ev.target.closest(".busca")) $("#resultados-busca").classList.add("oculto");
 });
 
+/* -------------------------------------------------------- anotações ----- */
+
+function inicializarAnotacoes() {
+  const btn = document.createElement("button");
+  btn.id = "btn-notas-flutuante";
+  btn.className = "btn-notas-flutuante";
+  btn.title = "Minhas anotações";
+  btn.innerHTML = "📝";
+  document.body.appendChild(btn);
+
+  const painel = document.createElement("div");
+  painel.id = "painel-notas";
+  painel.className = "painel-notas oculto";
+  painel.innerHTML = `
+    <div class="notas-cabecalho" id="notas-arraste">
+      <div class="notas-abas">
+        <button class="notas-aba ativa" data-escopo="geral">Geral</button>
+        <button class="notas-aba" data-escopo="dia">Este dia</button>
+      </div>
+      <button class="notas-fechar" id="notas-fechar" title="Fechar">✕</button>
+    </div>
+    <textarea id="notas-texto" class="notas-texto"
+      placeholder="Escreva aqui suas anotações..."></textarea>
+    <div class="notas-rodape">
+      <span id="notas-status" class="notas-status"></span>
+    </div>
+    <div class="notas-redimensionar" id="notas-resize"></div>`;
+  document.body.appendChild(painel);
+
+  btn.onclick = () => {
+    const oculto = painel.classList.toggle("oculto");
+    if (!oculto) carregarNota();
+  };
+  $("#notas-fechar").onclick = () => painel.classList.add("oculto");
+
+  painel.querySelectorAll(".notas-aba").forEach((aba) => {
+    aba.onclick = () => {
+      painel.querySelectorAll(".notas-aba").forEach((a) => a.classList.remove("ativa"));
+      aba.classList.add("ativa");
+      estado.notas.escopo = aba.dataset.escopo;
+      carregarNota();
+    };
+  });
+
+  const textarea = $("#notas-texto");
+  textarea.addEventListener("input", () => {
+    const statusEl = $("#notas-status");
+    statusEl.textContent = "digitando…";
+    statusEl.className = "notas-status";
+    clearTimeout(estado.notas.timer);
+    estado.notas.timer = setTimeout(() => salvarNotaAtual(textarea.value), 700);
+  });
+
+  tornarArrastavel(painel, $("#notas-arraste"));
+  tornarRedimensionavel(painel, $("#notas-resize"));
+}
+
+function chaveNotaAtual() {
+  if (estado.notas.escopo === "geral") return "geral";
+  return String(estado.dia ? estado.dia.numero : "geral");
+}
+
+function carregarNota() {
+  const chave = chaveNotaAtual();
+  const notas = (estado.painel && estado.painel.notas) || {};
+  const textarea = $("#notas-texto");
+  textarea.value = notas[chave] || "";
+  const statusEl = $("#notas-status");
+  statusEl.textContent = "";
+
+  // Ajusta o rótulo da aba "Este dia" com o número do dia atual
+  const abaDia = $('.notas-aba[data-escopo="dia"]');
+  if (abaDia && estado.dia) abaDia.textContent = `Dia ${estado.dia.numero}`;
+
+  atualizarIndicadorNotas();
+}
+
+async function salvarNotaAtual(texto) {
+  const chave = chaveNotaAtual();
+  const statusEl = $("#notas-status");
+  try {
+    await api("/api/nota", { corpo: { chave, texto } });
+    if (!estado.painel.notas) estado.painel.notas = {};
+    if (texto.trim()) estado.painel.notas[chave] = texto;
+    else delete estado.painel.notas[chave];
+    statusEl.textContent = "salvo ✓";
+    atualizarIndicadorNotas();
+  } catch {
+    statusEl.textContent = "erro ao salvar";
+  }
+}
+
+function atualizarIndicadorNotas() {
+  const btn = $("#btn-notas-flutuante");
+  if (!btn) return;
+  const notas = (estado.painel && estado.painel.notas) || {};
+  const chaveDia = String(estado.dia ? estado.dia.numero : "");
+  const temAlgo = !!notas["geral"] || !!notas[chaveDia];
+  btn.classList.toggle("tem-nota", temAlgo);
+}
+
+function tornarArrastavel(painel, alca) {
+  let ativo = false, offX = 0, offY = 0;
+  alca.addEventListener("mousedown", (e) => {
+    if (e.target.closest("button")) return;
+    ativo = true;
+    const r = painel.getBoundingClientRect();
+    offX = e.clientX - r.left;
+    offY = e.clientY - r.top;
+    painel.style.right = "auto";
+    painel.style.bottom = "auto";
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!ativo) return;
+    painel.style.left = `${e.clientX - offX}px`;
+    painel.style.top = `${e.clientY - offY}px`;
+  });
+  document.addEventListener("mouseup", () => { ativo = false; });
+}
+
+function tornarRedimensionavel(painel, alca) {
+  let ativo = false, w0 = 0, h0 = 0, x0 = 0, y0 = 0;
+  alca.addEventListener("mousedown", (e) => {
+    ativo = true;
+    const r = painel.getBoundingClientRect();
+    w0 = r.width; h0 = r.height; x0 = e.clientX; y0 = e.clientY;
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!ativo) return;
+    painel.style.width = `${Math.max(260, w0 + (e.clientX - x0))}px`;
+    painel.style.height = `${Math.max(200, h0 + (e.clientY - y0))}px`;
+  });
+  document.addEventListener("mouseup", () => { ativo = false; });
+}
+
 /* ---------------------------------------------------------- início ------ */
 
 (async function iniciar() {
   try {
+    inicializarAnotacoes();
     await recarregarPainel();
     await abrirDia(estado.painel.proximo);
   } catch (erro) {
