@@ -11,6 +11,7 @@ const estado = {
   exercicio: 0,
   respostas: [],
   notas: { escopo: "geral", timer: null },
+  repl: { sessao: null, historico: [], indiceHistorico: -1, enviando: false },
 };
 
 /* ----------------------------------------------------------- rede ------- */
@@ -805,7 +806,10 @@ function inicializarAnotacoes() {
         <button class="notas-aba ativa" data-escopo="geral">Geral</button>
         <button class="notas-aba" data-escopo="dia">Este dia</button>
       </div>
-      <button class="notas-fechar" id="notas-fechar" title="Fechar">✕</button>
+      <div class="notas-acoes-topo">
+        <button class="notas-exportar" id="notas-exportar" title="Baixar como .txt">⬇</button>
+        <button class="notas-fechar" id="notas-fechar" title="Fechar">✕</button>
+      </div>
     </div>
     <textarea id="notas-texto" class="notas-texto"
       placeholder="Escreva aqui suas anotações..."></textarea>
@@ -820,6 +824,20 @@ function inicializarAnotacoes() {
     if (!oculto) carregarNota();
   };
   $("#notas-fechar").onclick = () => painel.classList.add("oculto");
+
+  $("#notas-exportar").onclick = () => {
+    const texto = $("#notas-texto").value;
+    if (!texto.trim()) {
+      avisar("Não há nada para exportar nesta anotação", "erro");
+      return;
+    }
+    const ehGeral = estado.notas.escopo === "geral";
+    const nomeParte = ehGeral
+      ? "geral"
+      : `dia-${String(estado.dia ? estado.dia.numero : 0).padStart(2, "0")}`;
+    baixarArquivo(`notas-${nomeParte}-${carimboData()}.txt`, texto);
+    avisar("Anotação exportada", "ok");
+  };
 
   painel.querySelectorAll(".notas-aba").forEach((aba) => {
     aba.onclick = () => {
@@ -887,6 +905,24 @@ function atualizarIndicadorNotas() {
   btn.classList.toggle("tem-nota", temAlgo);
 }
 
+function baixarArquivo(nome, conteudo, tipo = "text/plain") {
+  const blob = new Blob([conteudo], { type: `${tipo};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function carimboData() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 function tornarArrastavel(painel, alca) {
   let ativo = false, offX = 0, offY = 0;
   alca.addEventListener("mousedown", (e) => {
@@ -922,11 +958,163 @@ function tornarRedimensionavel(painel, alca) {
   document.addEventListener("mouseup", () => { ativo = false; });
 }
 
+/* --------------------------------------------------------- terminal ----- */
+
+function gerarSessaoId() {
+  if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  return "sessao-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+}
+
+function inicializarTerminal() {
+  estado.repl.sessao = gerarSessaoId();
+
+  const btn = document.createElement("button");
+  btn.id = "btn-terminal-flutuante";
+  btn.className = "btn-terminal-flutuante";
+  btn.title = "Terminal Python (REPL)";
+  btn.innerHTML = "&gt;_";
+  document.body.appendChild(btn);
+
+  const painel = document.createElement("div");
+  painel.id = "painel-terminal";
+  painel.className = "painel-terminal oculto";
+  painel.innerHTML = `
+    <div class="term-cabecalho" id="term-arraste">
+      <span class="term-titulo">&gt;_ Terminal Python</span>
+      <div class="term-acoes">
+        <button class="term-btn" id="term-exportar-txt" title="Baixar transcrição completa (.txt)">⬇ .txt</button>
+        <button class="term-btn" id="term-exportar-py" title="Baixar apenas os comandos, prontos para rodar (.py)">⬇ .py</button>
+        <button class="term-btn" id="term-reiniciar" title="Reiniciar sessão">↺ Reiniciar</button>
+        <button class="term-btn term-fechar" id="term-fechar" title="Fechar">✕</button>
+      </div>
+    </div>
+    <div class="term-saida" id="term-saida"><div class="term-linha term-boas-vindas">Python — sessão isolada. Digite um comando e pressione Enter.</div></div>
+    <div class="term-linha-input">
+      <span class="term-prompt">&gt;&gt;&gt;</span>
+      <input type="text" id="term-input" class="term-input" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="term-redimensionar" id="term-resize"></div>`;
+  document.body.appendChild(painel);
+
+  const saidaEl = () => $("#term-saida");
+  const inputEl = () => $("#term-input");
+
+  btn.onclick = () => {
+    painel.classList.toggle("oculto");
+    if (!painel.classList.contains("oculto")) inputEl().focus();
+  };
+  $("#term-fechar").onclick = () => painel.classList.add("oculto");
+
+  $("#term-exportar-txt").onclick = () => {
+    if (!estado.repl.historico.length) {
+      avisar("O terminal ainda está vazio", "erro");
+      return;
+    }
+    const transcricao = saidaEl().innerText;
+    baixarArquivo(`terminal-${carimboData()}.txt`, transcricao);
+    avisar("Transcrição exportada", "ok");
+  };
+
+  $("#term-exportar-py").onclick = () => {
+    if (!estado.repl.historico.length) {
+      avisar("Nenhum comando para exportar ainda", "erro");
+      return;
+    }
+    const cabecalho =
+      `# Comandos exportados do terminal do curso — ${carimboData()}\n` +
+      `# Gerado automaticamente; execute com: python3 arquivo.py\n\n`;
+    const script = cabecalho + estado.repl.historico.join("\n") + "\n";
+    baixarArquivo(`terminal-${carimboData()}.py`, script);
+    avisar("Script .py exportado", "ok");
+  };
+
+  $("#term-reiniciar").onclick = async () => {
+    await api("/api/repl/reiniciar", { corpo: { sessao: estado.repl.sessao } });
+    saidaEl().innerHTML =
+      '<div class="term-linha term-info">— sessão reiniciada, estado limpo —</div>';
+    estado.repl.historico = [];
+    estado.repl.indiceHistorico = -1;
+    inputEl().focus();
+  };
+
+  async function executarComando(comando) {
+    const linhaEntrada = document.createElement("div");
+    linhaEntrada.className = "term-linha term-entrada";
+    linhaEntrada.innerHTML = `<span class="term-prompt-inline">&gt;&gt;&gt;</span> ${esc(comando)}`;
+    saidaEl().appendChild(linhaEntrada);
+
+    if (comando.trim()) {
+      estado.repl.historico.push(comando);
+      estado.repl.indiceHistorico = estado.repl.historico.length;
+    }
+
+    estado.repl.enviando = true;
+    try {
+      const r = await api("/api/repl/enviar", {
+        corpo: { sessao: estado.repl.sessao, comando },
+      });
+      if (r.saida && r.saida.trim()) {
+        const linhaSaida = document.createElement("div");
+        linhaSaida.className = "term-linha term-saida-texto";
+        // Remove prompts residuais do python -i para exibicao mais limpa
+        const limpo = r.saida.replace(/^(>>>\s*|\.\.\.\s*)+/gm, "").trim();
+        linhaSaida.textContent = limpo;
+        if (/Traceback|Error:/.test(limpo)) linhaSaida.classList.add("term-erro");
+        saidaEl().appendChild(linhaSaida);
+      }
+    } catch {
+      const erroEl = document.createElement("div");
+      erroEl.className = "term-linha term-erro";
+      erroEl.textContent = "Falha ao comunicar com o terminal.";
+      saidaEl().appendChild(erroEl);
+    }
+    estado.repl.enviando = false;
+    saidaEl().scrollTop = saidaEl().scrollHeight;
+  }
+
+  inputEl().addEventListener("keydown", async (e) => {
+    if (e.key === "Enter" && !estado.repl.enviando) {
+      const comando = inputEl().value;
+      inputEl().value = "";
+      await executarComando(comando);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const h = estado.repl.historico;
+      if (h.length && estado.repl.indiceHistorico > 0) {
+        estado.repl.indiceHistorico--;
+        inputEl().value = h[estado.repl.indiceHistorico];
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const h = estado.repl.historico;
+      if (estado.repl.indiceHistorico < h.length - 1) {
+        estado.repl.indiceHistorico++;
+        inputEl().value = h[estado.repl.indiceHistorico];
+      } else {
+        estado.repl.indiceHistorico = h.length;
+        inputEl().value = "";
+      }
+    }
+  });
+
+  tornarArrastavel(painel, $("#term-arraste"));
+  tornarRedimensionavel(painel, $("#term-resize"));
+
+  // Encerra a sessão do REPL ao fechar a aba, para nao deixar processo orfao
+  window.addEventListener("beforeunload", () => {
+    navigator.sendBeacon(
+      `/api/repl/encerrar?t=${encodeURIComponent(TOKEN)}`,
+      JSON.stringify({ sessao: estado.repl.sessao })
+    );
+  });
+}
+
 /* ---------------------------------------------------------- início ------ */
 
 (async function iniciar() {
   try {
     inicializarAnotacoes();
+    inicializarTerminal();
     await recarregarPainel();
     await abrirDia(estado.painel.proximo);
   } catch (erro) {

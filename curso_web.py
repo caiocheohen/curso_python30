@@ -29,7 +29,7 @@ RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ))
 
 import conteudo                                  # noqa: E402
-from nucleo import avaliador, certificado, progresso  # noqa: E402
+from nucleo import avaliador, certificado, progresso, repl  # noqa: E402
 
 WEB = RAIZ / "web"
 TOKEN = secrets.token_urlsafe(16)
@@ -277,6 +277,30 @@ def acao_salvar_nota(corpo: dict) -> dict:
     return {"ok": True}
 
 
+def acao_repl_enviar(corpo: dict) -> dict:
+    sessao_id = str(corpo.get("sessao", ""))
+    comando = corpo.get("comando", "")
+    if not sessao_id:
+        return {"erro": "sessao ausente"}
+    saida = repl.enviar_comando(sessao_id, comando)
+    return {"saida": saida}
+
+
+def acao_repl_reiniciar(corpo: dict) -> dict:
+    sessao_id = str(corpo.get("sessao", ""))
+    if not sessao_id:
+        return {"erro": "sessao ausente"}
+    repl.reiniciar_sessao(sessao_id)
+    return {"ok": True}
+
+
+def acao_repl_encerrar(corpo: dict) -> dict:
+    sessao_id = str(corpo.get("sessao", ""))
+    if sessao_id:
+        repl.encerrar_sessao(sessao_id)
+    return {"ok": True}
+
+
 def acao_elegibilidade(_corpo: dict) -> dict:
     """Verifica se o aluno pode emitir certificado e retorna o que falta."""
     dados = progresso.carregar()
@@ -437,6 +461,9 @@ class Handler(BaseHTTPRequestHandler):
             "/api/lido": acao_lido,
             "/api/desmarcar_lido": acao_desmarcar_lido,
             "/api/nota": acao_salvar_nota,
+            "/api/repl/enviar": acao_repl_enviar,
+            "/api/repl/reiniciar": acao_repl_reiniciar,
+            "/api/repl/encerrar": acao_repl_encerrar,
             "/api/elegibilidade": acao_elegibilidade,
             "/api/certificado": acao_certificado,
         }
@@ -481,6 +508,8 @@ def principal(argv=None) -> int:
     servidor = ThreadingHTTPServer(("127.0.0.1", porta), Handler)
     servidor.daemon_threads = True
 
+    repl.iniciar_limpeza_em_background()
+
     print("\n  Curso de Python em 30 Dias — interface gráfica")
     print("  " + "-" * 52)
     print(f"  Abra no navegador:  {endereco}")
@@ -495,6 +524,7 @@ def principal(argv=None) -> int:
     except KeyboardInterrupt:
         print("\n  Servidor encerrado. Até a próxima sessão.\n")
     finally:
+        repl.encerrar_todas()
         servidor.server_close()
     return 0
 
