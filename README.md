@@ -7,7 +7,7 @@ Material 100% em português, do `print("olá")` até asyncio e empacotamento. Se
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Sem dependências](https://img.shields.io/badge/depend%C3%AAncias-nenhuma-brightgreen)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-lightgrey)
-![Linux](https://img.shields.io/badge/testado%20em-Linux-orange)
+![Linux](https://img.shields.io/badge/Linux-orange) ![Windows](https://img.shields.io/badge/Windows-blue) ![macOS](https://img.shields.io/badge/macOS-lightgrey)
 
 <!-- Tire um print da aba de exercícios, salve como docs/tela.png e apague os marcadores de comentário desta linha:
 ![Interface do curso](docs/tela.png)
@@ -31,17 +31,101 @@ Este projeto tira o atrito do caminho: um programa só, que ensina, propõe o ex
 
 ## Começando
 
+**Linux / macOS:**
+
 ```bash
 git clone https://github.com/SEU_USUARIO/curso-python-30-dias.git
 cd curso-python-30-dias
 python3 curso_web.py
 ```
 
+**Windows:**
+
+```bat
+git clone https://github.com/SEU_USUARIO/curso-python-30-dias.git
+cd curso-python-30-dias
+python curso_web.py
+```
+
 O navegador abre sozinho. É isso — não há `pip install`, venv nem configuração.
 
-Prefere terminal? `python3 curso.py`. Quer atalho no sistema com ícone no desktop? `bash instalar.sh`.
+Prefere terminal? `python3 curso.py` (Linux/macOS) ou `python curso.py` (Windows). Quer atalho no sistema com ícone no desktop? `bash instalar.sh` (Linux) ou clique duplo em `instalar.bat` (Windows).
 
-**Requisitos:** Linux com Python 3.10 ou superior (`python3 --version`). Deve funcionar em macOS; ainda não foi testado lá.
+**Requisitos:** Python 3.10 ou superior. No Windows, marque "Add Python to PATH" durante a instalação em python.org.
+
+
+## Instalação no Windows
+
+### 1. Instalar o Python
+
+Acesse **[python.org/downloads](https://www.python.org/downloads/)** e baixe a versão mais recente.
+
+Durante a instalação, marque obrigatoriamente a opção:
+
+```
+☑ Add Python to PATH
+```
+
+Sem isso o instalador não encontra o Python e o curso não abre.
+
+> **Como verificar se deu certo:** abra o **Prompt de Comando** (`Win + R` → digite `cmd` → Enter) e digite:
+> ```
+> python --version
+> ```
+> Deve aparecer algo como `Python 3.12.4`. Se aparecer um erro, repita a instalação marcando a opção acima.
+
+### 2. Baixar o curso
+
+**Opção A — com Git** (se você já tem Git instalado):
+
+```bat
+git clone https://github.com/SEU_USUARIO/curso-python-30-dias.git
+```
+
+**Opção B — sem Git** (mais comum para iniciantes):
+
+1. Clique no botão verde **Code** no topo desta página
+2. Clique em **Download ZIP**
+3. Extraia o arquivo ZIP em uma pasta de fácil acesso, por exemplo:
+   `C:\Users\SeuNome\curso-python-30-dias`
+
+### 3. Rodar o instalador
+
+Abra a pasta do curso e dê **clique duplo** em `instalar.bat`.
+
+Uma janela de terminal aparece, executa os passos automaticamente e fecha. O que o instalador cria:
+
+- Um ícone **"Curso Python 30 Dias"** no Desktop
+- Uma entrada no **Menu Iniciar**
+
+### 4. Abrir o curso
+
+**Clique duplo no ícone do Desktop.** O curso abre direto no navegador, sem janela de terminal.
+
+Ou, se preferir abrir pelo terminal:
+
+```bat
+python curso_web.py
+```
+
+---
+
+### Desinstalar
+
+Clique duplo em `desinstalar.bat` na pasta do curso. Ele remove o ícone do Desktop e a entrada no Menu Iniciar. Os arquivos do curso e seu progresso nunca são apagados.
+
+---
+
+### Problemas comuns no Windows
+
+**"python não é reconhecido como comando"**
+O Python não foi adicionado ao PATH. Reinstale marcando a opção "Add Python to PATH" ou adicione manualmente: Configurações → Variáveis de Ambiente → Path → adicione o caminho da pasta do Python (ex: `C:\Users\SeuNome\AppData\Local\Programs\Python\Python312`).
+
+**O curso abre e fecha imediatamente**
+Clique com o botão direito em `curso_web.py` → Abrir com → Python. Se o erro aparecer numa janela, copie o texto e abra uma issue no GitHub.
+
+**O ícone do Desktop não tem imagem personalizada**
+Normal em algumas configurações do Windows — o atalho funciona normalmente mesmo sem o ícone visual.
 
 ## O que tem dentro
 

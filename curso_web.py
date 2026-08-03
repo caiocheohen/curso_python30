@@ -6,7 +6,8 @@ biblioteca padrão: nada de Flask, Django ou npm. O motor é o mesmo da versão
 de terminal — `conteudo`, `nucleo.avaliador` e `nucleo.progresso` —, então o
 progresso é compartilhado entre as duas interfaces.
 
-    python3 curso_web.py
+    python3 curso_web.py                          (Linux/macOS)
+    python  curso_web.py                          (Windows)
     python3 curso_web.py --porta 9000 --sem-navegador
 """
 

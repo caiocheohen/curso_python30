@@ -1,6 +1,6 @@
 """Interface de terminal: cores ANSI, caixas, realce simples de codigo.
 
-Funciona em qualquer terminal Linux. Se a saida nao for um terminal
+Funciona em Linux, macOS e Windows. Se a saida nao for um terminal
 (por exemplo, `python3 curso.py | less`), as cores sao desativadas.
 """
 
@@ -8,6 +8,15 @@ import os
 import re
 import shutil
 import sys
+
+# Windows: ativa suporte a ANSI no cmd.exe (Windows 10+) e configura UTF-8
+if sys.platform == "win32":
+    os.system("")  # habilita sequencias ANSI no cmd.exe
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass  # Python < 3.7, sem reconfigure
 
 _TTY = sys.stdout.isatty() and os.environ.get("TERM") not in (None, "dumb")
 _SEM_COR = os.environ.get("CURSO_SEM_COR") == "1"

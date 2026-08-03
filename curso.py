@@ -2,10 +2,11 @@
 """CURSO DE PYTHON EM 30 DIAS - do zero ao avançado.
 
 Programa interativo de terminal, escrito em Python puro (sem dependências
-externas), para rodar em Linux.
+externas). Funciona em Linux, macOS e Windows.
 
 Uso:
-    python3 curso.py                 abre o menu principal
+    python3 curso.py                 abre o menu principal  (Linux/macOS)
+    python  curso.py                 abre o menu principal  (Windows)
     python3 curso.py hoje            abre o próximo dia não concluído
     python3 curso.py dia 7           abre o dia 7
     python3 curso.py exercicio d07e2 abre/corrige um exercício
